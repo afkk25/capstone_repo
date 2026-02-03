@@ -1,0 +1,11 @@
+# Ignore raw GIS data
+data/raw/
+
+# Ignore large files
+*.tif
+*.zip
+*.graphml
+
+# Ignore Python cache
+__pycache__/
+.ipynb_checkpoints/
