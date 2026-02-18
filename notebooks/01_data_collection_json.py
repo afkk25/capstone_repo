@@ -1,87 +1,64 @@
 
-# import requests
-# import pandas as pd
-# import folium
-# import json
-
-
-# url = "https://storageacntcasabusonly.blob.core.windows.net/gtfs/shape/312.json"
-
-# response = requests.get(url)
-# data = response.json()
-
-# print(type(data["RoutePolylines"]))
-# print(len(data["RoutePolylines"]))
-# print(data["RoutePolylines"][0])
-
-
-
-
-
-# polylines = data["RoutePolylines"]
-# df = pd.DataFrame(polylines)
-# print(df.head())
-
-
-
-
-
-# # Assume structure has Latitude and Longitude
-# coordinates = [(float(point["Latitude"]), float(point["Longitude"])) for point in polylines]
-
-# m = folium.Map(location=coordinates[0], zoom_start=13)
-# folium.PolyLine(coordinates).add_to(m)
-
-# m.save("route_312.html")
-
-BASE_DIR = "D:/Capstone/capstone_repo"
-DATA_DIR = f"{BASE_DIR}/data/raw"
-
-
-
-# import requests
-# import pandas as pd
-# import folium
-# import json
-
-
-# url = "https://storageacntcasabusonly.blob.core.windows.net/gtfs/stops.json"
-
-# response = requests.get(url)
-# data = response.json()
-
-# print(type(data))
-# print(len(data))
-# print(data[0])
-# print(data[1])
-
-# stops_df = pd.DataFrame(data)
-# print(stops_df.head())
-
-# stops_df.to_csv(f"{DATA_DIR}/stops.csv", index=False)
-
-
 import requests
 import pandas as pd
 import folium
 import json
 
+BASE_DIR = "D:/Capstone/capstone_repo"
+DATA_DIR = f"{BASE_DIR}/data/raw"
 
-url = "https://storageacntcasabusonly.blob.core.windows.net/gtfs/Lignes.json"
+############################# CasaBUS ###############################
+url = "https://storageacntcasabusonly.blob.core.windows.net/gtfs/stops.json"
 
 response = requests.get(url)
-print(response.status_code)
-print(response.headers.get("content-type"))
-print(response.text[:500])
+data = response.json()
 
-# data = response.json()
-
-# print(type(data))
-# print(len(data))
-# print(data[0])
-# print(data[1])
-
-# routes_df = pd.DataFrame(data)
-# print(routes_df.head())
+df = pd.DataFrame(data["Stops"])
+df.to_csv(f'{DATA_DIR}/CasaBus_stops.csv', index=False)
 
 
+# url = "https://storageacntcasabusonly.blob.core.windows.net/gtfs/shapes/312.json"
+# polylines = data["RoutePolylines"]
+# df = pd.DataFrame(polylines)
+# print(df.head())
+# coordinates = [(float(point["Latitude"]), float(point["Longitude"])) for point in polylines]
+# m = folium.Map(location=coordinates[0], zoom_start=13)
+# folium.PolyLine(coordinates).add_to(m)
+# m.save("route_312.html")
+
+
+######################### BusWay / TramWay ###############################
+
+
+url = "https://www.casatramway.ma/pthv/get/stops-line-discovery"
+
+# We will loop through the tram lines T1 to T4 to collect stop data for each line
+lines = ["T1", "T2", "T3", "T4", "BW1", "BW2"]  
+
+for line in lines:
+
+    params = {
+        "max": 1000,
+        "reseau": "",
+        "line": line,
+        "direction": ""
+    }
+
+    # Some APIs require a User-Agent header to prevent blocking, so we include it here
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    response = requests.get(url, params=params, headers=headers)
+
+
+    data = response.json()
+
+    # Flatten nested dictionaries and lists into a DataFrame
+    df = pd.json_normalize(data['items'])
+
+    # This creates clean columns like 'StopName.value' and 'Location.Latitude'
+    # print(df[['StopPointRef', 'StopName.value', 'Location.Latitude', 'Location.Longitude']].head())
+
+    # Save to CSV for your data collection step
+    df.to_csv(f'{DATA_DIR}/Casaway/Casaway_{line}_stops.csv', index=False)

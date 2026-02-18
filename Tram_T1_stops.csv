@@ -1,0 +1,39 @@
+StopPointRef,StopCity,StopStreet,StopStreetNumber,HandAccess,Lines,StopName.value,Location.Longitude,Location.Latitude
+31,Casablanca,Boulevard Abdelmoumen,232,1,[],Abdelmoumen,-7.62597,33.570892
+33,Casablanca,Boulevard Ecchouhada,360,1,[],Achouhada,-7.56782,33.588742
+35,Casablanca,Avenue Aviateur Bourgadam,,1,[],Ali Yaata,-7.569933,33.591476
+30,Casablanca,Avenue Aviateur Bourgadam,72,1,[],Anciens Abattoirs,-7.579402,33.591181
+34,Casablanca,Boulevard Mohamed Zefzaf,121,1,[],Attacharouk,-7.524465,33.574052
+50,Casablanca,Boulevard Hassan II,193-187,1,[],Avenue Hassan II,-7.623075,33.584151
+36,Casablanca,Boulevard Abdelmoumen,204-314,1,[],Bachkou,-7.627425,33.564119
+37,Casablanca,Boulevard Ba Hmad,99,1,[],Bahmad,-7.587257,33.59408
+22,Casablanca,Place Prince Sidi Mohamed,,1,[],Casa Voyageurs,-7.592358,33.59062
+40,Casablanca,Boulevard Mohamed Zefzaf,,1,[],Centre de Maintenance,-7.513379,33.579344
+61,Casablanca,Boulevard Abdelmoumen,255,0,[],Croisement Abd El Moumen,-7.62602,33.56967
+43,Casablanca,Boulevard Mohamed Zefzaf,,1,[],Ennassim,-7.504737,33.584639
+44,Casablanca,Boulevard Abdelmoumen,154-178,1,[],Faculté de Médecine,-7.625807,33.574639
+17,Casablanca,Route Ancienne,19,1,[],Facultés,-7.65761,33.54573
+45,Casablanca,Boulevard Oqba Bnou Nafii,,1,[],Forces Auxiliaires,-7.539628,33.5748
+47,Casablanca,Boulevard de Fes,,1,[],Gare Casa Sud,-7.6511,33.542217
+49,Casablanca,Route de l'Oasis,104,1,[],Gare Oasis,-7.631016,33.55497
+46,Casablanca,Avenue Aviateur Bourgadam,89,1,[],Grande Ceinture,-7.572976,33.590609
+57,Casablanca,Boulevard Ecchouhada,,1,[],Hay Mohammadi,-7.566664,33.585144
+53,Casablanca,Groupe 2 Rue 16,32,1,[],Hay Raja,-7.548226,33.576612
+29,Casablanca,Boulevard Mohamed Zefzaf,46,1,[],Hôpital Sidi Moumen,-7.517978,33.576404
+71,Casablanca,Boulevard Oqba Bnou Nafii,378-287,1,[],Ibn Tachfine,-7.562997,33.580715
+64,Casablanca,Boulevard Mohammed V,354,1,[],La Résistance,-7.602797,33.593433
+100,Casablanca,Boulevard Omar Al Khiam,,1,[],Laymoune,-7.666361,33.540164
+52,Casablanca,Boulevard Abdelmoumen,76,1,[],Les Hôpitaux,-7.624865,33.579969
+99,Casablanca,Boulevard Omar Al Khiam,,1,[],Lissasfa Terminus,-7.669981,33.535258
+55,Casablanca,Boulevard Mohammed V,119,1,[],Marché Central,-7.612105,33.594459
+56,Casablanca,Route de l'Oasis,280,1,[],Mekka,-7.629648,33.558359
+42,Casablanca,Boulevard Mohammed V,256-262,1,[],Mohamed Diouri,-7.607416,33.593613
+58,Casablanca,Boulevard Mohamed Zefzaf,48,1,[],Mohammed Zefzaf,-7.509011,33.582128
+59,Casablanca,Boulevard Oqba Bnou Nafii,571,1,[],Okba Ibn Nafii,-7.532854,33.573007
+60,Casablanca,Boulevard Panoramique,545,1,[],Panoramique,-7.631964,33.547339
+73,Casablanca,Boulevard Mohamed V,,1,[],Place Al Yassir,-7.596692,33.592837
+63,Casablanca,Boulevard Hassan II,12,1,[],Place des Nations Unies,-7.618149,33.594889
+62,Casablanca,Boulevard Hassan II,25-45,1,[],Place Mohammed V,-7.619919,33.589746
+66,Casablanca,Boulevard Mohamed Zefzaf,,1,[],Sidi Moumen Terminus,-7.501958,33.586647
+72,Casablanca,Boulevard Dammam,,1,[],Technopark,-7.63806,33.544749
+74,Casablanca,Route sans nom,,1,[],Zenith,-7.643435,33.540917
