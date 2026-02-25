@@ -15,3 +15,5 @@ notebooks/cache
 # Ignore environment files
 .venv
 
+# Ignore config files with sensitive info
+config.py
