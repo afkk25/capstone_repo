@@ -1,0 +1,2817 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_6bef7f1bb43f8161a492a8921230d873 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+<div style="position: fixed; bottom: 50px; left: 50px; z-index:1000;
+            background-color:white; padding:10px; border-radius:5px;
+            border:2px solid grey; font-size:13px;">
+    <b>Accessibility Score</b><br>
+    <span style="color:green">●</span> Excellent (75–100)<br>
+    <span style="color:blue">●</span> Good (50–75)<br>
+    <span style="color:orange">●</span> Moderate (25–50)<br>
+    <span style="color:red">●</span> Low (0–25)
+</div>
+    
+            <div class="folium-map" id="map_6bef7f1bb43f8161a492a8921230d873" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_6bef7f1bb43f8161a492a8921230d873 = L.map(
+                "map_6bef7f1bb43f8161a492a8921230d873",
+                {
+                    center: [33.575296557920396, -7.608515718770331],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 12,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_a5011690b12d7702582688d795877ca7 = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_a5011690b12d7702582688d795877ca7.addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+            var circle_marker_85148ad44734982a8be15eb13d69fe78 = L.circleMarker(
+                [33.594869700000004, -7.6410981],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_dfd0bf101b3b5dbbf827d0b873f725c3 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_e7d02c68a7041706b706ce8553a3ba75 = $(`<div id="html_e7d02c68a7041706b706ce8553a3ba75" style="width: 100.0%; height: 100.0%;"><b>Clinique Badr</b><br>Score: 34.1 (Moderate)<br>Stops within 500m: 5<br>Lines: 3</div>`)[0];
+                popup_dfd0bf101b3b5dbbf827d0b873f725c3.setContent(html_e7d02c68a7041706b706ce8553a3ba75);
+            
+        
+
+        circle_marker_85148ad44734982a8be15eb13d69fe78.bindPopup(popup_dfd0bf101b3b5dbbf827d0b873f725c3)
+        ;
+
+        
+    
+    
+            circle_marker_85148ad44734982a8be15eb13d69fe78.bindTooltip(
+                `<div>
+                     Clinique Badr: 34/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_37bf190593d60df4eeb7b6c0a067079f = L.circleMarker(
+                [33.5585424, -7.5733008],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.47712515627502, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_7ef24ac5f92def03e4ebb9ceeb197bc6 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_26d4a827a5b420b9be01018ba5862375 = $(`<div id="html_26d4a827a5b420b9be01018ba5862375" style="width: 100.0%; height: 100.0%;"><b>Hôpital Sidi Othmane</b><br>Score: 74.8 (Good)<br>Stops within 500m: 11<br>Lines: 9</div>`)[0];
+                popup_7ef24ac5f92def03e4ebb9ceeb197bc6.setContent(html_26d4a827a5b420b9be01018ba5862375);
+            
+        
+
+        circle_marker_37bf190593d60df4eeb7b6c0a067079f.bindPopup(popup_7ef24ac5f92def03e4ebb9ceeb197bc6)
+        ;
+
+        
+    
+    
+            circle_marker_37bf190593d60df4eeb7b6c0a067079f.bindTooltip(
+                `<div>
+                     Hôpital Sidi Othmane: 75/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_82a44eff264eec5697ab9e3a20a63afa = L.circleMarker(
+                [33.54051499999999, -7.597635100000001],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b51016a1d49332ac245badc90c910aa6 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_48ae968771993614966e177918fe9369 = $(`<div id="html_48ae968771993614966e177918fe9369" style="width: 100.0%; height: 100.0%;"><b>Polyclinique CNSS</b><br>Score: 57.6 (Good)<br>Stops within 500m: 6<br>Lines: 8</div>`)[0];
+                popup_b51016a1d49332ac245badc90c910aa6.setContent(html_48ae968771993614966e177918fe9369);
+            
+        
+
+        circle_marker_82a44eff264eec5697ab9e3a20a63afa.bindPopup(popup_b51016a1d49332ac245badc90c910aa6)
+        ;
+
+        
+    
+    
+            circle_marker_82a44eff264eec5697ab9e3a20a63afa.bindTooltip(
+                `<div>
+                     Polyclinique CNSS: 58/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ba8f5d021c6bf854327319833e6f9954 = L.circleMarker(
+                [33.5652215, -7.627531099999999],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.972069365891845, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b23a2c1eceecb1144b997c9a4c8d629b = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_b256d893ec632e9420589ab7902ef3be = $(`<div id="html_b256d893ec632e9420589ab7902ef3be" style="width: 100.0%; height: 100.0%;"><b>Clinique Abdelmoumen</b><br>Score: 69.7 (Good)<br>Stops within 500m: 7<br>Lines: 12</div>`)[0];
+                popup_b23a2c1eceecb1144b997c9a4c8d629b.setContent(html_b256d893ec632e9420589ab7902ef3be);
+            
+        
+
+        circle_marker_ba8f5d021c6bf854327319833e6f9954.bindPopup(popup_b23a2c1eceecb1144b997c9a4c8d629b)
+        ;
+
+        
+    
+    
+            circle_marker_ba8f5d021c6bf854327319833e6f9954.bindTooltip(
+                `<div>
+                     Clinique Abdelmoumen: 70/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ec7b00f714cf06fe54e380d1adc5d728 = L.circleMarker(
+                [33.55435059999999, -7.610911300000001],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_a189a2fa2051e0bde3dbdf44cb4eacfe = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_d68590b7372b8896a4d236dc4e89b012 = $(`<div id="html_d68590b7372b8896a4d236dc4e89b012" style="width: 100.0%; height: 100.0%;"><b>Avicenne Clinique des Spécialistes</b><br>Score: 16.5 (Low)<br>Stops within 500m: 3<br>Lines: 1</div>`)[0];
+                popup_a189a2fa2051e0bde3dbdf44cb4eacfe.setContent(html_d68590b7372b8896a4d236dc4e89b012);
+            
+        
+
+        circle_marker_ec7b00f714cf06fe54e380d1adc5d728.bindPopup(popup_a189a2fa2051e0bde3dbdf44cb4eacfe)
+        ;
+
+        
+    
+    
+            circle_marker_ec7b00f714cf06fe54e380d1adc5d728.bindTooltip(
+                `<div>
+                     Avicenne Clinique des Spécialistes: 16/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_eb377f3ce9a881f90a86e0db4e70f0a9 = L.circleMarker(
+                [33.5761131, -7.548486500000001],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b2c59b35eb0c6311d7a3fb22d25e9b5f = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_8da68537057428675fb4345c59920335 = $(`<div id="html_8da68537057428675fb4345c59920335" style="width: 100.0%; height: 100.0%;"><b>Clinique Bournazel</b><br>Score: 50.4 (Good)<br>Stops within 500m: 4<br>Lines: 4</div>`)[0];
+                popup_b2c59b35eb0c6311d7a3fb22d25e9b5f.setContent(html_8da68537057428675fb4345c59920335);
+            
+        
+
+        circle_marker_eb377f3ce9a881f90a86e0db4e70f0a9.bindPopup(popup_b2c59b35eb0c6311d7a3fb22d25e9b5f)
+        ;
+
+        
+    
+    
+            circle_marker_eb377f3ce9a881f90a86e0db4e70f0a9.bindTooltip(
+                `<div>
+                     Clinique Bournazel: 50/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a323890ee9c00dccaeca96ebe281539d = L.circleMarker(
+                [33.585036499999994, -7.6142471999999985],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_7da02a85a0470b53d97ef24845fd40ee = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_83719bb4c28a07bbaa81494a101657e3 = $(`<div id="html_83719bb4c28a07bbaa81494a101657e3" style="width: 100.0%; height: 100.0%;"><b>Clinique Zarhoun</b><br>Score: 41.7 (Moderate)<br>Stops within 500m: 5<br>Lines: 6</div>`)[0];
+                popup_7da02a85a0470b53d97ef24845fd40ee.setContent(html_83719bb4c28a07bbaa81494a101657e3);
+            
+        
+
+        circle_marker_a323890ee9c00dccaeca96ebe281539d.bindPopup(popup_7da02a85a0470b53d97ef24845fd40ee)
+        ;
+
+        
+    
+    
+            circle_marker_a323890ee9c00dccaeca96ebe281539d.bindTooltip(
+                `<div>
+                     Clinique Zarhoun: 42/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_44c6434a1d730d68682e42ccba4b466a = L.circleMarker(
+                [33.5878622, -7.6195697],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_3f0efa43df015a8ab337cbfbec8421a4 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_2eba3c06a3edbfe415bf0d63cd66a37c = $(`<div id="html_2eba3c06a3edbfe415bf0d63cd66a37c" style="width: 100.0%; height: 100.0%;"><b>Clinique les princes</b><br>Score: 55.1 (Good)<br>Stops within 500m: 6<br>Lines: 7</div>`)[0];
+                popup_3f0efa43df015a8ab337cbfbec8421a4.setContent(html_2eba3c06a3edbfe415bf0d63cd66a37c);
+            
+        
+
+        circle_marker_44c6434a1d730d68682e42ccba4b466a.bindPopup(popup_3f0efa43df015a8ab337cbfbec8421a4)
+        ;
+
+        
+    
+    
+            circle_marker_44c6434a1d730d68682e42ccba4b466a.bindTooltip(
+                `<div>
+                     Clinique les princes: 55/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a2abc892f0ce95659c5130902ad6ed40 = L.circleMarker(
+                [33.57398669999999, -7.6307733],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_5ec2b800d1760a818c2f9e5e5de1aa95 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_eb3a600b3d1851457d07161c2e3f2d99 = $(`<div id="html_eb3a600b3d1851457d07161c2e3f2d99" style="width: 100.0%; height: 100.0%;"><b>Clinique Hamdani</b><br>Score: 42.0 (Moderate)<br>Stops within 500m: 8<br>Lines: 9</div>`)[0];
+                popup_5ec2b800d1760a818c2f9e5e5de1aa95.setContent(html_eb3a600b3d1851457d07161c2e3f2d99);
+            
+        
+
+        circle_marker_a2abc892f0ce95659c5130902ad6ed40.bindPopup(popup_5ec2b800d1760a818c2f9e5e5de1aa95)
+        ;
+
+        
+    
+    
+            circle_marker_a2abc892f0ce95659c5130902ad6ed40.bindTooltip(
+                `<div>
+                     Clinique Hamdani: 42/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f8422e2a5929b15c7d08b78dbba9ba7b = L.circleMarker(
+                [33.5688746, -7.6141718],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_bfe4d54190b3debbf3f229fdceca86a5 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_8496d157394a0f28d57458ab50fa3b5b = $(`<div id="html_8496d157394a0f28d57458ab50fa3b5b" style="width: 100.0%; height: 100.0%;"><b>Clinique Hermitage</b><br>Score: 54.4 (Good)<br>Stops within 500m: 5<br>Lines: 10</div>`)[0];
+                popup_bfe4d54190b3debbf3f229fdceca86a5.setContent(html_8496d157394a0f28d57458ab50fa3b5b);
+            
+        
+
+        circle_marker_f8422e2a5929b15c7d08b78dbba9ba7b.bindPopup(popup_bfe4d54190b3debbf3f229fdceca86a5)
+        ;
+
+        
+    
+    
+            circle_marker_f8422e2a5929b15c7d08b78dbba9ba7b.bindTooltip(
+                `<div>
+                     Clinique Hermitage: 54/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_909dffaccee93fb486701e4d95dccefc = L.circleMarker(
+                [33.5844776, -7.650757999999999],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.087320641012605, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_50e5e6963d0a155a17075b8f56050af7 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_17513874bb4365f9c9c215205b6c5fb1 = $(`<div id="html_17513874bb4365f9c9c215205b6c5fb1" style="width: 100.0%; height: 100.0%;"><b>clinique kindi</b><br>Score: 60.9 (Good)<br>Stops within 500m: 7<br>Lines: 5</div>`)[0];
+                popup_50e5e6963d0a155a17075b8f56050af7.setContent(html_17513874bb4365f9c9c215205b6c5fb1);
+            
+        
+
+        circle_marker_909dffaccee93fb486701e4d95dccefc.bindPopup(popup_50e5e6963d0a155a17075b8f56050af7)
+        ;
+
+        
+    
+    
+            circle_marker_909dffaccee93fb486701e4d95dccefc.bindTooltip(
+                `<div>
+                     clinique kindi: 61/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_98ca9996eadc417650963ff4a0537453 = L.circleMarker(
+                [33.588085099999994, -7.5459223],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_66d500b613ea331e01bbac30301e0a68 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_43f2ee041720b8173fb8a7dc78893787 = $(`<div id="html_43f2ee041720b8173fb8a7dc78893787" style="width: 100.0%; height: 100.0%;"><b>clinique Elmouahidin</b><br>Score: 41.5 (Moderate)<br>Stops within 500m: 3<br>Lines: 2</div>`)[0];
+                popup_66d500b613ea331e01bbac30301e0a68.setContent(html_43f2ee041720b8173fb8a7dc78893787);
+            
+        
+
+        circle_marker_98ca9996eadc417650963ff4a0537453.bindPopup(popup_66d500b613ea331e01bbac30301e0a68)
+        ;
+
+        
+    
+    
+            circle_marker_98ca9996eadc417650963ff4a0537453.bindTooltip(
+                `<div>
+                     clinique Elmouahidin: 41/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7ccb0eec34ec55a36307c7254b6d606b = L.circleMarker(
+                [33.61239739999999, -7.543484900000001],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_468757cf6cf4e007c5cb8306f16aea48 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_b80b71a92b6f7f0d69782813a4c6e017 = $(`<div id="html_b80b71a92b6f7f0d69782813a4c6e017" style="width: 100.0%; height: 100.0%;"><b>clinique ain saba3</b><br>Score: 30.8 (Moderate)<br>Stops within 500m: 4<br>Lines: 1</div>`)[0];
+                popup_468757cf6cf4e007c5cb8306f16aea48.setContent(html_b80b71a92b6f7f0d69782813a4c6e017);
+            
+        
+
+        circle_marker_7ccb0eec34ec55a36307c7254b6d606b.bindPopup(popup_468757cf6cf4e007c5cb8306f16aea48)
+        ;
+
+        
+    
+    
+            circle_marker_7ccb0eec34ec55a36307c7254b6d606b.bindTooltip(
+                `<div>
+                     clinique ain saba3: 31/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_43481da0c7ee76db1dae0d25cfef5700 = L.circleMarker(
+                [33.5968647, -7.6545628],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_9bb84c7f25d5c41e820a92ff1d178d27 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_cf2bd73afc761f7c39269078af0bb8dc = $(`<div id="html_cf2bd73afc761f7c39269078af0bb8dc" style="width: 100.0%; height: 100.0%;"><b>Clinique Andalouss</b><br>Score: 45.3 (Moderate)<br>Stops within 500m: 3<br>Lines: 1</div>`)[0];
+                popup_9bb84c7f25d5c41e820a92ff1d178d27.setContent(html_cf2bd73afc761f7c39269078af0bb8dc);
+            
+        
+
+        circle_marker_43481da0c7ee76db1dae0d25cfef5700.bindPopup(popup_9bb84c7f25d5c41e820a92ff1d178d27)
+        ;
+
+        
+    
+    
+            circle_marker_43481da0c7ee76db1dae0d25cfef5700.bindTooltip(
+                `<div>
+                     Clinique Andalouss: 45/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_aee973e4b039c8c3901cd1eb17d1495f = L.circleMarker(
+                [33.58539460000001, -7.5964818],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_a755d7936a402cfe394ba53349e6a2c7 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_8bf4a005836b5bf995a03231b4db3064 = $(`<div id="html_8bf4a005836b5bf995a03231b4db3064" style="width: 100.0%; height: 100.0%;"><b>Akdital Clinique Ain Berja</b><br>Score: 59.0 (Good)<br>Stops within 500m: 8<br>Lines: 7</div>`)[0];
+                popup_a755d7936a402cfe394ba53349e6a2c7.setContent(html_8bf4a005836b5bf995a03231b4db3064);
+            
+        
+
+        circle_marker_aee973e4b039c8c3901cd1eb17d1495f.bindPopup(popup_a755d7936a402cfe394ba53349e6a2c7)
+        ;
+
+        
+    
+    
+            circle_marker_aee973e4b039c8c3901cd1eb17d1495f.bindTooltip(
+                `<div>
+                     Akdital Clinique Ain Berja: 59/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_8511270f5d03b29a9e98d0225b13c7e7 = L.circleMarker(
+                [33.6050363, -7.519269200000003],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_d395c4c154cb07fae1716f721688509f = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_5f33a6b89d706b9087704f92af1348e6 = $(`<div id="html_5f33a6b89d706b9087704f92af1348e6" style="width: 100.0%; height: 100.0%;"><b>clinique firdaous</b><br>Score: 36.0 (Moderate)<br>Stops within 500m: 2<br>Lines: 7</div>`)[0];
+                popup_d395c4c154cb07fae1716f721688509f.setContent(html_5f33a6b89d706b9087704f92af1348e6);
+            
+        
+
+        circle_marker_8511270f5d03b29a9e98d0225b13c7e7.bindPopup(popup_d395c4c154cb07fae1716f721688509f)
+        ;
+
+        
+    
+    
+            circle_marker_8511270f5d03b29a9e98d0225b13c7e7.bindTooltip(
+                `<div>
+                     clinique firdaous: 36/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_8de9dc0f6841f6a7fd83644ea64a8a6d = L.circleMarker(
+                [33.592744800000006, -7.6247862],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "green", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8.40851564579984, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b195ce4c9be03fb2c2fd4bf5c7a0cae4 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_ae9f86417a5ec8a80b8314b29e01dbae = $(`<div id="html_ae9f86417a5ec8a80b8314b29e01dbae" style="width: 100.0%; height: 100.0%;"><b>Clinique Mutualiste CNOPS</b><br>Score: 84.1 (Excellent)<br>Stops within 500m: 11<br>Lines: 18</div>`)[0];
+                popup_b195ce4c9be03fb2c2fd4bf5c7a0cae4.setContent(html_ae9f86417a5ec8a80b8314b29e01dbae);
+            
+        
+
+        circle_marker_8de9dc0f6841f6a7fd83644ea64a8a6d.bindPopup(popup_b195ce4c9be03fb2c2fd4bf5c7a0cae4)
+        ;
+
+        
+    
+    
+            circle_marker_8de9dc0f6841f6a7fd83644ea64a8a6d.bindTooltip(
+                `<div>
+                     Clinique Mutualiste CNOPS: 84/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a33315ef177cf2cab66cb1f2e2b4ccd9 = L.circleMarker(
+                [33.610752100000006, -7.500803500000001],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.597952628994105, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_6c1e7fdbdaa77084f73b34c91fd36de8 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_ce1fd8f12b8bb90f25df0e7b403d5c50 = $(`<div id="html_ce1fd8f12b8bb90f25df0e7b403d5c50" style="width: 100.0%; height: 100.0%;"><b>Hospital CNSS</b><br>Score: 66.0 (Good)<br>Stops within 500m: 9<br>Lines: 7</div>`)[0];
+                popup_6c1e7fdbdaa77084f73b34c91fd36de8.setContent(html_ce1fd8f12b8bb90f25df0e7b403d5c50);
+            
+        
+
+        circle_marker_a33315ef177cf2cab66cb1f2e2b4ccd9.bindPopup(popup_6c1e7fdbdaa77084f73b34c91fd36de8)
+        ;
+
+        
+    
+    
+            circle_marker_a33315ef177cf2cab66cb1f2e2b4ccd9.bindTooltip(
+                `<div>
+                     Hospital CNSS: 66/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_65d9c8b34fe5b5c15d6219c8bec5f947 = L.circleMarker(
+                [33.5815871, -7.6220232],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.684803663454548, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_2aef52b5834c4ab7240a7f1280bb1bcd = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_d3a6914aa3de770a8b637281d10afdf0 = $(`<div id="html_d3a6914aa3de770a8b637281d10afdf0" style="width: 100.0%; height: 100.0%;"><b>Clinical Les Fleurs</b><br>Score: 66.8 (Good)<br>Stops within 500m: 10<br>Lines: 11</div>`)[0];
+                popup_2aef52b5834c4ab7240a7f1280bb1bcd.setContent(html_d3a6914aa3de770a8b637281d10afdf0);
+            
+        
+
+        circle_marker_65d9c8b34fe5b5c15d6219c8bec5f947.bindPopup(popup_2aef52b5834c4ab7240a7f1280bb1bcd)
+        ;
+
+        
+    
+    
+            circle_marker_65d9c8b34fe5b5c15d6219c8bec5f947.bindTooltip(
+                `<div>
+                     Clinical Les Fleurs: 67/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5e32c193a5be1fd6b9eddc412952747c = L.circleMarker(
+                [33.6046028, -7.634031800000001],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_9115ba91aa597485bab4ed26af54c1d0 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_df483722b3b6b8d95fdb755800e878f8 = $(`<div id="html_df483722b3b6b8d95fdb755800e878f8" style="width: 100.0%; height: 100.0%;"><b>Hopital Moulay Hassan</b><br>Score: 42.6 (Moderate)<br>Stops within 500m: 5<br>Lines: 7</div>`)[0];
+                popup_9115ba91aa597485bab4ed26af54c1d0.setContent(html_df483722b3b6b8d95fdb755800e878f8);
+            
+        
+
+        circle_marker_5e32c193a5be1fd6b9eddc412952747c.bindPopup(popup_9115ba91aa597485bab4ed26af54c1d0)
+        ;
+
+        
+    
+    
+            circle_marker_5e32c193a5be1fd6b9eddc412952747c.bindTooltip(
+                `<div>
+                     Hopital Moulay Hassan: 43/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_9001d9c212b04ef59eb13775e2e0d6a8 = L.circleMarker(
+                [33.5901639, -7.6287525],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_fed456fb6d152810c30182527fd84064 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_aeb07ef592498fef7e132ca1a192e7a5 = $(`<div id="html_aeb07ef592498fef7e132ca1a192e7a5" style="width: 100.0%; height: 100.0%;"><b>Polyclinique Atlas</b><br>Score: 51.5 (Good)<br>Stops within 500m: 8<br>Lines: 8</div>`)[0];
+                popup_fed456fb6d152810c30182527fd84064.setContent(html_aeb07ef592498fef7e132ca1a192e7a5);
+            
+        
+
+        circle_marker_9001d9c212b04ef59eb13775e2e0d6a8.bindPopup(popup_fed456fb6d152810c30182527fd84064)
+        ;
+
+        
+    
+    
+            circle_marker_9001d9c212b04ef59eb13775e2e0d6a8.bindTooltip(
+                `<div>
+                     Polyclinique Atlas: 52/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f209fc904bf018d3a34e1b044550aa07 = L.circleMarker(
+                [33.581767199999994, -7.6608672],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_1b87e6a5d55dbbedc50b9733e4ff19c5 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_dcfac34e73c322fcd2090e4c20051138 = $(`<div id="html_dcfac34e73c322fcd2090e4c20051138" style="width: 100.0%; height: 100.0%;"><b>Clinique Longchamps</b><br>Score: 32.8 (Moderate)<br>Stops within 500m: 3<br>Lines: 1</div>`)[0];
+                popup_1b87e6a5d55dbbedc50b9733e4ff19c5.setContent(html_dcfac34e73c322fcd2090e4c20051138);
+            
+        
+
+        circle_marker_f209fc904bf018d3a34e1b044550aa07.bindPopup(popup_1b87e6a5d55dbbedc50b9733e4ff19c5)
+        ;
+
+        
+    
+    
+            circle_marker_f209fc904bf018d3a34e1b044550aa07.bindTooltip(
+                `<div>
+                     Clinique Longchamps: 33/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a61953e6166ce5141609b79415ea46f6 = L.circleMarker(
+                [33.579757, -7.6570106],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_d6ced330d423acde83a7850ef429e8a4 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_4b78ee7256aeafa2b59cbaaa2b1336ae = $(`<div id="html_4b78ee7256aeafa2b59cbaaa2b1336ae" style="width: 100.0%; height: 100.0%;"><b>Clinique Ghandi</b><br>Score: 55.0 (Good)<br>Stops within 500m: 7<br>Lines: 10</div>`)[0];
+                popup_d6ced330d423acde83a7850ef429e8a4.setContent(html_4b78ee7256aeafa2b59cbaaa2b1336ae);
+            
+        
+
+        circle_marker_a61953e6166ce5141609b79415ea46f6.bindPopup(popup_d6ced330d423acde83a7850ef429e8a4)
+        ;
+
+        
+    
+    
+            circle_marker_a61953e6166ce5141609b79415ea46f6.bindTooltip(
+                `<div>
+                     Clinique Ghandi: 55/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c33b16253dc9ba77f80a0c18d41c386e = L.circleMarker(
+                [33.5819777, -7.6403102],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.034242643133314, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_9ee8372f787aaf0a790ca6e48f9360bf = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_6d10545494ee5d0f2a077740b2aa4fda = $(`<div id="html_6d10545494ee5d0f2a077740b2aa4fda" style="width: 100.0%; height: 100.0%;"><b>Hôpital Privé International de Casablanca</b><br>Score: 60.3 (Good)<br>Stops within 500m: 7<br>Lines: 5</div>`)[0];
+                popup_9ee8372f787aaf0a790ca6e48f9360bf.setContent(html_6d10545494ee5d0f2a077740b2aa4fda);
+            
+        
+
+        circle_marker_c33b16253dc9ba77f80a0c18d41c386e.bindPopup(popup_9ee8372f787aaf0a790ca6e48f9360bf)
+        ;
+
+        
+    
+    
+            circle_marker_c33b16253dc9ba77f80a0c18d41c386e.bindTooltip(
+                `<div>
+                     Hôpital Privé International de Casablanca: 60/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_285f9ef1175a8ca6707d7c3ed3cfc2d5 = L.circleMarker(
+                [33.58505749999999, -7.6427795],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.68807383648687, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_df18cb5dc4bc6e8ca557e7ab61724806 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_0aa4bab941688b842d1786aeebf6a3dd = $(`<div id="html_0aa4bab941688b842d1786aeebf6a3dd" style="width: 100.0%; height: 100.0%;"><b>Clinique Maghreb</b><br>Score: 66.9 (Good)<br>Stops within 500m: 11<br>Lines: 7</div>`)[0];
+                popup_df18cb5dc4bc6e8ca557e7ab61724806.setContent(html_0aa4bab941688b842d1786aeebf6a3dd);
+            
+        
+
+        circle_marker_285f9ef1175a8ca6707d7c3ed3cfc2d5.bindPopup(popup_df18cb5dc4bc6e8ca557e7ab61724806)
+        ;
+
+        
+    
+    
+            circle_marker_285f9ef1175a8ca6707d7c3ed3cfc2d5.bindTooltip(
+                `<div>
+                     Clinique Maghreb: 67/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_dc94df4030797f011b3b2c6a4fbb7813 = L.circleMarker(
+                [33.5906505, -7.638654200000001],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.370952930575728, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_e70c3243313885169c5b29f75c6a64f9 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_9755006ce3cd606ae53d9ecd5f70439b = $(`<div id="html_9755006ce3cd606ae53d9ecd5f70439b" style="width: 100.0%; height: 100.0%;"><b>Clinique Al Massira</b><br>Score: 73.7 (Good)<br>Stops within 500m: 11<br>Lines: 8</div>`)[0];
+                popup_e70c3243313885169c5b29f75c6a64f9.setContent(html_9755006ce3cd606ae53d9ecd5f70439b);
+            
+        
+
+        circle_marker_dc94df4030797f011b3b2c6a4fbb7813.bindPopup(popup_e70c3243313885169c5b29f75c6a64f9)
+        ;
+
+        
+    
+    
+            circle_marker_dc94df4030797f011b3b2c6a4fbb7813.bindTooltip(
+                `<div>
+                     Clinique Al Massira: 74/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_39e556ff791cba2ed12b02ffad8dd8cc = L.circleMarker(
+                [33.588337499999994, -7.6364928],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.532021931699207, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_5393e0abbd80c3f40cda405ff06c9c9d = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_48f0fcbae992c37f53f2da08d14d0e20 = $(`<div id="html_48f0fcbae992c37f53f2da08d14d0e20" style="width: 100.0%; height: 100.0%;"><b>Clinique Les Iris</b><br>Score: 65.3 (Good)<br>Stops within 500m: 12<br>Lines: 8</div>`)[0];
+                popup_5393e0abbd80c3f40cda405ff06c9c9d.setContent(html_48f0fcbae992c37f53f2da08d14d0e20);
+            
+        
+
+        circle_marker_39e556ff791cba2ed12b02ffad8dd8cc.bindPopup(popup_5393e0abbd80c3f40cda405ff06c9c9d)
+        ;
+
+        
+    
+    
+            circle_marker_39e556ff791cba2ed12b02ffad8dd8cc.bindTooltip(
+                `<div>
+                     Clinique Les Iris: 65/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_8aac9b3052002de131a95c84045db3b9 = L.circleMarker(
+                [33.56068079999999, -7.629328299999999],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.116763656984437, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_721397397ddcb47f6f3ee7d2c5c32c19 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_3ee708cb2912ec9fd69f029fdce77bfa = $(`<div id="html_3ee708cb2912ec9fd69f029fdce77bfa" style="width: 100.0%; height: 100.0%;"><b>Akdital oasis</b><br>Score: 71.2 (Good)<br>Stops within 500m: 11<br>Lines: 10</div>`)[0];
+                popup_721397397ddcb47f6f3ee7d2c5c32c19.setContent(html_3ee708cb2912ec9fd69f029fdce77bfa);
+            
+        
+
+        circle_marker_8aac9b3052002de131a95c84045db3b9.bindPopup(popup_721397397ddcb47f6f3ee7d2c5c32c19)
+        ;
+
+        
+    
+    
+            circle_marker_8aac9b3052002de131a95c84045db3b9.bindTooltip(
+                `<div>
+                     Akdital oasis: 71/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_aae56a2e8cc3d04f42c0b2efa5acf834 = L.circleMarker(
+                [33.586981399999985, -7.636939600000001],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_8599989614d82ea5412eb1c8ed9c550b = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_5f6284d21d15da8ef0baf46861391362 = $(`<div id="html_5f6284d21d15da8ef0baf46861391362" style="width: 100.0%; height: 100.0%;"><b>Clinique Racine</b><br>Score: 52.3 (Good)<br>Stops within 500m: 9<br>Lines: 8</div>`)[0];
+                popup_8599989614d82ea5412eb1c8ed9c550b.setContent(html_5f6284d21d15da8ef0baf46861391362);
+            
+        
+
+        circle_marker_aae56a2e8cc3d04f42c0b2efa5acf834.bindPopup(popup_8599989614d82ea5412eb1c8ed9c550b)
+        ;
+
+        
+    
+    
+            circle_marker_aae56a2e8cc3d04f42c0b2efa5acf834.bindTooltip(
+                `<div>
+                     Clinique Racine: 52/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_4e2dee19758f977a83f92e212661afb8 = L.circleMarker(
+                [33.5636438, -7.6150157],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_c02106a9fa1a32ffeaeda5b1a85b7c52 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_1cb1430b1cff6e0c94947f1f600cfb8d = $(`<div id="html_1cb1430b1cff6e0c94947f1f600cfb8d" style="width: 100.0%; height: 100.0%;"><b>Clinique Le Parc</b><br>Score: 33.2 (Moderate)<br>Stops within 500m: 3<br>Lines: 6</div>`)[0];
+                popup_c02106a9fa1a32ffeaeda5b1a85b7c52.setContent(html_1cb1430b1cff6e0c94947f1f600cfb8d);
+            
+        
+
+        circle_marker_4e2dee19758f977a83f92e212661afb8.bindPopup(popup_c02106a9fa1a32ffeaeda5b1a85b7c52)
+        ;
+
+        
+    
+    
+            circle_marker_4e2dee19758f977a83f92e212661afb8.bindTooltip(
+                `<div>
+                     Clinique Le Parc: 33/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_06801bd26293a7c42efaba036b6cfc19 = L.circleMarker(
+                [33.59328709999999, -7.628012599999999],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "green", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.950623133207209, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_7f3e801881f1610c327b1b452c52a74e = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_b89506a8e22f198097d9f2b0f53c45a4 = $(`<div id="html_b89506a8e22f198097d9f2b0f53c45a4" style="width: 100.0%; height: 100.0%;"><b>Clinique Rachidi</b><br>Score: 79.5 (Excellent)<br>Stops within 500m: 12<br>Lines: 17</div>`)[0];
+                popup_7f3e801881f1610c327b1b452c52a74e.setContent(html_b89506a8e22f198097d9f2b0f53c45a4);
+            
+        
+
+        circle_marker_06801bd26293a7c42efaba036b6cfc19.bindPopup(popup_7f3e801881f1610c327b1b452c52a74e)
+        ;
+
+        
+    
+    
+            circle_marker_06801bd26293a7c42efaba036b6cfc19.bindTooltip(
+                `<div>
+                     Clinique Rachidi: 80/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7d545ba3d17d8704b92780329558e6a6 = L.circleMarker(
+                [33.5686395, -7.6434901],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_c99ef314ab00cabbc7aff2606d4fe6b6 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_c00c7fc8d79b050dddbfd81d3f41d2f6 = $(`<div id="html_c00c7fc8d79b050dddbfd81d3f41d2f6" style="width: 100.0%; height: 100.0%;"><b>Clinique Orl Beausejour</b><br>Score: 57.2 (Good)<br>Stops within 500m: 6<br>Lines: 9</div>`)[0];
+                popup_c99ef314ab00cabbc7aff2606d4fe6b6.setContent(html_c00c7fc8d79b050dddbfd81d3f41d2f6);
+            
+        
+
+        circle_marker_7d545ba3d17d8704b92780329558e6a6.bindPopup(popup_c99ef314ab00cabbc7aff2606d4fe6b6)
+        ;
+
+        
+    
+    
+            circle_marker_7d545ba3d17d8704b92780329558e6a6.bindTooltip(
+                `<div>
+                     Clinique Orl Beausejour: 57/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_0283bcbf891b2d8db0381dfa7efbdf00 = L.circleMarker(
+                [33.5898915, -7.653113299999999],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_9ccc28b095aa51d9e13fc752979ee057 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_0a608043614411fcc4dabf72c74da7fc = $(`<div id="html_0a608043614411fcc4dabf72c74da7fc" style="width: 100.0%; height: 100.0%;"><b>Clinique Val d'Anfa</b><br>Score: 12.9 (Low)<br>Stops within 500m: 3<br>Lines: 2</div>`)[0];
+                popup_9ccc28b095aa51d9e13fc752979ee057.setContent(html_0a608043614411fcc4dabf72c74da7fc);
+            
+        
+
+        circle_marker_0283bcbf891b2d8db0381dfa7efbdf00.bindPopup(popup_9ccc28b095aa51d9e13fc752979ee057)
+        ;
+
+        
+    
+    
+            circle_marker_0283bcbf891b2d8db0381dfa7efbdf00.bindTooltip(
+                `<div>
+                     Clinique Val d'Anfa: 13/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_caa22a5088ff0ce393f62436be5bfd07 = L.circleMarker(
+                [33.55864, -7.637683],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_794f17047c886b2fd6fcdc0d7e222ad9 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_7edefe5d05dcf667ea3e94f78009a8ee = $(`<div id="html_7edefe5d05dcf667ea3e94f78009a8ee" style="width: 100.0%; height: 100.0%;"><b>Clinique Attal</b><br>Score: 49.9 (Moderate)<br>Stops within 500m: 7<br>Lines: 2</div>`)[0];
+                popup_794f17047c886b2fd6fcdc0d7e222ad9.setContent(html_7edefe5d05dcf667ea3e94f78009a8ee);
+            
+        
+
+        circle_marker_caa22a5088ff0ce393f62436be5bfd07.bindPopup(popup_794f17047c886b2fd6fcdc0d7e222ad9)
+        ;
+
+        
+    
+    
+            circle_marker_caa22a5088ff0ce393f62436be5bfd07.bindTooltip(
+                `<div>
+                     Clinique Attal: 50/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_debffb4da92ef930a48c334d5a756d98 = L.circleMarker(
+                [33.57604619999999, -7.635531300000001],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.493629051826261, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_7b72a3e320fdda7770a64f912bc059cc = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_3a165b809c90e19d3ae7b518c8274625 = $(`<div id="html_3a165b809c90e19d3ae7b518c8274625" style="width: 100.0%; height: 100.0%;"><b>Clinique Maarif</b><br>Score: 64.9 (Good)<br>Stops within 500m: 13<br>Lines: 6</div>`)[0];
+                popup_7b72a3e320fdda7770a64f912bc059cc.setContent(html_3a165b809c90e19d3ae7b518c8274625);
+            
+        
+
+        circle_marker_debffb4da92ef930a48c334d5a756d98.bindPopup(popup_7b72a3e320fdda7770a64f912bc059cc)
+        ;
+
+        
+    
+    
+            circle_marker_debffb4da92ef930a48c334d5a756d98.bindTooltip(
+                `<div>
+                     Clinique Maarif: 65/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_6d3ceefb3a14abee86c857bc9362638f = L.circleMarker(
+                [33.5788058, -7.647201300000001],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_fd4ec8fcc1c1fc8793dece6500739111 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_95d48a301d0a65a7115000b9dfdd7235 = $(`<div id="html_95d48a301d0a65a7115000b9dfdd7235" style="width: 100.0%; height: 100.0%;"><b>Clinique Socrate</b><br>Score: 19.9 (Low)<br>Stops within 500m: 1<br>Lines: 3</div>`)[0];
+                popup_fd4ec8fcc1c1fc8793dece6500739111.setContent(html_95d48a301d0a65a7115000b9dfdd7235);
+            
+        
+
+        circle_marker_6d3ceefb3a14abee86c857bc9362638f.bindPopup(popup_fd4ec8fcc1c1fc8793dece6500739111)
+        ;
+
+        
+    
+    
+            circle_marker_6d3ceefb3a14abee86c857bc9362638f.bindTooltip(
+                `<div>
+                     Clinique Socrate: 20/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5486335c063a6a3ce37b9e37a2b6d903 = L.circleMarker(
+                [33.6123849, -7.5301441],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_0b3bf668db98780b03b8c70a27eabfdf = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_2714c67e478bdba0976f920fab6833ce = $(`<div id="html_2714c67e478bdba0976f920fab6833ce" style="width: 100.0%; height: 100.0%;"><b>Hôpital Privé de Casablanca Aîn Sebaâ</b><br>Score: 48.8 (Moderate)<br>Stops within 500m: 4<br>Lines: 2</div>`)[0];
+                popup_0b3bf668db98780b03b8c70a27eabfdf.setContent(html_2714c67e478bdba0976f920fab6833ce);
+            
+        
+
+        circle_marker_5486335c063a6a3ce37b9e37a2b6d903.bindPopup(popup_0b3bf668db98780b03b8c70a27eabfdf)
+        ;
+
+        
+    
+    
+            circle_marker_5486335c063a6a3ce37b9e37a2b6d903.bindTooltip(
+                `<div>
+                     Hôpital Privé de Casablanca Aîn Sebaâ: 49/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_6716709d98d0c9f4ab4ef72cd047d936 = L.circleMarker(
+                [33.575818600000005, -7.6719778],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_23e8e01b1555f2ddbe4d60c0818bfec3 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_9506020d5e5088d46cca847d73e08d10 = $(`<div id="html_9506020d5e5088d46cca847d73e08d10" style="width: 100.0%; height: 100.0%;"><b>Clinique Yasmine</b><br>Score: 59.7 (Good)<br>Stops within 500m: 8<br>Lines: 6</div>`)[0];
+                popup_23e8e01b1555f2ddbe4d60c0818bfec3.setContent(html_9506020d5e5088d46cca847d73e08d10);
+            
+        
+
+        circle_marker_6716709d98d0c9f4ab4ef72cd047d936.bindPopup(popup_23e8e01b1555f2ddbe4d60c0818bfec3)
+        ;
+
+        
+    
+    
+            circle_marker_6716709d98d0c9f4ab4ef72cd047d936.bindTooltip(
+                `<div>
+                     Clinique Yasmine: 60/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_b7d8b289bbecb2231bdd313df051117f = L.circleMarker(
+                [33.57853783736076, -7.620658876855622],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.669076515736691, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_018c44818d65d949083e13eaf6938b2b = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_a269c46334c53bf52d48791044b9b635 = $(`<div id="html_a269c46334c53bf52d48791044b9b635" style="width: 100.0%; height: 100.0%;"><b>Centre Hospitalier Universitaire Ibn Rochd</b><br>Score: 66.7 (Good)<br>Stops within 500m: 13<br>Lines: 11</div>`)[0];
+                popup_018c44818d65d949083e13eaf6938b2b.setContent(html_a269c46334c53bf52d48791044b9b635);
+            
+        
+
+        circle_marker_b7d8b289bbecb2231bdd313df051117f.bindPopup(popup_018c44818d65d949083e13eaf6938b2b)
+        ;
+
+        
+    
+    
+            circle_marker_b7d8b289bbecb2231bdd313df051117f.bindTooltip(
+                `<div>
+                     Centre Hospitalier Universitaire Ibn Rochd: 67/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ed4175dcb265cb216612f31a7f6ffcda = L.circleMarker(
+                [33.56247495921656, -7.618476445621427],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_bb916701e3f0e352bb512600853fdf46 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_85888b2290f46bace2ed66b8afae6a3a = $(`<div id="html_85888b2290f46bace2ed66b8afae6a3a" style="width: 100.0%; height: 100.0%;"><b>Clinique Dar Salam</b><br>Score: 44.3 (Moderate)<br>Stops within 500m: 2<br>Lines: 6</div>`)[0];
+                popup_bb916701e3f0e352bb512600853fdf46.setContent(html_85888b2290f46bace2ed66b8afae6a3a);
+            
+        
+
+        circle_marker_ed4175dcb265cb216612f31a7f6ffcda.bindPopup(popup_bb916701e3f0e352bb512600853fdf46)
+        ;
+
+        
+    
+    
+            circle_marker_ed4175dcb265cb216612f31a7f6ffcda.bindTooltip(
+                `<div>
+                     Clinique Dar Salam: 44/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_64fb23a2fc63d0781213831ce035e4f0 = L.circleMarker(
+                [33.59439337112966, -7.635563271517788],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_38ac4377036362c9532fa9ac03df0447 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_ecf944c91e7d5455a10fe264b2e025c5 = $(`<div id="html_ecf944c91e7d5455a10fe264b2e025c5" style="width: 100.0%; height: 100.0%;"><b>Polyclinique CNSS Ziraoui</b><br>Score: 57.2 (Good)<br>Stops within 500m: 11<br>Lines: 7</div>`)[0];
+                popup_38ac4377036362c9532fa9ac03df0447.setContent(html_ecf944c91e7d5455a10fe264b2e025c5);
+            
+        
+
+        circle_marker_64fb23a2fc63d0781213831ce035e4f0.bindPopup(popup_38ac4377036362c9532fa9ac03df0447)
+        ;
+
+        
+    
+    
+            circle_marker_64fb23a2fc63d0781213831ce035e4f0.bindTooltip(
+                `<div>
+                     Polyclinique CNSS Ziraoui: 57/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_82a5f09061488884dd27c222b1f8d070 = L.circleMarker(
+                [33.5198390807506, -7.651593535251406],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_87dfeb622a5f31f70b64e637cee0a321 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_135fc64f31b99c999c94d8a9fdfc4941 = $(`<div id="html_135fc64f31b99c999c94d8a9fdfc4941" style="width: 100.0%; height: 100.0%;"><b>Clinic Lina</b><br>Score: 53.6 (Good)<br>Stops within 500m: 6<br>Lines: 3</div>`)[0];
+                popup_87dfeb622a5f31f70b64e637cee0a321.setContent(html_135fc64f31b99c999c94d8a9fdfc4941);
+            
+        
+
+        circle_marker_82a5f09061488884dd27c222b1f8d070.bindPopup(popup_87dfeb622a5f31f70b64e637cee0a321)
+        ;
+
+        
+    
+    
+            circle_marker_82a5f09061488884dd27c222b1f8d070.bindTooltip(
+                `<div>
+                     Clinic Lina: 54/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_470337589bb978ecf1e1a0ed6c1b7221 = L.circleMarker(
+                [33.581245921255054, -7.675180503735034],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_f92d18e32434f37e28362841aa426e78 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_61448ed49b97de119686641dee4c4f49 = $(`<div id="html_61448ed49b97de119686641dee4c4f49" style="width: 100.0%; height: 100.0%;"><b>Clinique Le Littoral</b><br>Score: 45.5 (Moderate)<br>Stops within 500m: 3<br>Lines: 2</div>`)[0];
+                popup_f92d18e32434f37e28362841aa426e78.setContent(html_61448ed49b97de119686641dee4c4f49);
+            
+        
+
+        circle_marker_470337589bb978ecf1e1a0ed6c1b7221.bindPopup(popup_f92d18e32434f37e28362841aa426e78)
+        ;
+
+        
+    
+    
+            circle_marker_470337589bb978ecf1e1a0ed6c1b7221.bindTooltip(
+                `<div>
+                     Clinique Le Littoral: 46/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a888d572d673966f5e26df6c0e851630 = L.circleMarker(
+                [33.58104810313267, -7.675443551227193],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_0388ffc2b15c344e3eb6672c29b1654b = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_9886cfc6bda60277dd6259c39fdd82f8 = $(`<div id="html_9886cfc6bda60277dd6259c39fdd82f8" style="width: 100.0%; height: 100.0%;"><b>Clinic Guess</b><br>Score: 44.5 (Moderate)<br>Stops within 500m: 3<br>Lines: 2</div>`)[0];
+                popup_0388ffc2b15c344e3eb6672c29b1654b.setContent(html_9886cfc6bda60277dd6259c39fdd82f8);
+            
+        
+
+        circle_marker_a888d572d673966f5e26df6c0e851630.bindPopup(popup_0388ffc2b15c344e3eb6672c29b1654b)
+        ;
+
+        
+    
+    
+            circle_marker_a888d572d673966f5e26df6c0e851630.bindTooltip(
+                `<div>
+                     Clinic Guess: 45/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7013cb487bbc47011047868732e4c504 = L.circleMarker(
+                [33.55981519485563, -7.5615639477505505],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.011568152079943, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b21b9dd7944791fcaf77d4634697be80 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_ba92f510e0fa75e81c4e9c648f1ea367 = $(`<div id="html_ba92f510e0fa75e81c4e9c648f1ea367" style="width: 100.0%; height: 100.0%;"><b>Clinique Sidi Othmane</b><br>Score: 70.1 (Good)<br>Stops within 500m: 9<br>Lines: 11</div>`)[0];
+                popup_b21b9dd7944791fcaf77d4634697be80.setContent(html_ba92f510e0fa75e81c4e9c648f1ea367);
+            
+        
+
+        circle_marker_7013cb487bbc47011047868732e4c504.bindPopup(popup_b21b9dd7944791fcaf77d4634697be80)
+        ;
+
+        
+    
+    
+            circle_marker_7013cb487bbc47011047868732e4c504.bindTooltip(
+                `<div>
+                     Clinique Sidi Othmane: 70/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_d60c27ab2747752550e3bd42978ae67d = L.circleMarker(
+                [33.574652934552425, -7.619653458168499],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.017152083961891, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_a0d93678d8f5b0bcf79924435e58dfe4 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_8f2eaab046f68e85c9bf1dbc75e99d5a = $(`<div id="html_8f2eaab046f68e85c9bf1dbc75e99d5a" style="width: 100.0%; height: 100.0%;"><b>Hopital 20 Aout</b><br>Score: 60.2 (Good)<br>Stops within 500m: 9<br>Lines: 8</div>`)[0];
+                popup_a0d93678d8f5b0bcf79924435e58dfe4.setContent(html_8f2eaab046f68e85c9bf1dbc75e99d5a);
+            
+        
+
+        circle_marker_d60c27ab2747752550e3bd42978ae67d.bindPopup(popup_a0d93678d8f5b0bcf79924435e58dfe4)
+        ;
+
+        
+    
+    
+            circle_marker_d60c27ab2747752550e3bd42978ae67d.bindTooltip(
+                `<div>
+                     Hopital 20 Aout: 60/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5ff122d829510613095ca2224fbe3554 = L.circleMarker(
+                [33.57085276501952, -7.622950527578939],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.577754598093915, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b5c15a27b27bdc5c2be1cd396fc56f27 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_5622a92fa4252a6502b2338ce84b9eee = $(`<div id="html_5622a92fa4252a6502b2338ce84b9eee" style="width: 100.0%; height: 100.0%;"><b>Polyclinique de la Sécurité sociale</b><br>Score: 65.8 (Good)<br>Stops within 500m: 9<br>Lines: 9</div>`)[0];
+                popup_b5c15a27b27bdc5c2be1cd396fc56f27.setContent(html_5622a92fa4252a6502b2338ce84b9eee);
+            
+        
+
+        circle_marker_5ff122d829510613095ca2224fbe3554.bindPopup(popup_b5c15a27b27bdc5c2be1cd396fc56f27)
+        ;
+
+        
+    
+    
+            circle_marker_5ff122d829510613095ca2224fbe3554.bindTooltip(
+                `<div>
+                     Polyclinique de la Sécurité sociale: 66/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_818fd9065ada7ad81acb431d4b8cb22f = L.circleMarker(
+                [33.57041568223584, -7.620489196179961],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_3a039ba86e9d9f382e8d356d40ebe752 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_2df4efb09ea7f0fc279b0aa1ea6cf0e5 = $(`<div id="html_2df4efb09ea7f0fc279b0aa1ea6cf0e5" style="width: 100.0%; height: 100.0%;"><b>Clinique El Amine</b><br>Score: 43.2 (Moderate)<br>Stops within 500m: 6<br>Lines: 8</div>`)[0];
+                popup_3a039ba86e9d9f382e8d356d40ebe752.setContent(html_2df4efb09ea7f0fc279b0aa1ea6cf0e5);
+            
+        
+
+        circle_marker_818fd9065ada7ad81acb431d4b8cb22f.bindPopup(popup_3a039ba86e9d9f382e8d356d40ebe752)
+        ;
+
+        
+    
+    
+            circle_marker_818fd9065ada7ad81acb431d4b8cb22f.bindTooltip(
+                `<div>
+                     Clinique El Amine: 43/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_4dc6423c1b6abf578cc07ed433170b30 = L.circleMarker(
+                [33.55242937139909, -7.6683673842327],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_77dbab9a29e2e18bb58f374ad5494358 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_eb01290912529037da135942d784d03d = $(`<div id="html_eb01290912529037da135942d784d03d" style="width: 100.0%; height: 100.0%;"><b>Hôpital du Cheikh Khalifa Ben Zayd Al-Nahyan</b><br>Score: 41.0 (Moderate)<br>Stops within 500m: 3<br>Lines: 2</div>`)[0];
+                popup_77dbab9a29e2e18bb58f374ad5494358.setContent(html_eb01290912529037da135942d784d03d);
+            
+        
+
+        circle_marker_4dc6423c1b6abf578cc07ed433170b30.bindPopup(popup_77dbab9a29e2e18bb58f374ad5494358)
+        ;
+
+        
+    
+    
+            circle_marker_4dc6423c1b6abf578cc07ed433170b30.bindTooltip(
+                `<div>
+                     Hôpital du Cheikh Khalifa Ben Zayd Al-Nahyan: 41/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5fa56fbf8e703bfe725861838e40f5df = L.circleMarker(
+                [33.56966106189876, -7.661638730921235],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_5a1568156076542af817ad6982bd817f = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_c9d420da5fca7e9495dafb5cc260f05f = $(`<div id="html_c9d420da5fca7e9495dafb5cc260f05f" style="width: 100.0%; height: 100.0%;"><b>Clinical Abbadi</b><br>Score: 52.3 (Good)<br>Stops within 500m: 6<br>Lines: 3</div>`)[0];
+                popup_5a1568156076542af817ad6982bd817f.setContent(html_c9d420da5fca7e9495dafb5cc260f05f);
+            
+        
+
+        circle_marker_5fa56fbf8e703bfe725861838e40f5df.bindPopup(popup_5a1568156076542af817ad6982bd817f)
+        ;
+
+        
+    
+    
+            circle_marker_5fa56fbf8e703bfe725861838e40f5df.bindTooltip(
+                `<div>
+                     Clinical Abbadi: 52/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_fa068b79efc313d26e4bd64536981fc1 = L.circleMarker(
+                [33.569146679299365, -7.660837763378024],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_88caac46eb1c948f7283de00483fdf41 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_f75bd1f39c325edb6daf3c3ca887e6fc = $(`<div id="html_f75bd1f39c325edb6daf3c3ca887e6fc" style="width: 100.0%; height: 100.0%;"><b>Clinique CIL</b><br>Score: 59.0 (Good)<br>Stops within 500m: 6<br>Lines: 4</div>`)[0];
+                popup_88caac46eb1c948f7283de00483fdf41.setContent(html_f75bd1f39c325edb6daf3c3ca887e6fc);
+            
+        
+
+        circle_marker_fa068b79efc313d26e4bd64536981fc1.bindPopup(popup_88caac46eb1c948f7283de00483fdf41)
+        ;
+
+        
+    
+    
+            circle_marker_fa068b79efc313d26e4bd64536981fc1.bindTooltip(
+                `<div>
+                     Clinique CIL: 59/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7308aad5a0e96bf3510ae18b088dc674 = L.circleMarker(
+                [33.56944737439043, -7.618755862439232],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_db9625199af32d812fb4ddc93d455920 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_5955867cc451d320a809524883521500 = $(`<div id="html_5955867cc451d320a809524883521500" style="width: 100.0%; height: 100.0%;"><b>International Clinic</b><br>Score: 49.9 (Moderate)<br>Stops within 500m: 3<br>Lines: 7</div>`)[0];
+                popup_db9625199af32d812fb4ddc93d455920.setContent(html_5955867cc451d320a809524883521500);
+            
+        
+
+        circle_marker_7308aad5a0e96bf3510ae18b088dc674.bindPopup(popup_db9625199af32d812fb4ddc93d455920)
+        ;
+
+        
+    
+    
+            circle_marker_7308aad5a0e96bf3510ae18b088dc674.bindTooltip(
+                `<div>
+                     International Clinic: 50/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_508d0a6708d4988f71e75a19cd7ab480 = L.circleMarker(
+                [33.56669850001627, -7.638882850027072],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_4782cedc8bd4462b32d52221ae4f77c3 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_04492f75172d0a6658e997baf2e320e1 = $(`<div id="html_04492f75172d0a6658e997baf2e320e1" style="width: 100.0%; height: 100.0%;"><b>Clinique Riviera</b><br>Score: 46.7 (Moderate)<br>Stops within 500m: 5<br>Lines: 6</div>`)[0];
+                popup_4782cedc8bd4462b32d52221ae4f77c3.setContent(html_04492f75172d0a6658e997baf2e320e1);
+            
+        
+
+        circle_marker_508d0a6708d4988f71e75a19cd7ab480.bindPopup(popup_4782cedc8bd4462b32d52221ae4f77c3)
+        ;
+
+        
+    
+    
+            circle_marker_508d0a6708d4988f71e75a19cd7ab480.bindTooltip(
+                `<div>
+                     Clinique Riviera: 47/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c6e4e898bef27adeeeae85a5fb3e62b1 = L.circleMarker(
+                [33.561652609656235, -7.617353722887663],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_a52ec50ff942112e43518d6d04af2798 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_9a9a972281cd8cedf355c5d42478f89e = $(`<div id="html_9a9a972281cd8cedf355c5d42478f89e" style="width: 100.0%; height: 100.0%;"><b>Cinique Al Karim Medecine Physique</b><br>Score: 39.5 (Moderate)<br>Stops within 500m: 3<br>Lines: 6</div>`)[0];
+                popup_a52ec50ff942112e43518d6d04af2798.setContent(html_9a9a972281cd8cedf355c5d42478f89e);
+            
+        
+
+        circle_marker_c6e4e898bef27adeeeae85a5fb3e62b1.bindPopup(popup_a52ec50ff942112e43518d6d04af2798)
+        ;
+
+        
+    
+    
+            circle_marker_c6e4e898bef27adeeeae85a5fb3e62b1.bindTooltip(
+                `<div>
+                     Cinique Al Karim Medecine Physique: 40/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5899f661335f89b3be08bc51a3e7c3db = L.circleMarker(
+                [33.56314485869003, -7.635495524635421],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_2a76d94812eadd0d1331049489745d2f = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_625513d1400a07f141374c3e958534f1 = $(`<div id="html_625513d1400a07f141374c3e958534f1" style="width: 100.0%; height: 100.0%;"><b>Cinique Multidisciplinaire</b><br>Score: 57.0 (Good)<br>Stops within 500m: 7<br>Lines: 8</div>`)[0];
+                popup_2a76d94812eadd0d1331049489745d2f.setContent(html_625513d1400a07f141374c3e958534f1);
+            
+        
+
+        circle_marker_5899f661335f89b3be08bc51a3e7c3db.bindPopup(popup_2a76d94812eadd0d1331049489745d2f)
+        ;
+
+        
+    
+    
+            circle_marker_5899f661335f89b3be08bc51a3e7c3db.bindTooltip(
+                `<div>
+                     Cinique Multidisciplinaire: 57/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_41d18b2d5d34d542a6ca67aec171f558 = L.circleMarker(
+                [33.546672268691346, -7.6308459270772016],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_f21de281ff4d91413f035449141a90a7 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_e8d3a2dedcef967e5cf606cd6b22a73d = $(`<div id="html_e8d3a2dedcef967e5cf606cd6b22a73d" style="width: 100.0%; height: 100.0%;"><b>Clinique Californie</b><br>Score: 47.7 (Moderate)<br>Stops within 500m: 4<br>Lines: 5</div>`)[0];
+                popup_f21de281ff4d91413f035449141a90a7.setContent(html_e8d3a2dedcef967e5cf606cd6b22a73d);
+            
+        
+
+        circle_marker_41d18b2d5d34d542a6ca67aec171f558.bindPopup(popup_f21de281ff4d91413f035449141a90a7)
+        ;
+
+        
+    
+    
+            circle_marker_41d18b2d5d34d542a6ca67aec171f558.bindTooltip(
+                `<div>
+                     Clinique Californie: 48/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_08843d91a42a5c900c0f3e77c0bba11f = L.circleMarker(
+                [33.55854720556028, -7.5730264646667935],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.410305287657549, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_5ad92cf1b50fba682f0bc5dd617beecc = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_435691f2be1146646e8bff6a8a2f70a3 = $(`<div id="html_435691f2be1146646e8bff6a8a2f70a3" style="width: 100.0%; height: 100.0%;"><b>Hopital Sidi Othmane</b><br>Score: 74.1 (Good)<br>Stops within 500m: 11<br>Lines: 9</div>`)[0];
+                popup_5ad92cf1b50fba682f0bc5dd617beecc.setContent(html_435691f2be1146646e8bff6a8a2f70a3);
+            
+        
+
+        circle_marker_08843d91a42a5c900c0f3e77c0bba11f.bindPopup(popup_5ad92cf1b50fba682f0bc5dd617beecc)
+        ;
+
+        
+    
+    
+            circle_marker_08843d91a42a5c900c0f3e77c0bba11f.bindTooltip(
+                `<div>
+                     Hopital Sidi Othmane: 74/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_8ede3c07cbc1911ca3c02f214fef274b = L.circleMarker(
+                [33.54605773943877, -7.588622488077647],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_ac527533a2171473823b3a3dac8ed069 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_91624703f3e484fc5449d967c9681007 = $(`<div id="html_91624703f3e484fc5449d967c9681007" style="width: 100.0%; height: 100.0%;"><b>Hôpital Sekkat</b><br>Score: 45.1 (Moderate)<br>Stops within 500m: 8<br>Lines: 11</div>`)[0];
+                popup_ac527533a2171473823b3a3dac8ed069.setContent(html_91624703f3e484fc5449d967c9681007);
+            
+        
+
+        circle_marker_8ede3c07cbc1911ca3c02f214fef274b.bindPopup(popup_ac527533a2171473823b3a3dac8ed069)
+        ;
+
+        
+    
+    
+            circle_marker_8ede3c07cbc1911ca3c02f214fef274b.bindTooltip(
+                `<div>
+                     Hôpital Sekkat: 45/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_8236a492ee6061a265527e7c379962ba = L.circleMarker(
+                [33.54050707960877, -7.597637266137161],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_d762819ef71df4b7649acb0f6a31a4ef = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_c25ec8f390d997127d72a372d086ea78 = $(`<div id="html_c25ec8f390d997127d72a372d086ea78" style="width: 100.0%; height: 100.0%;"><b>HOPITAL UNIVERSITAIRE DE PROXIMITE</b><br>Score: 57.7 (Good)<br>Stops within 500m: 6<br>Lines: 8</div>`)[0];
+                popup_d762819ef71df4b7649acb0f6a31a4ef.setContent(html_c25ec8f390d997127d72a372d086ea78);
+            
+        
+
+        circle_marker_8236a492ee6061a265527e7c379962ba.bindPopup(popup_d762819ef71df4b7649acb0f6a31a4ef)
+        ;
+
+        
+    
+    
+            circle_marker_8236a492ee6061a265527e7c379962ba.bindTooltip(
+                `<div>
+                     HOPITAL UNIVERSITAIRE DE PROXIMITE: 58/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_23bd3db53e6af7add742678d34ea7c68 = L.circleMarker(
+                [33.5498334343254, -7.591374791701641],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.382714162251276, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_8605cd67d7f88cb6830c3f99a1993425 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_cdfd12907480c529e8598941f35fc7fc = $(`<div id="html_cdfd12907480c529e8598941f35fc7fc" style="width: 100.0%; height: 100.0%;"><b>Centre de Santé Derb el Kheir</b><br>Score: 63.8 (Good)<br>Stops within 500m: 8<br>Lines: 7</div>`)[0];
+                popup_8605cd67d7f88cb6830c3f99a1993425.setContent(html_cdfd12907480c529e8598941f35fc7fc);
+            
+        
+
+        circle_marker_23bd3db53e6af7add742678d34ea7c68.bindPopup(popup_8605cd67d7f88cb6830c3f99a1993425)
+        ;
+
+        
+    
+    
+            circle_marker_23bd3db53e6af7add742678d34ea7c68.bindTooltip(
+                `<div>
+                     Centre de Santé Derb el Kheir: 64/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_709c7a92af5f9025fcf8c7cd4cc94406 = L.circleMarker(
+                [33.61074841298405, -7.500801741294186],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.594547341961973, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_70cdb86d7a88fd0adb0962df4424a582 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_fcc363aa86158c21495549ee18521b0d = $(`<div id="html_fcc363aa86158c21495549ee18521b0d" style="width: 100.0%; height: 100.0%;"><b>Polyclinique CNSS Sidi Bernoussi</b><br>Score: 65.9 (Good)<br>Stops within 500m: 9<br>Lines: 7</div>`)[0];
+                popup_70cdb86d7a88fd0adb0962df4424a582.setContent(html_fcc363aa86158c21495549ee18521b0d);
+            
+        
+
+        circle_marker_709c7a92af5f9025fcf8c7cd4cc94406.bindPopup(popup_70cdb86d7a88fd0adb0962df4424a582)
+        ;
+
+        
+    
+    
+            circle_marker_709c7a92af5f9025fcf8c7cd4cc94406.bindTooltip(
+                `<div>
+                     Polyclinique CNSS Sidi Bernoussi: 66/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_56fd48bcd037df1006fb6ba339665806 = L.circleMarker(
+                [33.54914320176087, -7.602540026227011],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.349775144750308, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_a878fe4c6090df7139348d0757d2cd1c = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_9497b561d091c0426c22eb9f6d0438e1 = $(`<div id="html_9497b561d091c0426c22eb9f6d0438e1" style="width: 100.0%; height: 100.0%;"><b>Clinique Ain Chock</b><br>Score: 73.5 (Good)<br>Stops within 500m: 8<br>Lines: 10</div>`)[0];
+                popup_a878fe4c6090df7139348d0757d2cd1c.setContent(html_9497b561d091c0426c22eb9f6d0438e1);
+            
+        
+
+        circle_marker_56fd48bcd037df1006fb6ba339665806.bindPopup(popup_a878fe4c6090df7139348d0757d2cd1c)
+        ;
+
+        
+    
+    
+            circle_marker_56fd48bcd037df1006fb6ba339665806.bindTooltip(
+                `<div>
+                     Clinique Ain Chock: 73/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_03ed293241c9525de344c2d4f5e3b2b0 = L.circleMarker(
+                [33.55210972506478, -7.608269259633504],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_35ed183ae47ea1b4398a97bd4e8752bf = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_b671c037ae2518cf0ef442ac7607cbbe = $(`<div id="html_b671c037ae2518cf0ef442ac7607cbbe" style="width: 100.0%; height: 100.0%;"><b>Ajial Hôpital Pédiatrique</b><br>Score: 51.0 (Good)<br>Stops within 500m: 5<br>Lines: 7</div>`)[0];
+                popup_35ed183ae47ea1b4398a97bd4e8752bf.setContent(html_b671c037ae2518cf0ef442ac7607cbbe);
+            
+        
+
+        circle_marker_03ed293241c9525de344c2d4f5e3b2b0.bindPopup(popup_35ed183ae47ea1b4398a97bd4e8752bf)
+        ;
+
+        
+    
+    
+            circle_marker_03ed293241c9525de344c2d4f5e3b2b0.bindTooltip(
+                `<div>
+                     Ajial Hôpital Pédiatrique: 51/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_71eeec5a45d031c2da7c6d875547c3de = L.circleMarker(
+                [33.55233793198779, -7.577997816932463],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_e8e17169d9b3dabdf7be5bf7b0237adb = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_2eb50f19e245a14739a22b662053f96a = $(`<div id="html_2eb50f19e245a14739a22b662053f96a" style="width: 100.0%; height: 100.0%;"><b>Centre Hospitalier Préfectoral de Ben M'Sick</b><br>Score: 47.4 (Moderate)<br>Stops within 500m: 4<br>Lines: 3</div>`)[0];
+                popup_e8e17169d9b3dabdf7be5bf7b0237adb.setContent(html_2eb50f19e245a14739a22b662053f96a);
+            
+        
+
+        circle_marker_71eeec5a45d031c2da7c6d875547c3de.bindPopup(popup_e8e17169d9b3dabdf7be5bf7b0237adb)
+        ;
+
+        
+    
+    
+            circle_marker_71eeec5a45d031c2da7c6d875547c3de.bindTooltip(
+                `<div>
+                     Centre Hospitalier Préfectoral de Ben M'Sick: 47/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_44144ea1ac7718fcb16f5e571044f9e3 = L.circleMarker(
+                [33.56712676339928, -7.668455630399424],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.069734456952444, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_4aac571ad8e9b62852086c2113d41e82 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_ea7fb10ce1a023ba1968a5dad2d6329a = $(`<div id="html_ea7fb10ce1a023ba1968a5dad2d6329a" style="width: 100.0%; height: 100.0%;"><b>Polyclinique CNSS Hay Hassani</b><br>Score: 70.7 (Good)<br>Stops within 500m: 9<br>Lines: 9</div>`)[0];
+                popup_4aac571ad8e9b62852086c2113d41e82.setContent(html_ea7fb10ce1a023ba1968a5dad2d6329a);
+            
+        
+
+        circle_marker_44144ea1ac7718fcb16f5e571044f9e3.bindPopup(popup_4aac571ad8e9b62852086c2113d41e82)
+        ;
+
+        
+    
+    
+            circle_marker_44144ea1ac7718fcb16f5e571044f9e3.bindTooltip(
+                `<div>
+                     Polyclinique CNSS Hay Hassani: 71/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f7e898f2ed1f8e20a10b2738b51797fc = L.circleMarker(
+                [33.57527123070483, -7.524914619282542],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_d883002c6bdff2408aa08a3a84cca0a0 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_249b9711f20cb39281af22d560ccecc3 = $(`<div id="html_249b9711f20cb39281af22d560ccecc3" style="width: 100.0%; height: 100.0%;"><b>Hôpital Municipal sidi moumen Tacharouk</b><br>Score: 41.8 (Moderate)<br>Stops within 500m: 4<br>Lines: 3</div>`)[0];
+                popup_d883002c6bdff2408aa08a3a84cca0a0.setContent(html_249b9711f20cb39281af22d560ccecc3);
+            
+        
+
+        circle_marker_f7e898f2ed1f8e20a10b2738b51797fc.bindPopup(popup_d883002c6bdff2408aa08a3a84cca0a0)
+        ;
+
+        
+    
+    
+            circle_marker_f7e898f2ed1f8e20a10b2738b51797fc.bindTooltip(
+                `<div>
+                     Hôpital Municipal sidi moumen Tacharouk: 42/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c1f77e5a7d35e4d651fd194296fbeb46 = L.circleMarker(
+                [33.59704415596668, -7.522044369876583],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b7c6d9a66eb7d5b4af435ca9391a3798 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_e5b704964860fb084c589849f56bc178 = $(`<div id="html_e5b704964860fb084c589849f56bc178" style="width: 100.0%; height: 100.0%;"><b>Clinique Adoha</b><br>Score: 31.5 (Moderate)<br>Stops within 500m: 1<br>Lines: 5</div>`)[0];
+                popup_b7c6d9a66eb7d5b4af435ca9391a3798.setContent(html_e5b704964860fb084c589849f56bc178);
+            
+        
+
+        circle_marker_c1f77e5a7d35e4d651fd194296fbeb46.bindPopup(popup_b7c6d9a66eb7d5b4af435ca9391a3798)
+        ;
+
+        
+    
+    
+            circle_marker_c1f77e5a7d35e4d651fd194296fbeb46.bindTooltip(
+                `<div>
+                     Clinique Adoha: 32/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_db1c50d829fb9aeadb45bdc309a3e4a7 = L.circleMarker(
+                [33.59923321543063, -7.483485369743223],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_8c380aed5a6441bf746109ba7292e013 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_6a03752ce9253979bf0e1e27885f9861 = $(`<div id="html_6a03752ce9253979bf0e1e27885f9861" style="width: 100.0%; height: 100.0%;"><b>Hôpital général de Casablanca Azhar-Bernoussi</b><br>Score: 52.0 (Good)<br>Stops within 500m: 7<br>Lines: 2</div>`)[0];
+                popup_8c380aed5a6441bf746109ba7292e013.setContent(html_6a03752ce9253979bf0e1e27885f9861);
+            
+        
+
+        circle_marker_db1c50d829fb9aeadb45bdc309a3e4a7.bindPopup(popup_8c380aed5a6441bf746109ba7292e013)
+        ;
+
+        
+    
+    
+            circle_marker_db1c50d829fb9aeadb45bdc309a3e4a7.bindTooltip(
+                `<div>
+                     Hôpital général de Casablanca Azhar-Bernoussi: 52/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_eb29807ec9712258efa1f64aa4a63f7f = L.circleMarker(
+                [33.57255343106101, -7.553163115267273],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_2f742f062ed54685dd302ade0ca06099 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_847b439969d1d0cf8a083ed7ea30b7ff = $(`<div id="html_847b439969d1d0cf8a083ed7ea30b7ff" style="width: 100.0%; height: 100.0%;"><b>Clinique Al Amal</b><br>Score: 37.1 (Moderate)<br>Stops within 500m: 1<br>Lines: 3</div>`)[0];
+                popup_2f742f062ed54685dd302ade0ca06099.setContent(html_847b439969d1d0cf8a083ed7ea30b7ff);
+            
+        
+
+        circle_marker_eb29807ec9712258efa1f64aa4a63f7f.bindPopup(popup_2f742f062ed54685dd302ade0ca06099)
+        ;
+
+        
+    
+    
+            circle_marker_eb29807ec9712258efa1f64aa4a63f7f.bindTooltip(
+                `<div>
+                     Clinique Al Amal: 37/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_1684f4195e04c482141b87a4c2f8545b = L.circleMarker(
+                [33.5604183443511, -7.609498781254182],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.795415212421152, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_83ca1e1c993e11f5d2ffa85b9593e225 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_80610bb40dc3ff80d6462ec1e10ed970 = $(`<div id="html_80610bb40dc3ff80d6462ec1e10ed970" style="width: 100.0%; height: 100.0%;"><b>Complexe Medico-Social Al Wouroud</b><br>Score: 68.0 (Good)<br>Stops within 500m: 6<br>Lines: 16</div>`)[0];
+                popup_83ca1e1c993e11f5d2ffa85b9593e225.setContent(html_80610bb40dc3ff80d6462ec1e10ed970);
+            
+        
+
+        circle_marker_1684f4195e04c482141b87a4c2f8545b.bindPopup(popup_83ca1e1c993e11f5d2ffa85b9593e225)
+        ;
+
+        
+    
+    
+            circle_marker_1684f4195e04c482141b87a4c2f8545b.bindTooltip(
+                `<div>
+                     Complexe Medico-Social Al Wouroud: 68/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_94aeb2fcc4895a2d3e0506793e7939c7 = L.circleMarker(
+                [33.54951355000996, -7.62409200000114],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_cfef7bd784d6758ec82a4fef999d3952 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_4e922ddbb34c2b7e5348e6f3d00def40 = $(`<div id="html_4e922ddbb34c2b7e5348e6f3d00def40" style="width: 100.0%; height: 100.0%;"><b>Clinique Les Crêtes</b><br>Score: 50.7 (Good)<br>Stops within 500m: 6<br>Lines: 2</div>`)[0];
+                popup_cfef7bd784d6758ec82a4fef999d3952.setContent(html_4e922ddbb34c2b7e5348e6f3d00def40);
+            
+        
+
+        circle_marker_94aeb2fcc4895a2d3e0506793e7939c7.bindPopup(popup_cfef7bd784d6758ec82a4fef999d3952)
+        ;
+
+        
+    
+    
+            circle_marker_94aeb2fcc4895a2d3e0506793e7939c7.bindTooltip(
+                `<div>
+                     Clinique Les Crêtes: 51/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_1ae3cc9a739e8a0ab6ca3493bf44950a = L.circleMarker(
+                [33.5584440469472, -7.68731139737092],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_a075f35331c022ec43bffa2cc19fe1f2 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_6e9649de7fda1fb80c3fc323f7a7136b = $(`<div id="html_6e9649de7fda1fb80c3fc323f7a7136b" style="width: 100.0%; height: 100.0%;"><b>hopital hassani</b><br>Score: 51.1 (Good)<br>Stops within 500m: 8<br>Lines: 6</div>`)[0];
+                popup_a075f35331c022ec43bffa2cc19fe1f2.setContent(html_6e9649de7fda1fb80c3fc323f7a7136b);
+            
+        
+
+        circle_marker_1ae3cc9a739e8a0ab6ca3493bf44950a.bindPopup(popup_a075f35331c022ec43bffa2cc19fe1f2)
+        ;
+
+        
+    
+    
+            circle_marker_1ae3cc9a739e8a0ab6ca3493bf44950a.bindTooltip(
+                `<div>
+                     hopital hassani: 51/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_737c6670ca2250bf0a171f1d928a5298 = L.circleMarker(
+                [33.591292580511514, -7.5903533304946915],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_b0ea247d7beb7d548b2a68f89fb39c41 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_a88e6d7f3bb0f638b11b23688b42ce99 = $(`<div id="html_a88e6d7f3bb0f638b11b23688b42ce99" style="width: 100.0%; height: 100.0%;"><b>ATLANTIC CLINIC CASABLANCA</b><br>Score: 38.1 (Moderate)<br>Stops within 500m: 4<br>Lines: 4</div>`)[0];
+                popup_b0ea247d7beb7d548b2a68f89fb39c41.setContent(html_a88e6d7f3bb0f638b11b23688b42ce99);
+            
+        
+
+        circle_marker_737c6670ca2250bf0a171f1d928a5298.bindPopup(popup_b0ea247d7beb7d548b2a68f89fb39c41)
+        ;
+
+        
+    
+    
+            circle_marker_737c6670ca2250bf0a171f1d928a5298.bindTooltip(
+                `<div>
+                     ATLANTIC CLINIC CASABLANCA: 38/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_884a7827e9fdcb4b1432c090ab949c37 = L.circleMarker(
+                [33.580251571665066, -7.566585414833268],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_36031c4d322011ef5bb4899ec2891dc9 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_3436dbc9586b5c3505973b945391b824 = $(`<div id="html_3436dbc9586b5c3505973b945391b824" style="width: 100.0%; height: 100.0%;"><b>Clinique Al Mouahhidine</b><br>Score: 54.2 (Good)<br>Stops within 500m: 8<br>Lines: 6</div>`)[0];
+                popup_36031c4d322011ef5bb4899ec2891dc9.setContent(html_3436dbc9586b5c3505973b945391b824);
+            
+        
+
+        circle_marker_884a7827e9fdcb4b1432c090ab949c37.bindPopup(popup_36031c4d322011ef5bb4899ec2891dc9)
+        ;
+
+        
+    
+    
+            circle_marker_884a7827e9fdcb4b1432c090ab949c37.bindTooltip(
+                `<div>
+                     Clinique Al Mouahhidine: 54/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_68120fbb45e18baa3c3124711c3efe16 = L.circleMarker(
+                [33.55592913515372, -7.625772247092183],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_09c82bc91ba535526d08bfa0149333e6 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_6a86861a8b61c4f67c99f28b9de0e281 = $(`<div id="html_6a86861a8b61c4f67c99f28b9de0e281" style="width: 100.0%; height: 100.0%;"><b>Clinique Taha</b><br>Score: 34.5 (Moderate)<br>Stops within 500m: 6<br>Lines: 6</div>`)[0];
+                popup_09c82bc91ba535526d08bfa0149333e6.setContent(html_6a86861a8b61c4f67c99f28b9de0e281);
+            
+        
+
+        circle_marker_68120fbb45e18baa3c3124711c3efe16.bindPopup(popup_09c82bc91ba535526d08bfa0149333e6)
+        ;
+
+        
+    
+    
+            circle_marker_68120fbb45e18baa3c3124711c3efe16.bindTooltip(
+                `<div>
+                     Clinique Taha: 34/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_30b403815931a016e7f7a3e440ae14d4 = L.circleMarker(
+                [33.59840290086962, -7.488992379115019],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_534d9746b680ff657e80afee88bf6dee = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_ae300288b071f4c0d80b24eb8f300c6e = $(`<div id="html_ae300288b071f4c0d80b24eb8f300c6e" style="width: 100.0%; height: 100.0%;"><b>HGC Hôpital Général de Casablanca</b><br>Score: 52.8 (Good)<br>Stops within 500m: 6<br>Lines: 2</div>`)[0];
+                popup_534d9746b680ff657e80afee88bf6dee.setContent(html_ae300288b071f4c0d80b24eb8f300c6e);
+            
+        
+
+        circle_marker_30b403815931a016e7f7a3e440ae14d4.bindPopup(popup_534d9746b680ff657e80afee88bf6dee)
+        ;
+
+        
+    
+    
+            circle_marker_30b403815931a016e7f7a3e440ae14d4.bindTooltip(
+                `<div>
+                     HGC Hôpital Général de Casablanca: 53/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ab7418c9d49ca611571676996ed263f4 = L.circleMarker(
+                [33.60752031789352, -7.50316335979685],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.304325468391052, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_cec742a5f18e30a29d6f5f5677c48a0c = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_ce6d98d98385a0efacc1d260890715af = $(`<div id="html_ce6d98d98385a0efacc1d260890715af" style="width: 100.0%; height: 100.0%;"><b>Hôpital AL mansour</b><br>Score: 63.0 (Good)<br>Stops within 500m: 7<br>Lines: 7</div>`)[0];
+                popup_cec742a5f18e30a29d6f5f5677c48a0c.setContent(html_ce6d98d98385a0efacc1d260890715af);
+            
+        
+
+        circle_marker_ab7418c9d49ca611571676996ed263f4.bindPopup(popup_cec742a5f18e30a29d6f5f5677c48a0c)
+        ;
+
+        
+    
+    
+            circle_marker_ab7418c9d49ca611571676996ed263f4.bindTooltip(
+                `<div>
+                     Hôpital AL mansour: 63/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c8828af5ea61281054bccc63f32dae95 = L.circleMarker(
+                [33.55639592548778, -7.632356354256379],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_9f29b8588dcbbac34e20fa7d284405e7 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_7e6b95841bff5637c83a634ea5e76ddf = $(`<div id="html_7e6b95841bff5637c83a634ea5e76ddf" style="width: 100.0%; height: 100.0%;"><b>Clinique Jerrada Oasis</b><br>Score: 54.4 (Good)<br>Stops within 500m: 8<br>Lines: 5</div>`)[0];
+                popup_9f29b8588dcbbac34e20fa7d284405e7.setContent(html_7e6b95841bff5637c83a634ea5e76ddf);
+            
+        
+
+        circle_marker_c8828af5ea61281054bccc63f32dae95.bindPopup(popup_9f29b8588dcbbac34e20fa7d284405e7)
+        ;
+
+        
+    
+    
+            circle_marker_c8828af5ea61281054bccc63f32dae95.bindTooltip(
+                `<div>
+                     Clinique Jerrada Oasis: 54/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_165840856bcc65c8158594442dd1cb44 = L.circleMarker(
+                [33.572502133136695, -7.546941357778492],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_8e897da495b330c03ac409169b54559c = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_abd2da443736a5848f68decd212f2e02 = $(`<div id="html_abd2da443736a5848f68decd212f2e02" style="width: 100.0%; height: 100.0%;"><b>Clinique Al Wafaa</b><br>Score: 27.4 (Moderate)<br>Stops within 500m: 5<br>Lines: 5</div>`)[0];
+                popup_8e897da495b330c03ac409169b54559c.setContent(html_abd2da443736a5848f68decd212f2e02);
+            
+        
+
+        circle_marker_165840856bcc65c8158594442dd1cb44.bindPopup(popup_8e897da495b330c03ac409169b54559c)
+        ;
+
+        
+    
+    
+            circle_marker_165840856bcc65c8158594442dd1cb44.bindTooltip(
+                `<div>
+                     Clinique Al Wafaa: 27/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a73b83b2de6649022913b50785861e24 = L.circleMarker(
+                [33.55910413132996, -7.609979730290242],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_5b5d9905ec5bf1eb8bb838dd64d1873b = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_3e38dea63ca420e26b3a9f26bb084dd8 = $(`<div id="html_3e38dea63ca420e26b3a9f26bb084dd8" style="width: 100.0%; height: 100.0%;"><b>Centre de Santé Al Massira 2 (Niveau 2)</b><br>Score: 49.1 (Moderate)<br>Stops within 500m: 5<br>Lines: 14</div>`)[0];
+                popup_5b5d9905ec5bf1eb8bb838dd64d1873b.setContent(html_3e38dea63ca420e26b3a9f26bb084dd8);
+            
+        
+
+        circle_marker_a73b83b2de6649022913b50785861e24.bindPopup(popup_5b5d9905ec5bf1eb8bb838dd64d1873b)
+        ;
+
+        
+    
+    
+            circle_marker_a73b83b2de6649022913b50785861e24.bindTooltip(
+                `<div>
+                     Centre de Santé Al Massira 2 (Niveau 2): 49/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7d986e7e97340aa59208b88d5d441caf = L.circleMarker(
+                [33.602689403020634, -7.632351824576385],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "blue", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.496781051662834, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_49a774922022f79cb04ad785ead28cf4 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_62b52751e7f8a79ab72270bf6f78f142 = $(`<div id="html_62b52751e7f8a79ab72270bf6f78f142" style="width: 100.0%; height: 100.0%;"><b>Hôpital Moulay Youssef</b><br>Score: 65.0 (Good)<br>Stops within 500m: 7<br>Lines: 9</div>`)[0];
+                popup_49a774922022f79cb04ad785ead28cf4.setContent(html_62b52751e7f8a79ab72270bf6f78f142);
+            
+        
+
+        circle_marker_7d986e7e97340aa59208b88d5d441caf.bindPopup(popup_49a774922022f79cb04ad785ead28cf4)
+        ;
+
+        
+    
+    
+            circle_marker_7d986e7e97340aa59208b88d5d441caf.bindTooltip(
+                `<div>
+                     Hôpital Moulay Youssef: 65/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7a8bf2ce25c0a95930d8b38039d09eb1 = L.circleMarker(
+                [33.589365908252454, -7.551654023582984],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.75, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6, "stroke": true, "weight": 3}
+            ).addTo(map_6bef7f1bb43f8161a492a8921230d873);
+        
+    
+        var popup_5d9fa554e8726a118c2ac79ebcd7d074 = L.popup({
+  "maxWidth": 250,
+});
+
+        
+            
+                var html_588a7914fbe7ad0895a7db65b1155c91 = $(`<div id="html_588a7914fbe7ad0895a7db65b1155c91" style="width: 100.0%; height: 100.0%;"><b>Hôpital Mohammed V</b><br>Score: 0.0 (nan)<br>Stops within 500m: 1<br>Lines: 1</div>`)[0];
+                popup_5d9fa554e8726a118c2ac79ebcd7d074.setContent(html_588a7914fbe7ad0895a7db65b1155c91);
+            
+        
+
+        circle_marker_7a8bf2ce25c0a95930d8b38039d09eb1.bindPopup(popup_5d9fa554e8726a118c2ac79ebcd7d074)
+        ;
+
+        
+    
+    
+            circle_marker_7a8bf2ce25c0a95930d8b38039d09eb1.bindTooltip(
+                `<div>
+                     Hôpital Mohammed V: 0/100
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+</script>
+</html>
