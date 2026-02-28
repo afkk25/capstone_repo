@@ -11,6 +11,7 @@ __pycache__/
 .ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/
 notebooks/cache
+notebooks/00_test.ipynb
 
 # Ignore environment files
 .venv
