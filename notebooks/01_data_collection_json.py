@@ -9,15 +9,15 @@ BASE_DIR = "D:/Capstone/capstone_repo"
 DATA_DIR = f"{BASE_DIR}/data/raw"
 
 ############################# CasaBUS ###############################
-# url = "https://storageacntcasabusonly.blob.core.windows.net/gtfs/stops.json"
+url = "https://storageacntcasabusonly.blob.core.windows.net/gtfs/stops.json"
 
-# response = requests.get(url)
-# data = response.json()
+response = requests.get(url)
+data = response.json()
 
-# df = pd.DataFrame(data)
-# route_ids = df["RouteId"].unique()
-# route_ids = route_ids.tolist()
-# df.to_csv(f'{DATA_DIR}/CasaBus_stops.csv', index=False)
+df = pd.DataFrame(data)
+route_ids = df["RouteId"].unique()
+route_ids = route_ids.tolist()
+df.to_csv(f'{DATA_DIR}/CasaBus_stops.csv', index=False)
 
 
 
@@ -33,7 +33,6 @@ route_ids = ['13', '50', '84', '9E', '604', '67', '72', '55', '68', '51', '312',
 
 route_shapes = []
 
-
 for route in route_ids:
     url = f"https://storageacntcasabusonly.blob.core.windows.net/gtfs/shape/{route}.json"
     
@@ -42,18 +41,14 @@ for route in route_ids:
         print(response.status_code)
         data = response.json()
         
-        polylines = data["RoutePolylines"]
-        
+        polylines = data["RoutePolylines"]      
         # get coordinates
-        coordinates = [(float(point["Latitude"]), float(point["Longitude"])) for point in polylines]
-            
+        coordinates = [(float(point["Latitude"]), float(point["Longitude"])) for point in polylines]       
         # Route shapes
         route_shapes.append({"RouteId": route, "Coordinates": coordinates})
-
         # create map
         m = folium.Map(location=coordinates[0], zoom_start=13)
-        folium.PolyLine(coordinates, color="blue", weight=3).add_to(m)
-            
+        folium.PolyLine(coordinates, color="blue", weight=3).add_to(m)       
         # save map
         m.save(f"{DATA_DIR}/route_maps/route_{route}.html")
         print(f"Route {route} saved successfully.")
@@ -70,7 +65,7 @@ df_routes.to_csv(f'{DATA_DIR}/CasaBus_routes.csv', index=False)
 
 url = "https://www.casatramway.ma/pthv/get/stops-line-discovery"
 
-# We will loop through the tram lines T1 to T4 to collect stop data for each line
+# Loop through the tram lines T1 to T4 to collect stop data for each line
 lines = ["T1", "T2", "T3", "T4", "BW1", "BW2"]  
 
 for line in lines:
@@ -89,14 +84,9 @@ for line in lines:
 
     response = requests.get(url, params=params, headers=headers)
 
-
     data = response.json()
 
     # Flatten nested dictionaries and lists into a DataFrame
     df = pd.json_normalize(data['items'])
-
-    # This creates clean columns like 'StopName.value' and 'Location.Latitude'
-    # print(df[['StopPointRef', 'StopName.value', 'Location.Latitude', 'Location.Longitude']].head())
-
-    # Save to CSV for your data collection step
+    # Save to CSV for data collection step
     df.to_csv(f'{DATA_DIR}/Casaway/Casaway_{line}_stops.csv', index=False)
