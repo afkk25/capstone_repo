@@ -24,6 +24,8 @@ df.to_csv(f'{DATA_DIR}/CasaBus_stops.csv', index=False)
 ############# Bus Routes ############
 # create folder to save maps
 os.makedirs(f"{DATA_DIR}/route_maps", exist_ok=True)
+
+# List of route IDs to fetch shapes for
 route_ids = ['13', '50', '84', '9E', '604', '67', '72', '55', '68', '51', '312',
        '600', '109', '97B', '5', '902', '904', '82', '903', '301', '800',
        '43', '64', '79', '307', '606', '6', '65', '19', '608', '23',
@@ -33,6 +35,7 @@ route_ids = ['13', '50', '84', '9E', '604', '67', '72', '55', '68', '51', '312',
 
 route_shapes = []
 
+# Loop through each route ID, fetch the shape data, extract coordinates, and create maps
 for route in route_ids:
     url = f"https://storageacntcasabusonly.blob.core.windows.net/gtfs/shape/{route}.json"
     
@@ -61,8 +64,6 @@ df_routes.to_csv(f'{DATA_DIR}/CasaBus_routes.csv', index=False)
 
 
 ######################### BusWay / TramWay ###############################
-
-
 url = "https://www.casatramway.ma/pthv/get/stops-line-discovery"
 
 # Loop through the tram lines T1 to T4 to collect stop data for each line
@@ -77,7 +78,7 @@ for line in lines:
         "direction": ""
     }
 
-    # Some APIs require a User-Agent header to prevent blocking, so we include it here
+    # Some APIs require a User-Agent header to prevent blocking
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
@@ -88,5 +89,6 @@ for line in lines:
 
     # Flatten nested dictionaries and lists into a DataFrame
     df = pd.json_normalize(data['items'])
-    # Save to CSV for data collection step
+
+    # Save to CSV for data preprocessing step
     df.to_csv(f'{DATA_DIR}/Casaway/Casaway_{line}_stops.csv', index=False)

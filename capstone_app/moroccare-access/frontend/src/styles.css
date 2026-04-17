@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background: #f8fafc;
+  color: #1f2937;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.card {
+  @apply bg-white rounded-2xl border border-slate-200 shadow-sm;
+}
+
+.morocco-accent {
+  color: #c8102e;
+}
+
+.morocco-green {
+  color: #006233;
+}
+
+.app-shell {
+  @apply h-screen bg-slate-50 text-slate-800;
+}
+
+.panel-card {
+  @apply rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
