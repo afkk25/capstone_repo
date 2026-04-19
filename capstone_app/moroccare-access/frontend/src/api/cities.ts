@@ -52,3 +52,21 @@ export function uploadCityData(formData: FormData) {
   );
 }
 
+export function uploadCityDataForCity(
+  cityId: string,
+  formData: FormData,
+  opts?: { cityName?: string; isNewCity?: boolean; onUploadProgress?: (evt: { loaded: number; total?: number }) => void }
+) {
+  const params = new URLSearchParams();
+  params.set("is_new_city", String(Boolean(opts?.isNewCity)));
+  if (opts?.cityName) params.set("city_name", opts.cityName);
+  return requestJson<UploadCityResponse>(
+    () =>
+      apiClient.post(`/api/cities/${cityId}/upload?${params.toString()}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: opts?.onUploadProgress as never
+      }),
+    0
+  );
+}
+

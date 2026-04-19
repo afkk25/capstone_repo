@@ -1,0 +1,12 @@
+{
+  "city_id": "marrakech",
+  "display_name": "Marrakech",
+  "center_lat": 31.632636366666667,
+  "center_lon": -7.991499476666669,
+  "crs_metric": "EPSG:32629",
+  "urban_ring_radii_km": [
+    8,
+    18,
+    999
+  ]
+}

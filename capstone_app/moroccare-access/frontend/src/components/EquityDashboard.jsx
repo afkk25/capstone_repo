@@ -1,4 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useI18n } from "../i18n/I18nProvider";
+import { sideClass, swapChartMargin, toLocaleNumber } from "../utils/rtl";
 
 const chartPalette = { Inner: "#14b8a6", Middle: "#f59e0b", Outer: "#ef4444" };
 const ringBadge = {
@@ -8,6 +10,7 @@ const ringBadge = {
 };
 
 export default function EquityDashboard({ equity }) {
+  const { isRtl, language } = useI18n();
   if (!equity) {
     return (
       <div className="card h-full p-4 flex items-center justify-center text-slate-500 text-sm">
@@ -32,14 +35,17 @@ export default function EquityDashboard({ equity }) {
   return (
     <div className="card h-full p-4 overflow-hidden">
       <h2 className="text-lg font-semibold text-slate-800 mb-2">Equity Dashboard</h2>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100%-2.25rem)] overflow-auto pr-1">
-        <div className="min-h-[220px] h-[260px]">
+      <div className={`grid h-[calc(100%-2.25rem)] grid-cols-1 gap-4 overflow-auto xl:grid-cols-2 ${sideClass(isRtl, "pr-1", "pl-1")}`}>
+        <div className="rtl-chart min-h-[220px] h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows}>
+            <BarChart data={rows} margin={swapChartMargin(isRtl, { top: 8, right: 12, left: 12, bottom: 8 })}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="ring" />
-              <YAxis />
-              <Tooltip />
+              <YAxis tickFormatter={(value) => toLocaleNumber(value, language)} />
+              <Tooltip
+                contentStyle={{ direction: isRtl ? "rtl" : "ltr", textAlign: isRtl ? "right" : "left" }}
+                formatter={(value) => toLocaleNumber(value, language)}
+              />
               <Bar dataKey="mean">
                 {rows.map((entry) => (
                   <Cell key={entry.ring} fill={chartPalette[entry.ring] || "#64748b"} />
@@ -49,9 +55,9 @@ export default function EquityDashboard({ equity }) {
           </ResponsiveContainer>
         </div>
         <div className="overflow-auto min-h-[220px] max-h-[260px]">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm rtl-safe-text">
             <thead>
-              <tr className="text-left border-b">
+              <tr className={`border-b ${isRtl ? "text-right" : "text-left"}`}>
                 <th className="py-2">Rank</th>
                 <th className="py-2">Facility</th>
                 <th className="py-2">Ring</th>
@@ -69,33 +75,39 @@ export default function EquityDashboard({ equity }) {
                       {row.urban_ring}
                     </span>
                   </td>
-                  <td className="py-2">{Number(row.baseline_score).toFixed(3)}</td>
+                   <td className="py-2 num-ltr">{toLocaleNumber(Number(row.baseline_score), language, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</td>
                   <td className="py-2">{row.recommended_action}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="min-h-[220px] h-[260px]">
+        <div className="rtl-chart min-h-[220px] h-[260px]">
           <div className="text-sm font-medium text-slate-700 mb-2">Accessibility distribution (top facilities)</div>
           <ResponsiveContainer width="100%" height="85%">
-            <BarChart data={distributionRows.slice(0, 20)}>
+            <BarChart data={distributionRows.slice(0, 20)} margin={swapChartMargin(isRtl, { top: 8, right: 12, left: 12, bottom: 8 })}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" hide />
-              <YAxis />
-              <Tooltip />
+              <YAxis tickFormatter={(value) => toLocaleNumber(value, language)} />
+              <Tooltip
+                contentStyle={{ direction: isRtl ? "rtl" : "ltr", textAlign: isRtl ? "right" : "left" }}
+                formatter={(value) => toLocaleNumber(value, language)}
+              />
               <Bar dataKey="score" fill="#006233" />
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="min-h-[220px] h-[260px]">
+        <div className="rtl-chart min-h-[220px] h-[260px]">
           <div className="text-sm font-medium text-slate-700 mb-2">Top underserved facilities</div>
           <ResponsiveContainer width="100%" height="85%">
-            <BarChart data={underservedBars}>
+            <BarChart data={underservedBars} margin={swapChartMargin(isRtl, { top: 8, right: 12, left: 12, bottom: 8 })}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="facility" hide />
-              <YAxis />
-              <Tooltip />
+              <YAxis tickFormatter={(value) => toLocaleNumber(value, language)} />
+              <Tooltip
+                contentStyle={{ direction: isRtl ? "rtl" : "ltr", textAlign: isRtl ? "right" : "left" }}
+                formatter={(value) => toLocaleNumber(value, language)}
+              />
               <Bar dataKey="vulnerability" fill="#c8102e" />
             </BarChart>
           </ResponsiveContainer>

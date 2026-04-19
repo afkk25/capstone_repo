@@ -1,225 +1,223 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
-import { CircleMarker, MapContainer, Pane, TileLayer, Tooltip, useMap } from "react-leaflet";
-import { LAYER_OPTIONS, mapLayerValue } from "../utils/dashboard";
+import { CircleMarker, MapContainer, Pane, Popup, TileLayer, useMap } from "react-leaflet";
+import { mapLayerValue } from "../utils/dashboard";
+import { useI18n } from "../i18n/I18nProvider";
+import { sideClass, toLocaleNumber } from "../utils/rtl";
 
-function getColor(value, layer, deltaMode, delta = 0) {
-  if (deltaMode) {
-    if (delta > 0.01) return "#2563eb";
-    if (delta < -0.01) return "#dc2626";
-    return "#64748b";
+function haversineMeters(lat1, lon1, lat2, lon2) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const earthRadiusMeters = 6371e3;
+  const phi1 = toRad(lat1);
+  const phi2 = toRad(lat2);
+  const dPhi = toRad(lat2 - lat1);
+  const dLambda = toRad(lon2 - lon1);
+  const a = Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getAccessibilityColor(value) {
+  if (value < 0.35) return "#D85A30";
+  if (value <= 0.65) return "#EF9F27";
+  return "#3B6D11";
+}
+
+function getColor(value, layer) {
+  if (layer === "accessibility") {
+    return getAccessibilityColor(Number(value || 0));
   }
   if (layer === "travel_time") {
     if (value <= 20) return "#0f766e";
-    if (value <= 35) return "#f59e0b";
-    return "#b91c1c";
+    if (value <= 35) return "#EF9F27";
+    return "#D85A30";
   }
-  if (layer === "risk") {
-    return Number(value) >= 1 ? "#dc2626" : "#16a34a";
-  }
-  if (layer === "priority") {
-    if (value >= 0.67) return "#7f1d1d";
-    if (value >= 0.34) return "#b45309";
-    return "#0f766e";
-  }
-  if (value >= 0.67) return "#15803d";
-  if (value >= 0.4) return "#f59e0b";
-  return "#b91c1c";
+  if (value >= 0.67) return "#D85A30";
+  if (value >= 0.34) return "#EF9F27";
+  return "#3B6D11";
 }
 
-function markerRadius(value, layer, selected) {
-  if (selected) return 10;
-  if (layer === "risk") return 7;
-  if (layer === "travel_time") return 7;
-  if (layer === "priority") return 8;
-  const dynamic = 6 + Math.max(0, Math.min(5, Number(value || 0) * 8));
-  return Number.isFinite(dynamic) ? dynamic : 7;
+function getNearestStopMetrics(row, stops) {
+  if (!Array.isArray(stops) || !stops.length) {
+    return { nearestStopDistanceMeters: NaN, stopsWithin500m: 0 };
+  }
+  let nearest = Number.POSITIVE_INFINITY;
+  let within500 = 0;
+  for (const stop of stops) {
+    const lat = Number(stop.latitude);
+    const lon = Number(stop.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const distance = haversineMeters(Number(row.latitude), Number(row.longitude), lat, lon);
+    if (distance < nearest) nearest = distance;
+    if (distance <= 500) within500 += 1;
+  }
+  return { nearestStopDistanceMeters: Number.isFinite(nearest) ? nearest : NaN, stopsWithin500m: within500 };
 }
 
-function FitBounds({ city, facilities }) {
+function FitBounds({ city, facilitiesForBounds }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!facilities.length) {
+    if (!facilitiesForBounds.length) {
       map.setView([city.center_lat, city.center_lon], 11);
       return;
     }
-    if (facilities.length === 1) {
-      map.setView([facilities[0].latitude, facilities[0].longitude], 12);
+    if (facilitiesForBounds.length === 1) {
+      map.setView([facilitiesForBounds[0].latitude, facilitiesForBounds[0].longitude], 12);
       return;
     }
-    const bounds = L.latLngBounds(facilities.map((row) => [row.latitude, row.longitude]));
+    const bounds = L.latLngBounds(facilitiesForBounds.map((row) => [row.latitude, row.longitude]));
     map.fitBounds(bounds.pad(0.15), { animate: false, maxZoom: 13 });
-  }, [city.center_lat, city.center_lon, facilities, map]);
+  }, [city.center_lat, city.center_lon, facilitiesForBounds, map]);
 
   return null;
 }
 
-function layerLegendRows(activeLayer, deltaMode) {
-  if (deltaMode) {
-    return [
-      { color: "#2563eb", label: "Improved vs baseline" },
-      { color: "#64748b", label: "Minimal change" },
-      { color: "#dc2626", label: "Declined vs baseline" }
-    ];
-  }
-  if (activeLayer === "travel_time") {
-    return [
-      { color: "#0f766e", label: "Lower travel time" },
-      { color: "#f59e0b", label: "Moderate travel time" },
-      { color: "#b91c1c", label: "High travel time" }
-    ];
-  }
-  if (activeLayer === "risk") {
-    return [
-      { color: "#16a34a", label: "Served" },
-      { color: "#dc2626", label: "Underserved" }
-    ];
-  }
-  if (activeLayer === "priority") {
-    return [
-      { color: "#7f1d1d", label: "Critical priority" },
-      { color: "#b45309", label: "Moderate priority" },
-      { color: "#0f766e", label: "Lower priority" }
-    ];
-  }
-  return [
-    { color: "#b91c1c", label: "Lower accessibility" },
-    { color: "#f59e0b", label: "Medium accessibility" },
-    { color: "#15803d", label: "Higher accessibility" }
-  ];
-}
-
-// Main map canvas for district markers, hover summary, and click selection.
 export default function MapView({
   city,
-  facilities = [],
+  baselineFacilities = [],
+  simulatedFacilities = null,
   transportStops = [],
-  deltaMode = false,
   isLoading = false,
   activeLayer = "accessibility",
   onLayerChange,
   onSelectPoint,
   selectedDistrictId = null,
   priorityByDistrict = {},
-  error = null
+  error = null,
+  onWhyScore
 }) {
+  const { t, language, isRtl } = useI18n();
+  const [showTransportStops, setShowTransportStops] = useState(true);
+
   if (!city) {
-    return <div className="panel-card flex h-full items-center justify-center p-6 text-sm text-slate-500">Select a city to display district accessibility.</div>;
+    return <div className="panel-card flex h-full items-center justify-center p-6 text-sm text-slate-500">{t("map.selectCity")}</div>;
   }
 
-  const rows = facilities.map((row) => ({
-    ...row,
-    priorityScore: Number(priorityByDistrict?.[row.districtName] || 0)
-  }));
+  const baselineRows = useMemo(
+    () =>
+      baselineFacilities.map((row) => ({
+        ...row,
+        priorityScore: Number(priorityByDistrict?.[row.districtName] || 0),
+        ...getNearestStopMetrics(row, transportStops)
+      })),
+    [baselineFacilities, priorityByDistrict, transportStops]
+  );
 
-  const legendRows = layerLegendRows(activeLayer, deltaMode);
+  const simulatedRows = useMemo(
+    () =>
+      (Array.isArray(simulatedFacilities) ? simulatedFacilities : []).map((row) => ({
+        ...row,
+        priorityScore: Number(priorityByDistrict?.[row.districtName] || 0),
+        ...getNearestStopMetrics(row, transportStops)
+      })),
+    [simulatedFacilities, priorityByDistrict, transportStops]
+  );
 
+  const isSimulated = simulatedRows.length > 0;
+  const activeRows = isSimulated ? simulatedRows : baselineRows;
+  const facilitiesForBounds = activeRows;
   return (
     <div className="panel-card relative h-full overflow-hidden">
       <MapContainer center={[city.center_lat, city.center_lon]} zoom={11} scrollWheelZoom className="h-full w-full" preferCanvas>
-        <FitBounds city={city} facilities={rows} />
+        <FitBounds city={city} facilitiesForBounds={facilitiesForBounds} />
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         <Pane name="districts" style={{ zIndex: 450 }}>
-          {rows.map((row) => {
+          {activeRows.map((row) => {
             const value = mapLayerValue(row, activeLayer);
-            const color = getColor(value, activeLayer, deltaMode, row.delta);
+            const color = getColor(value, activeLayer);
             const selected = selectedDistrictId === row.id;
             return (
               <CircleMarker
-                key={row.id}
+                key={`${isSimulated ? "sim" : "base"}-${row.id}`}
                 center={[row.latitude, row.longitude]}
-                radius={markerRadius(value, activeLayer, selected)}
+                radius={9}
                 eventHandlers={{ click: () => onSelectPoint?.(row) }}
                 pathOptions={{
                   color: selected ? "#0f172a" : color,
                   fillColor: color,
-                  fillOpacity: 0.82,
-                  weight: selected ? 3 : 1.2
+                  fillOpacity: 0.8,
+                  weight: isSimulated ? 2 : selected ? 2.5 : 1.2,
+                  dashArray: isSimulated ? "4 3" : undefined
                 }}
               >
-                <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                  <div className="space-y-0.5 text-xs">
-                    <div className="font-semibold">{row.districtName}</div>
-                    <div>Accessibility: {row.accessibilityScore.toFixed(3)}</div>
-                    <div>Travel time: {row.travelTimeMin.toFixed(1)} min</div>
-                    <div>Status: {row.underserved ? "Underserved" : "Served"}</div>
-                    <div>Priority score: {row.priorityScore.toFixed(2)}</div>
+                <Popup>
+                  <div className={`space-y-1 text-xs rtl-safe-text ${isRtl ? "text-right" : "text-left"}`}>
+                    <div className="font-bold text-slate-900">{row.districtName}</div>
+                    {isSimulated ? <div className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{t("map.simulated")}</div> : null}
+                    <div>
+                      {t("map.accessibilityScore")}: <span className="num-ltr">{toLocaleNumber(Number(row.accessibilityScore).toFixed(2), language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    <div>
+                      {t("map.distanceToStop")}:{" "}
+                      <span className="num-ltr">
+                        {Number.isFinite(row.nearestStopDistanceMeters) ? `${toLocaleNumber(Math.round(row.nearestStopDistanceMeters), language)}m` : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      {t("map.stopsWithin500")}: <span className="num-ltr">{toLocaleNumber(row.stopsWithin500m, language, { maximumFractionDigits: 0 })}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`mt-1 p-0 text-[11px] font-semibold text-blue-700 underline hover:text-blue-800 ${
+                        isRtl ? "text-right" : "text-left"
+                      }`}
+                      onClick={() => onWhyScore?.(row)}
+                    >
+                      {t("map.whyScore")}
+                    </button>
                   </div>
-                </Tooltip>
+                </Popup>
               </CircleMarker>
             );
           })}
         </Pane>
 
         <Pane name="stops" style={{ zIndex: 460 }}>
-          {(activeLayer === "travel_time" || activeLayer === "priority") &&
+          {showTransportStops &&
             transportStops.map((stop, idx) => (
               <CircleMarker
                 key={`stop-${stop.cluster_id ?? idx}`}
                 center={[Number(stop.latitude), Number(stop.longitude)]}
-                radius={2.8}
-                pathOptions={{ color: "#0f766e", fillColor: "#0f766e", fillOpacity: 0.8, weight: 1 }}
-              >
-                <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                  <div className="text-xs">
-                    <div className="font-semibold">{stop.stop_name || "Transport stop"}</div>
-                    <div>Mode: {String(stop.mode || "N/A")}</div>
-                  </div>
-                </Tooltip>
-              </CircleMarker>
+                radius={3}
+                pathOptions={{ color: "#888780", fillColor: "#888780", fillOpacity: 0.5, opacity: 0.5, weight: 1 }}
+              />
             ))}
         </Pane>
       </MapContainer>
 
-      <div className="pointer-events-none absolute left-3 top-3 z-[900] rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-sm">
-        <div className="text-xs font-semibold text-slate-800">Casablanca District Accessibility Map</div>
-        <div className="text-[11px] text-slate-600">Click a district for details, hover to inspect metrics.</div>
-      </div>
-
       {onLayerChange ? (
-        <div className="absolute right-3 top-3 z-[900] rounded-xl border border-slate-200 bg-white/95 p-2 shadow-sm">
-          <label htmlFor="map-layer-select" className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Layer
+        <div className={`absolute top-3 z-[900] rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm ${sideClass(isRtl, "right-3", "left-3")}`}>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t("map.layers")}</div>
+          <label className="mt-2 flex items-center gap-2 text-xs text-slate-700">
+            <input type="checkbox" checked={showTransportStops} onChange={(event) => setShowTransportStops(event.target.checked)} />
+            {t("map.showStops")}
           </label>
-          <select
-            id="map-layer-select"
-            value={activeLayer}
-            onChange={(event) => onLayerChange(event.target.value)}
-            className="pointer-events-auto rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          >
-            {LAYER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+
+          <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t("map.colorBy")}</div>
+          <div className="mt-1 space-y-1 text-xs text-slate-700">
+            <label className="flex items-center gap-2">
+              <input type="radio" name="colorBy" value="accessibility" checked={activeLayer === "accessibility"} onChange={(event) => onLayerChange(event.target.value)} />
+              {t("map.accessibilityScore")}
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="colorBy" value="travel_time" checked={activeLayer === "travel_time"} onChange={(event) => onLayerChange(event.target.value)} />
+              {t("map.travelTime")}
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="colorBy" value="priority" checked={activeLayer === "priority"} onChange={(event) => onLayerChange(event.target.value)} />
+              {t("map.priority")}
+            </label>
+          </div>
         </div>
       ) : null}
-
-      <div className="absolute bottom-3 left-3 z-[900] max-w-xs rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-sm">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Legend</div>
-        <div className="mt-1 space-y-1.5">
-          {legendRows.map((row) => (
-            <div key={row.label} className="flex items-center gap-2 text-xs text-slate-700">
-              <span className="h-2.5 w-5 rounded-full" style={{ backgroundColor: row.color }} />
-              <span>{row.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="absolute bottom-3 right-3 z-[900] max-w-xs rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-[11px] text-slate-600 shadow-sm">
-        Interpretation: red indicates higher planning pressure (low access, high travel time, or higher intervention priority).
-      </div>
 
       {(isLoading || error) && (
         <div className="absolute inset-0 z-[920] flex items-center justify-center bg-white/80 p-4">
           {isLoading ? (
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
               <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
-              Loading map data...
+               {t("map.loadingMap")}
             </div>
           ) : (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>

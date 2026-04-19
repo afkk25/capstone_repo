@@ -1,6 +1,6 @@
 export default function SectionCard({ title, subtitle, children, className = "", bodyClassName = "", headerRight = null }) {
   return (
-    <section className={`panel-card overflow-hidden rounded-2xl ${className}`}>
+    <section className={`panel-card overflow-hidden rounded-2xl rtl-safe-text ${className}`}>
       {(title || subtitle || headerRight) && (
         <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div>

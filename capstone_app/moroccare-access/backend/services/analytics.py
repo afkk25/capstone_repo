@@ -10,12 +10,24 @@ from utils.metrics import gini_coefficient, safe_mean
 ACCESS_MAX_MIN = 45.0
 
 
+def _score_threshold(scores: pd.Series) -> float:
+    series = pd.to_numeric(scores, errors="coerce").dropna()
+    if series.empty:
+        return 0.5
+    return 50.0 if float(series.max()) > 1.5 else 0.5
+
+
 def _score_to_minutes(scores: pd.Series) -> pd.Series:
     """
-    Convert normalized accessibility score [0, 1] into a coarse travel-time proxy.
+    Convert accessibility score into a coarse travel-time proxy.
+    Supports both [0,1] and [0,100] score scales.
     Higher score => lower time.
     """
-    clipped = scores.clip(lower=0.0, upper=1.0)
+    numeric = pd.to_numeric(scores, errors="coerce").fillna(0.0)
+    if _score_threshold(numeric) >= 50.0:
+        clipped = numeric.clip(lower=0.0, upper=100.0)
+        return (1.0 - (clipped / 100.0)) * 60.0
+    clipped = numeric.clip(lower=0.0, upper=1.0)
     return (1.0 - clipped) * 60.0
 
 
@@ -44,7 +56,7 @@ def compute_summary_metrics(data: pd.DataFrame | list[dict[str, Any]]) -> dict[s
         df["population"] = 1.0
     df["population"] = pd.to_numeric(df["population"], errors="coerce").fillna(0.0).clip(lower=0.0)
 
-    underserved_mask = df[score_col] < 0.5
+    underserved_mask = df[score_col] < _score_threshold(df[score_col])
     return {
         "avg_travel_time": safe_mean(df["travel_time_min"]),
         "pct_above_45min": float((df["travel_time_min"] > ACCESS_MAX_MIN).mean() * 100.0),
@@ -75,24 +87,26 @@ def rank_underserved_districts(data: pd.DataFrame | list[dict[str, Any]]) -> lis
     df[pop_col] = pd.to_numeric(df[pop_col], errors="coerce").fillna(0.0).clip(lower=0.0)
 
     if district_col is None:
+        threshold = _score_threshold(df[score_col])
         rows = [
             {
                 "district": "all",
                 "avg_accessibility_score": safe_mean(df[score_col]),
-                "underserved_pct": float((df[score_col] < 0.5).mean() * 100.0),
+                "underserved_pct": float((df[score_col] < threshold).mean() * 100.0),
                 "population": float(df[pop_col].sum()),
                 "rank": 1,
             }
         ]
         return rows
 
+    threshold = _score_threshold(df[score_col])
     grouped = (
         df.groupby(district_col, dropna=False)
         .apply(
             lambda g: pd.Series(
                 {
                     "avg_accessibility_score": safe_mean(g[score_col]),
-                    "underserved_pct": float((g[score_col] < 0.5).mean() * 100.0),
+                    "underserved_pct": float((g[score_col] < threshold).mean() * 100.0),
                     "population": float(g[pop_col].sum()),
                 }
             )

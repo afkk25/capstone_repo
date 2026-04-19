@@ -115,7 +115,10 @@ def _load_modeling_dataframe(city_id: str) -> pd.DataFrame:
     Preferred source: origin_accessibility_metrics.csv / worldpop_origins.csv.
     """
     origin_df = load_notebook_origin_metrics(city_id).copy()
-    district_df = load_notebook_district_summary(city_id).copy()
+    try:
+        district_df = load_notebook_district_summary(city_id).copy()
+    except CityDataNotFoundError:
+        district_df = pd.DataFrame()
 
     # Normalize likely numeric columns used in notebook-derived modeling.
     origin_df = _safe_numeric(
@@ -161,16 +164,12 @@ def _load_modeling_dataframe(city_id: str) -> pd.DataFrame:
         origin_df[finite_origin_cols] = origin_df[finite_origin_cols].replace([np.inf, -np.inf], np.nan)
 
     finite_district_cols = [c for c in ["population_raster", "origin_count", "avg_walk_time_to_stop_min_pw"] if c in district_df.columns]
-    if finite_district_cols:
+    if not district_df.empty and finite_district_cols:
         district_df[finite_district_cols] = district_df[finite_district_cols].replace([np.inf, -np.inf], np.nan)
-
-    if "district_id" in origin_df.columns and "district_id" in district_df.columns:
-        merge_cols = [c for c in ["district_id", "population_raster", "origin_count", "avg_walk_time_to_stop_min_pw"] if c in district_df.columns]
-        if merge_cols:
-            origin_df = origin_df.merge(district_df[merge_cols].drop_duplicates(subset=["district_id"]), on="district_id", how="left")
 
     if "population" in origin_df.columns:
         origin_df["population"] = origin_df["population"].clip(lower=0)
+        origin_df = origin_df[origin_df["population"] >= 5].copy().reset_index(drop=True)
         origin_df["log_population"] = np.log1p(origin_df["population"])
     else:
         origin_df["population"] = 1.0
@@ -214,9 +213,6 @@ def _feature_sets(df: pd.DataFrame) -> dict[str, list[str]]:
         "y",
         "dist_to_center_km",
         "is_periphery",
-        "population_raster",
-        "origin_count",
-        "avg_walk_time_to_stop_min_pw",
     ]
     enriched = conservative + ["log_population", "walk_time_x_center", "walk_dist_x_pop"]
 
@@ -232,6 +228,9 @@ def _feature_sets(df: pd.DataFrame) -> dict[str, list[str]]:
         "is_unreachable",
         "is_access_30",
         "chosen_stop_key",
+        "avg_walk_time_to_stop_min_pw",
+        "population_raster",
+        "origin_count",
     }
 
     out: dict[str, list[str]] = {}

@@ -4,28 +4,28 @@ import type { LayerKey } from "../types/ui";
 export const LAYER_OPTIONS: { value: LayerKey; label: string; description: string }[] = [
   {
     value: "accessibility",
-    label: "Accessibility score",
-    description: "Predicted baseline accessibility index (higher is better)."
+    label: "map.accessibilityScore",
+    description: "map.accessibilityScore"
   },
   {
     value: "travel_time",
-    label: "Travel time",
-    description: "Estimated travel-time proxy in minutes (lower is better)."
+    label: "map.travelTime",
+    description: "map.travelTime"
   },
   {
     value: "2sfca",
-    label: "2SFCA score",
-    description: "Two-step floating catchment area access indicator."
+    label: "details.sfca",
+    description: "details.sfca"
   },
   {
     value: "risk",
-    label: "Underserved risk",
-    description: "Current underserved classification from model output."
+    label: "details.underserved",
+    description: "details.underserved"
   },
   {
     value: "priority",
-    label: "Priority action",
-    description: "Planning urgency derived from district ranking."
+    label: "map.priority",
+    description: "map.priority"
   }
 ];
 

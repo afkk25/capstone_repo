@@ -38,7 +38,15 @@ class CityPaths:
     feature_names_json: Path
     interim_origin_metrics_csv: Path
     interim_worldpop_origins_csv: Path
+    interim_worldpop_origin_points_csv: Path
     final_district_summary_csv: Path
+    final_modeling_results_dir: Path
+    final_cls_test_clean_csv: Path
+    final_cls_cv_clean_csv: Path
+    final_feature_importance_csv: Path
+    processed_cls_test_clean_csv: Path
+    processed_cls_cv_clean_csv: Path
+    processed_feature_importance_csv: Path
 
 
 def get_city_dir(city_id: str) -> Path:
@@ -76,7 +84,15 @@ def get_city_paths(city_id: str) -> CityPaths:
         feature_names_json=folder / "feature_names.json",
         interim_origin_metrics_csv=repo_root / "data" / "interim" / "origin_accessibility_metrics.csv",
         interim_worldpop_origins_csv=repo_root / "data" / "interim" / "worldpop_origins.csv",
+        interim_worldpop_origin_points_csv=repo_root / "data" / "interim" / "worldpop_origin_points.csv",
         final_district_summary_csv=repo_root / "data" / "final" / "district_accessibility_summary.csv",
+        final_modeling_results_dir=repo_root / "data" / "final" / "modeling_results",
+        final_cls_test_clean_csv=repo_root / "data" / "final" / "modeling_results" / "cls_test_clean.csv",
+        final_cls_cv_clean_csv=repo_root / "data" / "final" / "modeling_results" / "cls_cv_clean.csv",
+        final_feature_importance_csv=repo_root / "data" / "final" / "modeling_results" / "classification_clean_feature_importance.csv",
+        processed_cls_test_clean_csv=repo_root / "data" / "processed" / "cls_test_clean.csv",
+        processed_cls_cv_clean_csv=repo_root / "data" / "processed" / "cls_cv_clean.csv",
+        processed_feature_importance_csv=repo_root / "data" / "processed" / "classification_clean_feature_importance.csv",
     )
 
 
@@ -192,6 +208,7 @@ def load_notebook_origin_metrics(city_id: str) -> pd.DataFrame:
     Preference order:
     1) data/interim/origin_accessibility_metrics.csv
     2) data/interim/worldpop_origins.csv
+    3) data/interim/worldpop_origin_points.csv
     """
     _ = city_id  # reserved for future city-scoped notebook output layout
     paths = get_city_paths(city_id)
@@ -199,9 +216,13 @@ def load_notebook_origin_metrics(city_id: str) -> pd.DataFrame:
         return _read_csv(paths.interim_origin_metrics_csv)
     if paths.interim_worldpop_origins_csv.exists():
         return _read_csv(paths.interim_worldpop_origins_csv)
+    if paths.interim_worldpop_origin_points_csv.exists():
+        return _read_csv(paths.interim_worldpop_origin_points_csv)
     raise CityDataNotFoundError(
         "No notebook origin metrics found. Expected one of: "
-        f"{paths.interim_origin_metrics_csv} or {paths.interim_worldpop_origins_csv}"
+        f"{paths.interim_origin_metrics_csv}, "
+        f"{paths.interim_worldpop_origins_csv}, "
+        f"or {paths.interim_worldpop_origin_points_csv}"
     )
 
 
@@ -212,4 +233,40 @@ def load_notebook_district_summary(city_id: str) -> pd.DataFrame:
     _ = city_id
     paths = get_city_paths(city_id)
     return _read_csv(paths.final_district_summary_csv)
+
+
+def _read_first_existing_csv(paths: list[Path], required_cols: list[str] | None = None) -> pd.DataFrame:
+    for p in paths:
+        if p.exists():
+            return _read_csv(p, required_cols=required_cols)
+    raise CityDataNotFoundError(
+        "No matching modeling artifact found. Tried: " + ", ".join(str(p) for p in paths)
+    )
+
+
+def load_notebook_modeling_csv(city_id: str, filename: str, required_cols: list[str] | None = None) -> pd.DataFrame:
+    """
+    Load notebook-derived modeling CSVs with fallback between final/modeling_results and processed.
+    """
+    paths = get_city_paths(city_id)
+    if filename == "cls_test_clean.csv":
+        candidates = [paths.final_cls_test_clean_csv, paths.processed_cls_test_clean_csv]
+    elif filename == "cls_cv_clean.csv":
+        candidates = [paths.final_cls_cv_clean_csv, paths.processed_cls_cv_clean_csv]
+    elif filename == "classification_clean_feature_importance.csv":
+        candidates = [paths.final_feature_importance_csv, paths.processed_feature_importance_csv]
+    else:
+        candidates = [paths.final_modeling_results_dir / filename]
+    return _read_first_existing_csv(candidates, required_cols=required_cols)
+
+
+def load_notebook_feature_importance(city_id: str) -> pd.DataFrame:
+    """
+    Load permutation feature importance exported by modeling notebook.
+    """
+    paths = get_city_paths(city_id)
+    return _read_first_existing_csv(
+        [paths.final_feature_importance_csv, paths.processed_feature_importance_csv],
+        required_cols=["feature"],
+    )
 

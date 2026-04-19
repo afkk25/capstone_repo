@@ -13,6 +13,11 @@ from routers.cities import ensure_baseline_data
 from services.analytics import compare_scenarios, compute_summary_metrics, rank_underserved_districts
 from services.cache import city_freshness_token, get_cached_city_rows
 from services.explainability import compute_feature_importance
+from services.notebook_bridge.loaders import (
+    CityDataNotFoundError,
+    load_notebook_district_summary,
+    load_notebook_feature_importance,
+)
 from services.recommendation import recommend_best_intervention
 
 router = APIRouter(tags=["analytics"], prefix="/api")
@@ -25,6 +30,42 @@ def _facility_rows(features_df: pd.DataFrame, scores: pd.Series | Any, score_key
     if "population" not in df.columns:
         df["population"] = 1.0
     return df
+
+
+def _ranking_from_notebook_districts(district_df: pd.DataFrame) -> list[dict[str, Any]]:
+    if district_df.empty:
+        return []
+    dname_col = "district_name" if "district_name" in district_df.columns else ("district" if "district" in district_df.columns else None)
+    score_col = "pop_weighted_accessibility_score" if "pop_weighted_accessibility_score" in district_df.columns else None
+    if dname_col is None or score_col is None:
+        return []
+
+    underserved_col = "pct_pop_score_below_50" if "pct_pop_score_below_50" in district_df.columns else None
+    pop_col = "population_raster" if "population_raster" in district_df.columns else None
+
+    work = district_df.copy()
+    work[score_col] = pd.to_numeric(work[score_col], errors="coerce")
+    if underserved_col:
+        work[underserved_col] = pd.to_numeric(work[underserved_col], errors="coerce")
+    if pop_col:
+        work[pop_col] = pd.to_numeric(work[pop_col], errors="coerce")
+
+    work = work.dropna(subset=[score_col]).sort_values([score_col], ascending=True).reset_index(drop=True)
+    if work.empty:
+        return []
+
+    rows: list[dict[str, Any]] = []
+    for idx, row in work.iterrows():
+        rows.append(
+            {
+                "district": str(row[dname_col]),
+                "avg_accessibility_score": float(row[score_col]),
+                "underserved_pct": float(row[underserved_col]) if underserved_col and pd.notna(row.get(underserved_col)) else 0.0,
+                "population": float(row[pop_col]) if pop_col and pd.notna(row.get(pop_col)) else 0.0,
+                "rank": int(idx + 1),
+            }
+        )
+    return rows
 
 
 @router.get("/cities/{city_id}/summary")
@@ -42,6 +83,17 @@ def get_city_summary(city_id: str) -> dict[str, Any]:
 
 @router.get("/cities/{city_id}/ranking")
 def get_city_ranking(city_id: str) -> dict[str, Any]:
+    try:
+        district_df = load_notebook_district_summary(city_id)
+        notebook_rows = _ranking_from_notebook_districts(district_df)
+        if notebook_rows:
+            return {"city_id": city_id, "ranking": notebook_rows}
+    except CityDataNotFoundError:
+        pass
+    except Exception:
+        # Keep endpoint resilient; fallback to baseline-derived ranking below.
+        pass
+
     try:
         features_df, scores = get_cached_city_rows(city_id, city_freshness_token(city_id))
     except FileNotFoundError:
@@ -136,6 +188,26 @@ def get_city_recommendations(city_id: str) -> dict[str, Any]:
 
 @router.get("/cities/{city_id}/explainability")
 def get_city_explainability(city_id: str) -> dict[str, Any]:
+    try:
+        imp_df = load_notebook_feature_importance(city_id)
+        if not imp_df.empty and "feature" in imp_df.columns:
+            imp_col = "perm_importance_mean" if "perm_importance_mean" in imp_df.columns else ("importance" if "importance" in imp_df.columns else None)
+            if imp_col:
+                rows = (
+                    imp_df[["feature", imp_col]]
+                    .rename(columns={imp_col: "importance"})
+                    .assign(importance=lambda d: pd.to_numeric(d["importance"], errors="coerce"))
+                    .dropna(subset=["importance"])
+                    .sort_values("importance", ascending=False)
+                    .head(10)
+                )
+                return {"city_id": city_id, "feature_importance": rows.to_dict(orient="records")}
+    except CityDataNotFoundError:
+        pass
+    except Exception:
+        # Keep endpoint resilient; fallback to model-based explainability below.
+        pass
+
     try:
         features_df, _ = ensure_baseline_data(city_id)
         model, _, _ = load_model(city_id)

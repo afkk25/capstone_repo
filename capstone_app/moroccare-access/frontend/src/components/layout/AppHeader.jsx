@@ -5,10 +5,8 @@ import ExportButton from "../ExportButton";
 const NAV_ITEMS = [
   { id: "overview", label: "Overview", path: "/overview" },
   { id: "map", label: "Map", path: "/map" },
-  { id: "simulation", label: "Simulation", path: "/simulation" },
-  { id: "analytics", label: "Analytics", path: "/analytics" },
-  { id: "methodology", label: "Methodology", path: "/methodology" },
-  { id: "data", label: "Data / Upload", path: "/data" }
+  { id: "simulation", label: "Simulate", path: "/simulation" },
+  { id: "analytics", label: "Analytics", path: "/analytics" }
 ];
 
 export default function AppHeader({
@@ -69,9 +67,10 @@ export default function AppHeader({
             <button
               type="button"
               onClick={onOpenMethodology}
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
+              aria-label="Open methodology help"
             >
-              Methodology drawer
+              ?
             </button>
             <ExportButton cityId={cityId} compact />
             <Badge tone={statusTone}>{statusLabel}</Badge>
@@ -146,7 +145,7 @@ export default function AppHeader({
                   onClick={onOpenMethodology}
                   className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
                 >
-                  Methodology drawer
+                  Methodology (?)
                 </button>
               </div>
               <div className="flex items-center justify-between gap-2">

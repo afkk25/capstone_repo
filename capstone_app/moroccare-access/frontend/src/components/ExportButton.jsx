@@ -2,14 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { exportCityReport } from "../api/simulations";
 import { useToast } from "../hooks/useToast";
+import { useI18n } from "../i18n/I18nProvider";
+import { sideClass } from "../utils/rtl";
 
 export default function ExportButton({ cityId, compact = false }) {
   const { push } = useToast();
+  const { t, isRtl } = useI18n();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
   const exportMutation = useMutation({
     mutationFn: ({ id, format }) => exportCityReport(id, format),
-    onSuccess: () => push("Report export started.", "success"),
+    onSuccess: () => push(t("export.started"), "success"),
     onError: (e) => push(e?.detail || e?.message || "Export failed.", "error")
   });
 
@@ -48,15 +51,21 @@ export default function ExportButton({ cityId, compact = false }) {
         disabled={!cityId || exportMutation.isPending}
       >
         {exportMutation.isPending && <span className="inline-block h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />}
-        {exportMutation.isPending ? "Exporting..." : "Export report"}
+        {exportMutation.isPending ? t("export.exporting") : t("export.button")}
       </button>
       {open && !exportMutation.isPending && (
-        <div className={`absolute right-0 z-20 mt-2 rounded-xl border border-slate-200 bg-white shadow-md ${compact ? "w-44" : "w-[calc(100%-2rem)]"}`}>
-          <button className="w-full text-left px-3 py-2.5 hover:bg-slate-50 transition-all duration-200" onClick={() => doExport("pdf")}>
-            Export PDF
+        <div
+          className={`absolute z-20 mt-2 rounded-xl border border-slate-200 bg-white shadow-md ${compact ? "w-44" : "w-[calc(100%-2rem)]"} ${sideClass(
+            isRtl,
+            "right-0",
+            "left-0"
+          )}`}
+        >
+          <button className={`w-full px-3 py-2.5 transition-all duration-200 hover:bg-slate-50 ${isRtl ? "text-right" : "text-left"}`} onClick={() => doExport("pdf")}>
+            {t("export.pdf")}
           </button>
-          <button className="w-full text-left px-3 py-2.5 hover:bg-slate-50 transition-all duration-200" onClick={() => doExport("excel")}>
-            Export Excel
+          <button className={`w-full px-3 py-2.5 transition-all duration-200 hover:bg-slate-50 ${isRtl ? "text-right" : "text-left"}`} onClick={() => doExport("excel")}>
+            {t("export.excel")}
           </button>
         </div>
       )}

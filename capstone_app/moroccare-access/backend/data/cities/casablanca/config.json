@@ -1,8 +1,12 @@
 {
   "city_id": "casablanca",
   "display_name": "Casablanca",
-  "center_lat": 33.5731,
-  "center_lon": -7.5898,
+  "center_lat": 33.57479505565097,
+  "center_lon": -7.610909965932247,
   "crs_metric": "EPSG:32629",
-  "urban_ring_radii_km": [8, 18, 999]
+  "urban_ring_radii_km": [
+    8,
+    18,
+    999
+  ]
 }

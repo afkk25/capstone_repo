@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from shapely import wkt
 
-from core.config import city_dir, list_city_ids, load_city_config
+from core.config import city_dir, list_city_ids, load_cities_registry, load_city_config
 from core.equity import compute_equity
 from core.features import compute_features
 from core.modeling import load_model, predict, train_model
@@ -152,6 +152,8 @@ def derive_2sfca_scores(df: pd.DataFrame) -> pd.Series:
 
 
 def ensure_baseline_data(city_id: str) -> tuple[pd.DataFrame, Any]:
+    if city_id not in list_city_ids():
+        raise FileNotFoundError(f"City '{city_id}' is not registered")
     folder = city_dir(city_id)
     hash_path = folder / "source_hash.txt"
     source_hash = _source_hash(city_id)
@@ -179,13 +181,25 @@ def ensure_baseline_data(city_id: str) -> tuple[pd.DataFrame, Any]:
 
 @router.get("/cities")
 def get_cities() -> list[dict[str, Any]]:
+    registry = load_cities_registry()
+    if registry:
+        return [
+            {
+                "id": city["id"],
+                "name": city["name"],
+                "center_lat": city.get("center_lat"),
+                "center_lon": city.get("center_lon"),
+            }
+            for city in registry
+        ]
+
     cities = []
     for city_id in list_city_ids():
         cfg = load_city_config(city_id)
         cities.append(
             {
-                "city_id": cfg["city_id"],
-                "display_name": cfg["display_name"],
+                "id": cfg["city_id"],
+                "name": cfg["display_name"],
                 "center_lat": cfg["center_lat"],
                 "center_lon": cfg["center_lon"],
             }

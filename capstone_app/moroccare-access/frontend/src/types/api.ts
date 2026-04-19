@@ -4,10 +4,12 @@ export type ApiErrorPayload = {
 };
 
 export type CityDto = {
-  city_id: string;
-  display_name: string;
-  center_lat: number;
-  center_lon: number;
+  id?: string;
+  name?: string;
+  city_id?: string;
+  display_name?: string;
+  center_lat?: number | null;
+  center_lon?: number | null;
 };
 
 export type BaselineFacilityDto = {

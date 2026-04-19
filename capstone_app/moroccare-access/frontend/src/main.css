@@ -1,0 +1,77 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Syne:wght@600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0f6e56;
+  --color-primary-soft: #e1f5ee;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f9fafb;
+  color: #111827;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.font-heading {
+  font-family: "Syne", sans-serif;
+}
+
+.panel-card {
+  @apply rounded-xl border border-gray-200 bg-white shadow-sm;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: "DM Sans", sans-serif;
+}
+
+html[dir="rtl"] body {
+  direction: rtl;
+}
+
+.rtl-safe-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.num-ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+
+.bidi-isolate {
+  unicode-bidi: isolate;
+}
+
+html[dir="rtl"] .leaflet-popup-content {
+  direction: rtl;
+  text-align: right;
+}
+
+.rtl-chart .recharts-wrapper,
+.rtl-chart .recharts-surface {
+  overflow: visible;
+}
+
+html[dir="rtl"] .rtl-chart .recharts-default-tooltip {
+  direction: rtl;
+  text-align: right;
+}
