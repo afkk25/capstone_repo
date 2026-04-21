@@ -27,14 +27,14 @@ const translations = {
     },
     overview: {
       title: "Overview",
-      findingTemplate: "{count} facilities in {city} have low transport access.",
+      findingTemplate: "{count} origin areas in {city} have low transport access.",
       isolatedTemplate: "The most isolated is {district} — {distance} from the nearest stop.",
       selectedCity: "the selected city",
-      totalFacilities: "Total facilities",
+      totalFacilities: "Total origin areas",
       totalStops: "Total transport stops",
       avgDistance: "Avg. distance to nearest stop",
-      lowAccessFacilities: "Low-access facilities",
-      ranking: "Facilities ranking",
+      lowAccessFacilities: "Low-access origin areas",
+      ranking: "Origin area ranking",
       switchBest: "Switch to best-first",
       switchWorst: "Switch to worst-first",
       loadingBaseline: "Loading baseline data..."
@@ -161,7 +161,7 @@ const translations = {
       selectedCity: "selected city"
     },
     home: {
-      dashboardTitle: "Healthcare accessibility dashboard — Casablanca",
+      dashboardTitle: "Healthcare accessibility dashboard",
       dashboardSubtitle: "Map-centric decision-support view for district-level accessibility, underserved risk, and scenario outcomes.",
       noCityTitle: "No city selected",
       noCitySubtitle: "Use the sidebar to select or upload city data",
@@ -368,7 +368,7 @@ const translations = {
       selectedCity: "ville sélectionnée"
     },
     home: {
-      dashboardTitle: "Tableau de bord d’accessibilité des soins — Casablanca",
+      dashboardTitle: "Tableau de bord d’accessibilité des soins",
       dashboardSubtitle: "Vue décisionnelle centrée carte pour l’accessibilité par district, le risque de sous-desserte et les scénarios.",
       noCityTitle: "Aucune ville sélectionnée",
       noCitySubtitle: "Utilisez la barre latérale pour sélectionner ou importer des données",

@@ -8,6 +8,33 @@ const NEUTRAL_ADVANCED = {
   add_facilities: 0
 };
 
+const FALLBACK_INTERVENTIONS = [
+  {
+    id: "add_transport_stop",
+    label: "Add a transport stop",
+    backendInterventionType: "transport_stop",
+    placementTarget: "transport_stop_locations",
+    scenarioPatch: { add_facilities: 0 },
+    aliases: ["transport_stop"]
+  },
+  {
+    id: "add_healthcare_facility",
+    label: "Add a healthcare facility",
+    backendInterventionType: "healthcare_facility",
+    placementTarget: "facility_locations",
+    scenarioPatch: { add_facilities: 0 },
+    aliases: ["healthcare_facility"]
+  },
+  {
+    id: "improve_service",
+    label: "Improve stop access",
+    backendInterventionType: "transport_stop",
+    placementTarget: "transport_stop_locations",
+    scenarioPatch: { add_facilities: 0 },
+    aliases: []
+  }
+];
+
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const toRad = (deg) => (deg * Math.PI) / 180;
   const earthRadiusMeters = 6371e3;
@@ -58,17 +85,47 @@ function formatMeaningfulDelta(value, { multiplier = 1, decimals = 1, unit = "",
   return `${sign}${scaled.toFixed(decimals)}${unit}`;
 }
 
-function interventionLabel(interventionType) {
-  if (interventionType === "add_transport_stop") return "Add a transport stop";
-  if (interventionType === "add_healthcare_facility") return "Add a healthcare facility";
-  if (interventionType === "improve_service") return "Improve stop access";
-  return "Not selected yet";
+function interventionLabel(interventionType, interventionIndex) {
+  if (!interventionType) return "Not selected yet";
+  return interventionIndex.get(interventionType)?.label || interventionType;
 }
 
-function toBackendInterventionType(interventionType) {
-  if (interventionType === "add_healthcare_facility") return "healthcare_facility";
-  if (interventionType === "add_transport_stop" || interventionType === "improve_service") return "transport_stop";
-  return "";
+function getSimulationDefaults(city) {
+  const defaults = city?.simulation?.default_parameters || {};
+  return {
+    stop_density_multiplier: Number.isFinite(Number(defaults.stop_density_multiplier)) ? Number(defaults.stop_density_multiplier) : 1.0,
+    reduce_nearest_stop_distance_pct: Number.isFinite(Number(defaults.reduce_nearest_stop_distance_pct)) ? Number(defaults.reduce_nearest_stop_distance_pct) : 0.0,
+    add_facilities: Number.isFinite(Number(defaults.add_facilities)) ? Number(defaults.add_facilities) : 0
+  };
+}
+
+function getAvailableInterventions(city) {
+  const configured = Array.isArray(city?.simulation?.interventions) ? city.simulation.interventions : [];
+  const supportedTypes = new Set((city?.supported_intervention_types || ["healthcare_facility", "transport_stop"]).map((item) => String(item).toLowerCase()));
+
+  if (configured.length) {
+    return configured
+      .map((item, index) => {
+        const id = String(item?.id || "").trim();
+        if (!id) return null;
+        const backendInterventionType = String(item?.backend_intervention_type || "").toLowerCase();
+        if (backendInterventionType && !supportedTypes.has(backendInterventionType)) return null;
+        const placementTarget = item?.placement_target === "facility_locations" ? "facility_locations" : "transport_stop_locations";
+        return {
+          id,
+          label: String(item?.label || id.replace(/_/g, " ")),
+          backendInterventionType: backendInterventionType || "transport_stop",
+          placementTarget,
+          scenarioPatch: item?.scenario_patch && typeof item.scenario_patch === "object" ? item.scenario_patch : {},
+          aliases: Array.isArray(item?.aliases) ? item.aliases.map((alias) => String(alias).toLowerCase()) : [],
+          rank: index
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.rank - b.rank);
+  }
+
+  return FALLBACK_INTERVENTIONS.filter((item) => supportedTypes.has(item.backendInterventionType));
 }
 
 function friendlyStopLabel(stop) {
@@ -85,14 +142,26 @@ function friendlyAreaStatus(district) {
   return "This area is already moderately served.";
 }
 
-function buildPayload({ interventionType, placement }) {
-  const normalizedType = toBackendInterventionType(interventionType);
-  if (!normalizedType || !placement) return null;
-  return {
-    intervention_type: normalizedType,
+function buildPayload({ selectedIntervention, placement, mode, advancedSettings, cityDefaults }) {
+  if (!selectedIntervention || !placement) return null;
+  const payload = {
+    ...cityDefaults,
+    ...selectedIntervention.scenarioPatch,
+    ...(mode === "advanced" ? advancedSettings : {}),
+    facility_locations: [],
+    transport_stop_locations: []
+  };
+  const location = {
     latitude: Number(placement.latitude.toFixed(6)),
     longitude: Number(placement.longitude.toFixed(6))
   };
+  if (selectedIntervention.placementTarget === "facility_locations") {
+    payload.facility_locations = [location];
+    payload.add_facilities = Math.max(0, Number(payload.add_facilities || 0));
+  } else {
+    payload.transport_stop_locations = [location];
+  }
+  return payload;
 }
 
 export default function Simulate({
@@ -122,6 +191,10 @@ export default function Simulate({
   const [lastRunSignature, setLastRunSignature] = useState("");
 
   const cityKey = city?.id || city?.city_id || "";
+  const interventionOptions = useMemo(() => getAvailableInterventions(city), [city]);
+  const interventionIndex = useMemo(() => new Map(interventionOptions.map((option) => [option.id, option])), [interventionOptions]);
+  const selectedIntervention = interventionIndex.get(interventionType) || null;
+  const citySimulationDefaults = useMemo(() => getSimulationDefaults(city), [city]);
 
   useEffect(() => {
     setMode("basic");
@@ -131,17 +204,20 @@ export default function Simulate({
     setShowBaselineStops(false);
     setShowBaselineFacilities(false);
     setMapLayer("baseline");
-    setAdvancedSettings(NEUTRAL_ADVANCED);
+    setAdvancedSettings(citySimulationDefaults);
     setLastRunSignature("");
-  }, [cityKey]);
+  }, [cityKey, citySimulationDefaults]);
 
   const payload = useMemo(
     () =>
       buildPayload({
-        interventionType,
-        placement
+        selectedIntervention,
+        placement,
+        mode,
+        advancedSettings,
+        cityDefaults: citySimulationDefaults
       }),
-    [interventionType, placement]
+    [selectedIntervention, placement, mode, advancedSettings, citySimulationDefaults]
   );
 
   const payloadSignature = useMemo(() => (payload ? JSON.stringify(payload) : ""), [payload]);
@@ -363,7 +439,7 @@ export default function Simulate({
       },
       {
         label: "Intervention type",
-        value: interventionLabel(interventionType),
+        value: interventionLabel(interventionType, interventionIndex),
         helper: mode === "basic" ? "Guided planning mode keeps the setup simple." : "Advanced mode lets technical users fine-tune assumptions."
       }
     ];
@@ -382,7 +458,7 @@ export default function Simulate({
       });
     }
     return cards;
-  }, [hasResult, interventionType, mode, nearestTransportStop, nearbyDistricts, nearbyPopulationEstimate, placement, populationAffected, selectedAreaLabel, selectedDistrict, originsImproved]);
+  }, [hasResult, interventionType, interventionIndex, mode, nearestTransportStop, nearbyDistricts, nearbyPopulationEstimate, placement, populationAffected, selectedAreaLabel, selectedDistrict, originsImproved]);
 
   const resultHeadline = useMemo(() => {
     if (!hasResult) return "Run a simulation to compare before and after planning outcomes.";
@@ -402,7 +478,7 @@ export default function Simulate({
 
   const runScenario = () => {
     if (!payload || !canRunSimulation || simulationPending) return;
-    const label = `${mode === "basic" ? "Guided" : "Advanced"} mode · ${interventionLabel(interventionType)}`;
+    const label = `${mode === "basic" ? "Guided" : "Advanced"} mode · ${interventionLabel(interventionType, interventionIndex)}`;
     onRunSimulation({
       customPayload: payload,
       customLabel: label
@@ -440,16 +516,13 @@ export default function Simulate({
           <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <h3 className="font-heading text-[15px] font-bold text-gray-900">2. Choose a planning action</h3>
             <div className="mt-3 space-y-2 text-sm">
-              {[
-                { id: "add_transport_stop", label: "Add a transport stop" },
-                { id: "add_healthcare_facility", label: "Add a healthcare facility" },
-                { id: "improve_service", label: "Improve stop access" }
-              ].map((option) => (
+              {interventionOptions.map((option) => (
                 <label key={option.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50">
                   <input type="radio" name="intervention-type" checked={interventionType === option.id} onChange={() => setInterventionType(option.id)} />
                   <span>{option.label}</span>
                 </label>
               ))}
+              {!interventionOptions.length ? <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">No city-specific interventions are configured for this city yet.</div> : null}
             </div>
           </article>
 
@@ -458,7 +531,7 @@ export default function Simulate({
             <div className="mt-2 space-y-2 text-[13px] text-gray-700">
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <div className="text-[11px] uppercase tracking-wide text-gray-500">Planning action</div>
-                <div className="mt-1 font-semibold text-gray-900">{interventionLabel(interventionType)}</div>
+                <div className="mt-1 font-semibold text-gray-900">{interventionLabel(interventionType, interventionIndex)}</div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <div className="text-[11px] uppercase tracking-wide text-gray-500">Selected location</div>

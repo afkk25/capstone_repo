@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "moroccare/city-config.schema.json",
+  "title": "MorocCare City Configuration",
+  "type": "object",
+  "required": ["city_id", "display_name"],
+  "properties": {
+    "city_id": { "type": "string" },
+    "display_name": { "type": "string" },
+    "center_lat": { "type": ["number", "null"] },
+    "center_lon": { "type": ["number", "null"] },
+    "default_zoom": { "type": "integer", "minimum": 1, "maximum": 20 },
+    "datasets": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "artifact_paths": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "supported_intervention_types": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "simulation": {
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "baseline": { "type": "boolean" },
+            "scenario": { "type": "boolean" },
+            "point": { "type": "boolean" }
+          }
+        },
+        "default_parameters": {
+          "type": "object",
+          "properties": {
+            "stop_density_multiplier": { "type": "number" },
+            "reduce_nearest_stop_distance_pct": { "type": "number" },
+            "add_facilities": { "type": "integer" },
+            "walking_speed_mps": { "type": "number" },
+            "waiting_time_min": { "type": "number" },
+            "transport_speed_kmh": { "type": "number" }
+          }
+        },
+        "interventions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "backend_intervention_type", "placement_target"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "backend_intervention_type": { "type": "string" },
+              "placement_target": {
+                "type": "string",
+                "enum": ["facility_locations", "transport_stop_locations"]
+              },
+              "scenario_patch": { "type": "object" },
+              "aliases": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "feature_flags": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    }
+  }
+}

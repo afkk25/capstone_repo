@@ -10,7 +10,7 @@ import type {
 } from "../types/api";
 import type { DashboardSummary } from "../types/ui";
 
-export const FALLBACK_CENTER = { center_lat: 33.5731, center_lon: -7.5898 };
+export const FALLBACK_CENTER = { center_lat: 31.7917, center_lon: -7.0926 };
 
 export function toSafeNumber(value: unknown, fallback = 0): number {
   const n = Number(value);
@@ -37,12 +37,14 @@ export function normalizeFacility(row: BaselineFacilityDto, index = 0): Frontend
   const travelTimeMin = toSafeNumber(row.travel_time_min, scoreToTravelMinutes(accessibilityScore));
   const latitude = toSafeNumber((row as Record<string, unknown>).lat ?? row.latitude, 0);
   const longitude = toSafeNumber((row as Record<string, unknown>).lon ?? row.longitude, 0);
-  const districtName = String((row as Record<string, unknown>).district ?? row.district_name ?? row.name ?? `Area ${index + 1}`);
+  const rawDistrictName = (row as Record<string, unknown>).district ?? row.district_name;
+  const rawOriginName = row.name ?? row.origin_id;
+  const districtName = cleanDisplayLabel(rawDistrictName, cleanDisplayLabel(rawOriginName, `Area ${index + 1}`));
 
   return {
     id: String(row.id ?? row.origin_id ?? row.name ?? row.district_name ?? `origin-${index}`),
     districtName,
-    originName: String(row.name ?? row.origin_id ?? `Origin ${index + 1}`),
+    originName: cleanDisplayLabel(row.name ?? row.origin_id, `Origin ${index + 1}`),
     districtId: row.district_id ?? null,
     urbanRing: String(row.urban_ring ?? "Unknown"),
     latitude,
@@ -56,6 +58,13 @@ export function normalizeFacility(row: BaselineFacilityDto, index = 0): Frontend
     population: toSafeNumber(row.population, 0),
     delta: toSafeNumber(row.delta, accessibilityScore - baselineScore)
   };
+}
+
+function cleanDisplayLabel(value: unknown, fallback: string): string {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  if (!text || ["nan", "none", "null", "unknown"].includes(text.toLowerCase())) return fallback;
+  return text;
 }
 
 export function normalizeBaselineFacilities(payload: BaselineResponse | null | undefined): FrontendDistrict[] {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import L from "leaflet";
 import { Circle, CircleMarker, MapContainer, Marker, Pane, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { FALLBACK_CENTER } from "../../utils/adapters";
 
 function accessibilityColor(value) {
   if (value < 0.35) return "#D85A30";
@@ -183,7 +184,7 @@ export default function SimulationWorkspaceMap({
     const lon = Number(city?.center_lon);
     if (Number.isFinite(lat) && Number.isFinite(lon)) return [lat, lon];
     if (baselineFacilities.length) return [baselineFacilities[0].latitude, baselineFacilities[0].longitude];
-    return [33.5731, -7.5898];
+    return [FALLBACK_CENTER.center_lat, FALLBACK_CENTER.center_lon];
   }, [baselineFacilities, city?.center_lat, city?.center_lon]);
 
   if (!city) {
@@ -192,7 +193,7 @@ export default function SimulationWorkspaceMap({
 
   return (
     <div className="panel-card relative h-full overflow-hidden">
-      <MapContainer center={mapCenter} zoom={11} className="h-full w-full" scrollWheelZoom preferCanvas>
+      <MapContainer center={mapCenter} zoom={city?.default_zoom || 11} className="h-full w-full" scrollWheelZoom preferCanvas>
         <FitToData center={mapCenter} rows={rowsForBounds} placement={placement} />
         <PlacementSelector enabled={canPlaceFromMap} onSelect={onPlacementChange} />
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />

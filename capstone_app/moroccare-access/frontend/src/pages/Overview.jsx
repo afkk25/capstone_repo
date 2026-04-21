@@ -39,7 +39,7 @@ export default function Overview({ cityName, facilities, transportStops, isLoadi
 
       <div className="grid grid-cols-1 gap-[10px] md:grid-cols-4">
         <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-[12px] font-heading font-semibold uppercase tracking-wide text-gray-500">Total origin points</div>
+          <div className="text-[12px] font-heading font-semibold uppercase tracking-wide text-gray-500">{t("overview.totalFacilities")}</div>
           <div className="num-ltr mt-1 font-heading text-[24px] font-bold">{facilities.length.toLocaleString(language === "ar" ? "ar-MA" : language)}</div>
         </article>
         <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -51,7 +51,7 @@ export default function Overview({ cityName, facilities, transportStops, isLoadi
           <div className="num-ltr mt-1 font-heading text-[24px] font-bold">{toLocaleNumber(Math.round(avgDistance), language, { maximumFractionDigits: 0 })}m</div>
         </article>
         <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-[12px] font-heading font-semibold uppercase tracking-wide text-gray-500">Low-access origin points</div>
+          <div className="text-[12px] font-heading font-semibold uppercase tracking-wide text-gray-500">{t("overview.lowAccessFacilities")}</div>
           <div className="num-ltr mt-1 font-heading text-[24px] font-bold">{lowAccess.length.toLocaleString(language === "ar" ? "ar-MA" : language)}</div>
         </article>
       </div>

@@ -1,29 +1,20 @@
 import apiClient, { ApiError, requestJson } from "./client";
-import type { ComparisonResponse, SensitivityResponse, SimulationRequest, SimulationResponse } from "../types/api";
-
-type PointSimulationRequest = {
-  intervention_type: string;
-  latitude: number;
-  longitude: number;
-};
+import type { ComparisonResponse, PointSimulationRequest, SensitivityResponse, SimulationRequest, SimulationResponse } from "../types/api";
 
 export function runSimulation(cityId: string, payload: SimulationRequest | PointSimulationRequest) {
   const isPointPayload = payload && typeof payload === "object" && "intervention_type" in payload;
-  if (isPointPayload && String(cityId || "").toLowerCase() === "casablanca") {
-    return requestJson<SimulationResponse>(() => apiClient.post("/api/simulate", payload), 0);
-  }
   if (isPointPayload) {
     const point = payload as PointSimulationRequest;
-    const normalizedType = String(point.intervention_type || "").toLowerCase();
-    const isHealthcare = normalizedType.includes("healthcare");
-    const fallbackPayload: SimulationRequest = {
-      stop_density_multiplier: 1.0,
-      reduce_nearest_stop_distance_pct: 0.0,
-      add_facilities: 0,
-      facility_locations: isHealthcare ? [{ latitude: point.latitude, longitude: point.longitude }] : [],
-      transport_stop_locations: isHealthcare ? [] : [{ latitude: point.latitude, longitude: point.longitude }]
-    };
-    return requestJson<SimulationResponse>(() => apiClient.post(`/api/cities/${cityId}/simulate`, fallbackPayload), 0);
+    return requestJson<SimulationResponse>(
+      () =>
+        apiClient.post(`/api/simulate`, {
+          city_id: point.city_id || cityId,
+          intervention_type: point.intervention_type,
+          latitude: point.latitude,
+          longitude: point.longitude
+        }),
+      0
+    );
   }
   return requestJson<SimulationResponse>(() => apiClient.post(`/api/cities/${cityId}/simulate`, payload), 0);
 }

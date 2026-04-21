@@ -9,7 +9,7 @@ import joblib
 import pandas as pd
 from shapely import wkt
 
-from core.config import city_dir
+from core.config import city_dir, load_city_config
 
 
 class NotebookBridgeError(RuntimeError):
@@ -240,7 +240,8 @@ def load_notebook_origin_metrics(city_id: str) -> pd.DataFrame:
             if city_rows.empty:
                 raise CityDataNotFoundError(f"Origin metrics exist but no rows match city_id='{city_id}'")
             return city_rows
-        if city_id.lower() != "casablanca":
+        cfg = load_city_config(city_id)
+        if not bool(cfg.get("feature_flags", {}).get("allow_unscoped_origin_metrics")):
             raise CityDataNotFoundError(
                 f"Origin metrics are not city-scoped (missing city_id), so city '{city_id}' cannot be selected safely."
             )

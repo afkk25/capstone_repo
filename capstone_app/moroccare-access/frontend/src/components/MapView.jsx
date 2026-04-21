@@ -4,6 +4,7 @@ import { CircleMarker, MapContainer, Pane, Popup, TileLayer, useMap } from "reac
 import { mapLayerValue } from "../utils/dashboard";
 import { useI18n } from "../i18n/I18nProvider";
 import { sideClass, toLocaleNumber } from "../utils/rtl";
+import { FALLBACK_CENTER } from "../utils/adapters";
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const toRad = (deg) => (deg * Math.PI) / 180;
@@ -119,9 +120,17 @@ export default function MapView({
   const isSimulated = simulatedRows.length > 0;
   const activeRows = isSimulated ? simulatedRows : baselineRows;
   const facilitiesForBounds = activeRows;
+  const mapCenter = useMemo(() => {
+    const lat = Number(city?.center_lat);
+    const lon = Number(city?.center_lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) return [lat, lon];
+    if (baselineFacilities.length) return [baselineFacilities[0].latitude, baselineFacilities[0].longitude];
+    return [FALLBACK_CENTER.center_lat, FALLBACK_CENTER.center_lon];
+  }, [baselineFacilities, city?.center_lat, city?.center_lon]);
+
   return (
     <div className="panel-card relative h-full overflow-hidden">
-      <MapContainer center={[city.center_lat, city.center_lon]} zoom={11} scrollWheelZoom className="h-full w-full" preferCanvas>
+      <MapContainer center={mapCenter} zoom={city.default_zoom || 11} scrollWheelZoom className="h-full w-full" preferCanvas>
         <FitBounds city={city} facilitiesForBounds={facilitiesForBounds} />
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 

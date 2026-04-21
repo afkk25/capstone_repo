@@ -21,8 +21,22 @@ from services.notebook_bridge.loaders import CityDataNotFoundError, get_city_pat
 
 router = APIRouter(tags=["cities"], prefix="/api")
 
-BASELINE_VERSION = "origin-first-v1"
+BASELINE_VERSION = "origin-first-v2"
 BASELINE_METADATA_PATH = "baseline_metadata.json"
+
+
+def _clean_label(value: Any, fallback: str) -> str:
+    if value is None:
+        return fallback
+    try:
+        if pd.isna(value):
+            return fallback
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null", "unknown"}:
+        return fallback
+    return text
 
 
 def _load_csv(path: Path, required_cols: list[str]) -> pd.DataFrame:
@@ -119,9 +133,9 @@ def _load_city_origin_metrics(city_id: str) -> tuple[pd.DataFrame, list[str]]:
         if city_filtered.empty:
             return pd.DataFrame(), [f"Origin-level data exists but has no rows for city '{city_id}'. Falling back to facility proxy rows."]
         origins = city_filtered
-    elif city_id.lower() != "casablanca":
+    elif not bool(load_city_config(city_id).get("feature_flags", {}).get("allow_unscoped_origin_metrics")):
         warnings.append(
-            f"Origin-level file has no city_id column, so city '{city_id}' cannot be isolated safely. Falling back to facility proxy rows."
+            f"Origin-level file has no city_id column for city '{city_id}'. Falling back to facility proxy rows."
         )
         return pd.DataFrame(), warnings
 
@@ -246,15 +260,16 @@ def _origin_rows(features_df: pd.DataFrame, scores: np.ndarray) -> list[dict[str
     for i, row in features_df.reset_index(drop=True).iterrows():
         score = float(scores[i])
         origin_id = str(row.get("origin_id", i))
-        district_name = row.get("district_name")
-        if pd.isna(district_name) or str(district_name).strip() == "":
-            district_name = "Unknown"
+        origin_name = _clean_label(row.get("origin_name"), f"Origin {i + 1}")
+        analysis_unit = _clean_label(row.get("analysis_unit"), "")
+        district_fallback = origin_name if analysis_unit == "facility_proxy" else "Unassigned area"
+        district_name = _clean_label(row.get("district_name"), district_fallback)
         pop_value = pd.to_numeric(pd.Series([row.get("population")]), errors="coerce").fillna(0.0).iloc[0]
         rows.append(
             {
                 "id": origin_id,
                 "origin_id": origin_id,
-                "name": str(row.get("origin_name", f"Origin {i + 1}")),
+                "name": origin_name,
                 "district_name": str(district_name),
                 "district_id": row.get("district_id"),
                 "urban_ring": str(row.get("urban_ring", "Unknown")),
@@ -274,10 +289,12 @@ def _origin_rows(features_df: pd.DataFrame, scores: np.ndarray) -> list[dict[str
 def _facility_rows(healthcare_gdf: gpd.GeoDataFrame) -> list[dict[str, Any]]:
     out = []
     for i, row in healthcare_gdf.reset_index(drop=True).iterrows():
+        fallback_name = f"Healthcare facility {i + 1}"
+        name = _clean_label(row.get("name"), fallback_name)
         out.append(
             {
                 "id": f"facility-{i}",
-                "name": str(row.get("name", f"Facility {i + 1}")),
+                "name": name,
                 "latitude": float(row["latitude"]),
                 "longitude": float(row["longitude"]),
             }
@@ -365,27 +382,25 @@ def _district_aggregate_geojson(features_df: pd.DataFrame, scores: np.ndarray) -
 
 @router.get("/cities")
 def get_cities() -> list[dict[str, Any]]:
-    registry = load_cities_registry()
-    if registry:
-        return [
-            {
-                "id": city["id"],
-                "name": city["name"],
-                "center_lat": city.get("center_lat"),
-                "center_lon": city.get("center_lon"),
-            }
-            for city in registry
-        ]
-
+    registry = {city["id"]: city for city in load_cities_registry()}
     cities = []
     for city_id in list_city_ids():
         cfg = load_city_config(city_id)
+        registry_entry = registry.get(city_id, {})
         cities.append(
             {
                 "id": cfg["city_id"],
                 "name": cfg["display_name"],
                 "center_lat": cfg["center_lat"],
                 "center_lon": cfg["center_lon"],
+                "default_zoom": cfg.get("default_zoom"),
+                "datasets": cfg.get("datasets", {}),
+                "simulation": cfg.get("simulation", {}),
+                "simulation_capabilities": cfg.get("simulation_capabilities", {}),
+                "supported_intervention_types": cfg.get("supported_intervention_types", []),
+                "artifact_paths": cfg.get("artifact_paths", {}),
+                "feature_flags": cfg.get("feature_flags", {}),
+                "registry_name": registry_entry.get("name"),
             }
         )
     return cities

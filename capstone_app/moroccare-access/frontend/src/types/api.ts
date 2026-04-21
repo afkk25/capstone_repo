@@ -10,6 +10,31 @@ export type CityDto = {
   display_name?: string;
   center_lat?: number | null;
   center_lon?: number | null;
+  default_zoom?: number | null;
+  datasets?: Record<string, string>;
+  simulation?: {
+    capabilities?: Record<string, boolean>;
+    default_parameters?: {
+      stop_density_multiplier?: number;
+      reduce_nearest_stop_distance_pct?: number;
+      add_facilities?: number;
+      walking_speed_mps?: number;
+      waiting_time_min?: number;
+      transport_speed_kmh?: number;
+    };
+    interventions?: Array<{
+      id?: string;
+      label?: string;
+      backend_intervention_type?: string;
+      placement_target?: "facility_locations" | "transport_stop_locations" | string;
+      scenario_patch?: Record<string, unknown>;
+      aliases?: string[];
+    }>;
+  };
+  simulation_capabilities?: Record<string, boolean>;
+  supported_intervention_types?: string[];
+  artifact_paths?: Record<string, string>;
+  feature_flags?: Record<string, boolean>;
 };
 
 export type BaselineFacilityDto = {
@@ -135,7 +160,7 @@ export type ExplainabilityResponse = {
 };
 
 export type SimulationRequest = {
-  intervention_type?: "healthcare_facility" | "transport_stop" | "add_healthcare_facility" | "add_transport_stop" | "improve_service";
+  intervention_type?: string;
   latitude?: number;
   longitude?: number;
   stop_density_multiplier?: number;
@@ -147,6 +172,13 @@ export type SimulationRequest = {
   walking_speed_mps?: number;
   waiting_time_min?: number;
   transport_speed_kmh?: number;
+};
+
+export type PointSimulationRequest = {
+  city_id?: string;
+  intervention_type: string;
+  latitude: number;
+  longitude: number;
 };
 
 export type SimulationResponse = {

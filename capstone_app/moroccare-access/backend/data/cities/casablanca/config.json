@@ -8,5 +8,59 @@
     8,
     18,
     999
-  ]
+  ],
+  "feature_flags": {
+    "default_point_simulation_city": true,
+    "allow_unscoped_origin_metrics": true
+  },
+  "simulation": {
+    "capabilities": {
+      "baseline": true,
+      "scenario": true,
+      "point": true
+    },
+    "default_parameters": {
+      "stop_density_multiplier": 1.0,
+      "reduce_nearest_stop_distance_pct": 0.0,
+      "add_facilities": 0,
+      "walking_speed_mps": 1.0,
+      "waiting_time_min": 10.0,
+      "transport_speed_kmh": 20.0
+    },
+    "interventions": [
+      {
+        "id": "add_transport_stop",
+        "label": "Add a transport stop",
+        "backend_intervention_type": "transport_stop",
+        "placement_target": "transport_stop_locations",
+        "scenario_patch": {
+          "add_facilities": 0
+        },
+        "aliases": [
+          "transport_stop"
+        ]
+      },
+      {
+        "id": "add_healthcare_facility",
+        "label": "Add a healthcare facility",
+        "backend_intervention_type": "healthcare_facility",
+        "placement_target": "facility_locations",
+        "scenario_patch": {
+          "add_facilities": 0
+        },
+        "aliases": [
+          "healthcare_facility"
+        ]
+      },
+      {
+        "id": "improve_service",
+        "label": "Improve stop access",
+        "backend_intervention_type": "transport_stop",
+        "placement_target": "transport_stop_locations",
+        "scenario_patch": {
+          "add_facilities": 0
+        }
+      }
+    ]
+  }
 }

@@ -11,7 +11,7 @@ from routers.analytics import router as analytics_router
 from routers.simulate import router as simulate_router
 from routers.upload import router as upload_router
 from routers.export import router as export_router
-from services.casablanca_simulation import preload_simulation_data
+from services.city_simulation import preload_simulation_data
 
 logger = logging.getLogger("moroccare")
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +23,7 @@ async def lifespan(_: FastAPI):
     try:
         preload_simulation_data()
     except Exception:
-        logger.exception("Casablanca simulation preload failed")
+        logger.exception("Point simulation preload failed")
     for city_id in list_city_ids():
         try:
             folder = city_dir(city_id)
