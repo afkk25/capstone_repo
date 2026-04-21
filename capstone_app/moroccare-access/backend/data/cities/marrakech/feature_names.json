@@ -7,12 +7,6 @@
   "num_healthcare_facilities",
   "healthcare_density_1km",
   "distance_to_city_center_km",
-  "local_edge_count_500m",
-  "local_edge_length_500m",
-  "nearest_node_degree",
-  "distance_to_nearest_node_m",
   "interaction_stop_pop_density",
-  "interaction_fac_pop",
-  "interaction_built_stop",
-  "neighbor_accessibility_mean"
+  "interaction_fac_pop"
 ]

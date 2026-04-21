@@ -72,10 +72,17 @@ class RankingResponse(BaseModel):
     ranking: list[RankingRow] = Field(default_factory=list)
 
 
+class LocationPoint(BaseModel):
+    latitude: float = Field(ge=-90.0, le=90.0)
+    longitude: float = Field(ge=-180.0, le=180.0)
+
+
 class CompareScenarioRequest(BaseModel):
     stop_density_multiplier: float | None = None
     reduce_nearest_stop_distance_pct: float | None = None
     add_facilities: int | None = None
+    facility_locations: list[LocationPoint] = Field(default_factory=list)
+    transport_stop_locations: list[LocationPoint] = Field(default_factory=list)
     walking_speed_mps: float | None = None
     waiting_time_min: float | None = None
     transport_speed_kmh: float | None = None

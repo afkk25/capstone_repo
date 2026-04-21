@@ -3,15 +3,12 @@ from __future__ import annotations
 import csv
 import io
 
-import geopandas as gpd
 import pandas as pd
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
-from shapely import wkt
 
 from core.config import city_dir, load_cities_registry, save_cities_registry, save_city_config
-from core.features import compute_features
-from core.modeling import train_model
 from services.cache import clear_city_cache
+from routers.cities import ensure_baseline_data
 
 router = APIRouter(tags=["upload"], prefix="/api")
 
@@ -115,23 +112,11 @@ async def upload_city_for_id(
         },
     )
 
-    healthcare_gdf = gpd.GeoDataFrame(healthcare_df.copy(), geometry=healthcare_df["geometry"].apply(wkt.loads), crs="EPSG:4326")
-    stops_gdf = gpd.GeoDataFrame(
-        stops_df.copy(),
-        geometry=gpd.points_from_xy(stops_df["longitude"], stops_df["latitude"]),
-        crs="EPSG:4326",
-    )
-    config = {
-        "city_id": effective_city_id,
-        "display_name": effective_city_name,
-        "center_lat": center_lat,
-        "center_lon": center_lon,
-        "crs_metric": "EPSG:32629",
-        "urban_ring_radii_km": [8, 18, 999],
-    }
-    features_df = compute_features(healthcare_gdf, stops_gdf, config)
-    _, _, trained_df = train_model(features_df, effective_city_id)
     clear_city_cache(effective_city_id)
+    try:
+        trained_df, _ = ensure_baseline_data(effective_city_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     _upsert_city_registry_entry(effective_city_id, effective_city_name, center_lat, center_lon)
     return {
         "success": True,
@@ -141,6 +126,7 @@ async def upload_city_for_id(
             "center_lat": center_lat,
             "center_lon": center_lon,
             "facilities_count": int(len(trained_df)),
+            "analysis_rows_count": int(len(trained_df)),
         },
     }
 

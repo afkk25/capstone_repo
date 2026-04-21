@@ -72,7 +72,7 @@ def get_city_paths(city_id: str) -> CityPaths:
     """
     folder = get_city_dir(city_id)
     backend_root = Path(__file__).resolve().parents[2]
-    repo_root = backend_root.parents[1]
+    repo_root = _resolve_repo_root(backend_root)
     return CityPaths(
         city_id=city_id,
         root=folder,
@@ -94,6 +94,22 @@ def get_city_paths(city_id: str) -> CityPaths:
         processed_cls_cv_clean_csv=repo_root / "data" / "processed" / "cls_cv_clean.csv",
         processed_feature_importance_csv=repo_root / "data" / "processed" / "classification_clean_feature_importance.csv",
     )
+
+
+def _resolve_repo_root(backend_root: Path) -> Path:
+    """
+    Resolve repository root for notebook-derived artifacts.
+
+    Supports both:
+    - local repo layout where interim/final data may live above backend/
+    - container layout where backend is mounted directly at /app
+    """
+    search_roots = [backend_root, *list(backend_root.parents)]
+    for root in search_roots:
+        data_dir = root / "data"
+        if (data_dir / "interim").exists() or (data_dir / "final").exists():
+            return root
+    return backend_root
 
 
 def _read_csv(path: Path, required_cols: list[str] | None = None) -> pd.DataFrame:
@@ -210,14 +226,25 @@ def load_notebook_origin_metrics(city_id: str) -> pd.DataFrame:
     2) data/interim/worldpop_origins.csv
     3) data/interim/worldpop_origin_points.csv
     """
-    _ = city_id  # reserved for future city-scoped notebook output layout
     paths = get_city_paths(city_id)
+    df: pd.DataFrame | None = None
     if paths.interim_origin_metrics_csv.exists():
-        return _read_csv(paths.interim_origin_metrics_csv)
-    if paths.interim_worldpop_origins_csv.exists():
-        return _read_csv(paths.interim_worldpop_origins_csv)
-    if paths.interim_worldpop_origin_points_csv.exists():
-        return _read_csv(paths.interim_worldpop_origin_points_csv)
+        df = _read_csv(paths.interim_origin_metrics_csv)
+    elif paths.interim_worldpop_origins_csv.exists():
+        df = _read_csv(paths.interim_worldpop_origins_csv)
+    elif paths.interim_worldpop_origin_points_csv.exists():
+        df = _read_csv(paths.interim_worldpop_origin_points_csv)
+    if df is not None:
+        if "city_id" in df.columns:
+            city_rows = df[df["city_id"].astype(str).str.lower() == city_id.lower()].copy()
+            if city_rows.empty:
+                raise CityDataNotFoundError(f"Origin metrics exist but no rows match city_id='{city_id}'")
+            return city_rows
+        if city_id.lower() != "casablanca":
+            raise CityDataNotFoundError(
+                f"Origin metrics are not city-scoped (missing city_id), so city '{city_id}' cannot be selected safely."
+            )
+        return df
     raise CityDataNotFoundError(
         "No notebook origin metrics found. Expected one of: "
         f"{paths.interim_origin_metrics_csv}, "

@@ -593,7 +593,7 @@ def rank_interventions(city_id: str, scenarios: list[dict[str, Any]]) -> dict[st
 
     ranked: list[dict[str, Any]] = []
     for i, scenario in enumerate(scenarios):
-        sim_df = apply_intervention(base_df.drop(columns=["accessibility_score"], errors="ignore"), scenario)
+        sim_df, _ = apply_intervention(base_df.drop(columns=["accessibility_score"], errors="ignore"), scenario, baseline_scores)
         X = _align_input_columns(sim_df, expected)
         pred_access = np.clip(np.asarray(regressor.predict(X), dtype=float), 0.0, 1.0)
         pred_under = np.asarray(classifier.predict(X), dtype=int)

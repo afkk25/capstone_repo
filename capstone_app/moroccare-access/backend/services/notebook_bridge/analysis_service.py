@@ -8,7 +8,7 @@ import pandas as pd
 from core.equity import compute_equity
 from core.modeling import load_model, predict
 from core.simulation import apply_intervention
-from routers.cities import ensure_baseline_data
+from routers.cities import _load_city_geo, ensure_baseline_data
 from services.analytics import compare_scenarios, compute_summary_metrics, rank_underserved_districts
 from services.notebook_bridge.loaders import (
     CityDataNotFoundError,
@@ -166,14 +166,21 @@ def compare_baseline_and_simulation(city_id: str, simulation_payload: dict[str, 
     Compare baseline and simulated outcomes using notebook-compatible scenario parameters.
     """
     features_df, baseline_scores = ensure_baseline_data(city_id)
+    _, healthcare_gdf, _ = _load_city_geo(city_id)
     model, feature_names, _ = load_model(city_id)
 
     scenario = {
         "stop_density_multiplier": float(simulation_payload.get("stop_density_multiplier", 1.0)),
         "reduce_nearest_stop_distance_pct": float(simulation_payload.get("reduce_nearest_stop_distance_pct", 0.0)),
         "add_facilities": int(simulation_payload.get("add_facilities", 0)),
+        "facility_locations": simulation_payload.get("facility_locations", []),
+        "transport_stop_locations": simulation_payload.get("transport_stop_locations", []),
+        "existing_facility_locations": [
+            {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
+            for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
+        ],
     }
-    simulated_df = apply_intervention(features_df, scenario)
+    simulated_df, _ = apply_intervention(features_df, scenario, baseline_scores)
     simulated_scores = predict(model, simulated_df, feature_names)
 
     baseline_rows = features_df.copy().reset_index(drop=True)

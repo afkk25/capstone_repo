@@ -1,0 +1,9 @@
+{
+  "analysis_unit": "facility_proxy",
+  "source": "facility_fallback",
+  "warnings": [
+    "Origin-level data not found for city 'marrakech'. Falling back to facility proxy rows."
+  ],
+  "source_hash": "origin-first-v1|healthcare.csv:2267:1776508775.2582798|transport_stops.csv:13706:1776508775.2857878|origin_accessibility_metrics.csv:missing|worldpop_origins.csv:missing|worldpop_origin_points.csv:missing|district_accessibility_summary.csv:missing",
+  "version": "origin-first-v1"
+}

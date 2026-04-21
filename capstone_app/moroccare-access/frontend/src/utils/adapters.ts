@@ -1,5 +1,6 @@
 import type {
   BaselineFacilityDto,
+  FacilityPointDto,
   BaselineResponse,
   ComparisonResponse,
   FrontendDistrict,
@@ -21,17 +22,31 @@ export function scoreToTravelMinutes(score: number): number {
   return (1 - clipped) * 60;
 }
 
+export function normalizeScore(value: unknown, fallback = 0): number {
+  const raw = toSafeNumber(value, fallback);
+  const normalized = raw > 1 ? raw / 100 : raw;
+  return Math.max(0, Math.min(1, normalized));
+}
+
 export function normalizeFacility(row: BaselineFacilityDto, index = 0): FrontendDistrict {
-  const accessibilityScore = toSafeNumber(row.simulated_score ?? row.accessibility_score, 0);
-  const baselineScore = toSafeNumber(row.baseline_score ?? row.accessibility_score ?? accessibilityScore, accessibilityScore);
+  const accessibilityScore = normalizeScore((row as Record<string, unknown>).after_score ?? row.simulated_score ?? row.accessibility_score, 0);
+  const baselineScore = normalizeScore(
+    (row as Record<string, unknown>).before_score ?? row.baseline_score ?? row.accessibility_score ?? accessibilityScore,
+    accessibilityScore
+  );
   const travelTimeMin = toSafeNumber(row.travel_time_min, scoreToTravelMinutes(accessibilityScore));
+  const latitude = toSafeNumber((row as Record<string, unknown>).lat ?? row.latitude, 0);
+  const longitude = toSafeNumber((row as Record<string, unknown>).lon ?? row.longitude, 0);
+  const districtName = String((row as Record<string, unknown>).district ?? row.district_name ?? row.name ?? `Area ${index + 1}`);
 
   return {
-    id: String(row.id ?? row.name ?? row.district_name ?? `district-${index}`),
-    districtName: String(row.district_name ?? row.name ?? `District ${index + 1}`),
+    id: String(row.id ?? row.origin_id ?? row.name ?? row.district_name ?? `origin-${index}`),
+    districtName,
+    originName: String(row.name ?? row.origin_id ?? `Origin ${index + 1}`),
+    districtId: row.district_id ?? null,
     urbanRing: String(row.urban_ring ?? "Unknown"),
-    latitude: toSafeNumber(row.latitude, 0),
-    longitude: toSafeNumber(row.longitude, 0),
+    latitude,
+    longitude,
     geometry: row.geometry,
     accessibilityScore,
     baselineScore,
@@ -44,10 +59,26 @@ export function normalizeFacility(row: BaselineFacilityDto, index = 0): Frontend
 }
 
 export function normalizeBaselineFacilities(payload: BaselineResponse | null | undefined): FrontendDistrict[] {
-  const rows = Array.isArray(payload?.facilities) ? payload.facilities : [];
+  const rows = Array.isArray(payload?.origins)
+    ? payload.origins
+    : Array.isArray(payload?.facilities)
+    ? (payload.facilities as BaselineFacilityDto[])
+    : [];
   return rows
     .map(normalizeFacility)
     .filter((row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude) && row.latitude !== 0 && row.longitude !== 0);
+}
+
+export function normalizeSupplyFacilities(payload: BaselineResponse | null | undefined): FacilityPointDto[] {
+  const rows = Array.isArray(payload?.facilities) ? payload.facilities : [];
+  return rows
+    .map((row, index) => ({
+      id: row.id ?? `facility-${index}`,
+      name: row.name ?? `Facility ${index + 1}`,
+      latitude: toSafeNumber(row.latitude, NaN),
+      longitude: toSafeNumber(row.longitude, NaN)
+    }))
+    .filter((row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
 }
 
 export function dashboardSummary(rows: FrontendDistrict[]): DashboardSummary {

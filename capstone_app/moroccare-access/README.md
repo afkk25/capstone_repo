@@ -80,3 +80,8 @@ Use the **+ Add city** flow in the sidebar or add files manually:
 - State and models are persisted in `backend/data`.
 - CORS is configured for `http://localhost:3000`.
 - New backend organization includes `services/`, `models/`, and `utils/` modules for analytics, recommendations, explainability, and reusable metrics.
+- Baseline/simulation now use an **origin-first** methodology:
+  - origins = demand points (from notebook origin metrics when available)
+  - facilities = healthcare supply points
+  - transport stops = access points
+  - district endpoints return district aggregates (or empty if unavailable), never facility points masquerading as districts.

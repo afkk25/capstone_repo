@@ -77,6 +77,9 @@ export default function MapView({
   baselineFacilities = [],
   simulatedFacilities = null,
   transportStops = [],
+  baselineSupplyFacilities = [],
+  addedScenarioFacilities = [],
+  addedScenarioStops = [],
   isLoading = false,
   activeLayer = "accessibility",
   onLayerChange,
@@ -122,14 +125,14 @@ export default function MapView({
         <FitBounds city={city} facilitiesForBounds={facilitiesForBounds} />
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        <Pane name="districts" style={{ zIndex: 450 }}>
+        <Pane name="origins" style={{ zIndex: 450 }}>
           {activeRows.map((row) => {
             const value = mapLayerValue(row, activeLayer);
             const color = getColor(value, activeLayer);
             const selected = selectedDistrictId === row.id;
             return (
               <CircleMarker
-                key={`${isSimulated ? "sim" : "base"}-${row.id}`}
+                key={`${isSimulated ? "sim-origin" : "base-origin"}-${row.id}`}
                 center={[row.latitude, row.longitude]}
                 radius={9}
                 eventHandlers={{ click: () => onSelectPoint?.(row) }}
@@ -143,7 +146,7 @@ export default function MapView({
               >
                 <Popup>
                   <div className={`space-y-1 text-xs rtl-safe-text ${isRtl ? "text-right" : "text-left"}`}>
-                    <div className="font-bold text-slate-900">{row.districtName}</div>
+                    <div className="font-bold text-slate-900">{row.originName || row.districtName}</div>
                     {isSimulated ? <div className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{t("map.simulated")}</div> : null}
                     <div>
                       {t("map.accessibilityScore")}: <span className="num-ltr">{toLocaleNumber(Number(row.accessibilityScore).toFixed(2), language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -183,6 +186,57 @@ export default function MapView({
                 pathOptions={{ color: "#888780", fillColor: "#888780", fillOpacity: 0.5, opacity: 0.5, weight: 1 }}
               />
             ))}
+        </Pane>
+
+        <Pane name="supply-facilities" style={{ zIndex: 455 }}>
+          {baselineSupplyFacilities.map((facility) => (
+            <CircleMarker
+              key={`supply-${facility.id}`}
+              center={[Number(facility.latitude), Number(facility.longitude)]}
+              radius={2.8}
+              pathOptions={{ color: "#6B7280", fillColor: "#CBD5E1", fillOpacity: 0.7, opacity: 0.8, weight: 1 }}
+            >
+              <Popup>
+                <div className="text-xs">
+                  <div className="font-semibold text-slate-900">{facility.name || "Facility"}</div>
+                  <div>Existing healthcare facility</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+        </Pane>
+
+        <Pane name="scenario-added" style={{ zIndex: 470 }}>
+          {addedScenarioFacilities.map((facility, idx) => (
+            <CircleMarker
+              key={`added-facility-${idx}`}
+              center={[Number(facility.latitude), Number(facility.longitude)]}
+              radius={5}
+              pathOptions={{ color: "#5B21B6", fillColor: "#7C3AED", fillOpacity: 0.85, opacity: 0.9, weight: 1.5 }}
+            >
+              <Popup>
+                <div className="text-xs">
+                  <div className="font-semibold text-slate-900">Scenario facility</div>
+                  <div>{facility.source === "auto" ? "Automatically placed" : "User placed"}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+          {addedScenarioStops.map((stop, idx) => (
+            <CircleMarker
+              key={`added-stop-${idx}`}
+              center={[Number(stop.latitude), Number(stop.longitude)]}
+              radius={4.2}
+              pathOptions={{ color: "#1D4ED8", fillColor: "#2563EB", fillOpacity: 0.85, opacity: 0.9, weight: 1.4 }}
+            >
+              <Popup>
+                <div className="text-xs">
+                  <div className="font-semibold text-slate-900">Scenario transport stop</div>
+                  <div>{stop.source === "auto" ? "Automatically placed" : "User placed"}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
         </Pane>
       </MapContainer>
 

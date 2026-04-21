@@ -12,7 +12,7 @@ from reportlab.lib import colors
 from core.equity import compute_equity
 from core.modeling import load_model, predict
 from core.simulation import apply_intervention
-from routers.cities import ensure_baseline_data
+from routers.cities import _load_city_geo, ensure_baseline_data
 from services.analytics import compare_scenarios, compute_summary_metrics
 from services.cache import clear_city_cache
 from services.recommendation import recommend_best_intervention
@@ -41,6 +41,7 @@ def export_city(city_id: str, format: str = Query(...)):
 
     try:
         baseline_df, baseline_scores = ensure_baseline_data(city_id)
+        _, healthcare_gdf, _ = _load_city_geo(city_id)
         model, feature_names, _ = load_model(city_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"City '{city_id}' not found")
@@ -54,11 +55,22 @@ def export_city(city_id: str, format: str = Query(...)):
 
     scenario_rows = []
     baseline_mean = float(pd.Series(baseline_scores).mean()) if len(baseline_scores) else 0.0
+    existing_facility_locations = [
+        {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
+        for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
+    ]
     for name, scenario in SCENARIOS.items():
         if name == "baseline":
             score_mean = baseline_mean
         else:
-            simulated_df = apply_intervention(baseline_df, scenario)
+            try:
+                simulated_df, _ = apply_intervention(
+                    baseline_df,
+                    {**scenario, "existing_facility_locations": existing_facility_locations},
+                    baseline_scores,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
             simulated_scores = predict(model, simulated_df, feature_names)
             score_mean = float(pd.Series(simulated_scores).mean()) if len(simulated_scores) else 0.0
         scenario_rows.append(
@@ -75,31 +87,47 @@ def export_city(city_id: str, format: str = Query(...)):
     baseline_rows["accessibility_score"] = pd.Series(baseline_scores).astype(float).to_numpy()
     baseline_summary = compute_summary_metrics(baseline_rows)
 
-    combined_df = apply_intervention(
-        baseline_df,
-        {"stop_density_multiplier": 1.2, "reduce_nearest_stop_distance_pct": 0.15, "add_facilities": 1},
-    )
+    try:
+        combined_df, _ = apply_intervention(
+            baseline_df,
+            {
+                "stop_density_multiplier": 1.2,
+                "reduce_nearest_stop_distance_pct": 0.15,
+                "add_facilities": 1,
+                "existing_facility_locations": existing_facility_locations,
+            },
+            baseline_scores,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     combined_scores = predict(model, combined_df, feature_names)
     combined_rows = combined_df.copy().reset_index(drop=True)
     combined_rows["accessibility_score"] = pd.Series(combined_scores).astype(float).to_numpy()
     comparison_summary = compare_scenarios(baseline_rows, combined_rows)
 
-    rec_input = [
-        {
-            "scenario": row["scenario"],
-            "baseline_rows": baseline_rows.to_dict(orient="records"),
-            "simulated_rows": (
-                baseline_rows.to_dict(orient="records")
-                if row["scenario"] == "baseline"
-                else apply_intervention(baseline_df, SCENARIOS[row["scenario"]])
-                .assign(
-                    accessibility_score=lambda df: predict(model, df, feature_names)
+    rec_input = []
+    baseline_records = baseline_rows.to_dict(orient="records")
+    for row in scenario_rows:
+        scenario_name = row["scenario"]
+        if scenario_name == "baseline":
+            sim_records = baseline_records
+        else:
+            try:
+                scenario_df, _ = apply_intervention(
+                    baseline_df,
+                    {**SCENARIOS[scenario_name], "existing_facility_locations": existing_facility_locations},
+                    baseline_scores,
                 )
-                .to_dict(orient="records")
-            ),
-        }
-        for row in scenario_rows
-    ]
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
+            sim_records = scenario_df.assign(accessibility_score=lambda df: predict(model, df, feature_names)).to_dict(orient="records")
+        rec_input.append(
+            {
+                "scenario": scenario_name,
+                "baseline_rows": baseline_records,
+                "simulated_rows": sim_records,
+            }
+        )
     recommendations = recommend_best_intervention(rec_input)
     recommendations_df = pd.DataFrame(recommendations)
 

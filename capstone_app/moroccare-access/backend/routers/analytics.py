@@ -9,7 +9,7 @@ from core.equity import compute_equity
 from core.modeling import FEATURE_COLS, load_model, predict
 from core.simulation import apply_intervention
 from models.analytics import ComparePayload, SensitivityPayload
-from routers.cities import ensure_baseline_data
+from routers.cities import _load_city_geo, ensure_baseline_data
 from services.analytics import compare_scenarios, compute_summary_metrics, rank_underserved_districts
 from services.cache import city_freshness_token, get_cached_city_rows
 from services.explainability import compute_feature_importance
@@ -109,6 +109,7 @@ def get_city_ranking(city_id: str) -> dict[str, Any]:
 def compare_city_scenarios(city_id: str, payload: ComparePayload) -> dict[str, Any]:
     try:
         features_df, baseline_scores = ensure_baseline_data(city_id)
+        _, healthcare_gdf, _ = _load_city_geo(city_id)
         model, feature_names, _ = load_model(city_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"City '{city_id}' not found")
@@ -121,12 +122,21 @@ def compare_city_scenarios(city_id: str, payload: ComparePayload) -> dict[str, A
         if payload.reduce_nearest_stop_distance_pct is not None
         else 0.0,
         "add_facilities": payload.add_facilities if payload.add_facilities is not None else 0,
+        "facility_locations": [point.model_dump() for point in payload.facility_locations],
+        "transport_stop_locations": [point.model_dump() for point in payload.transport_stop_locations],
+        "existing_facility_locations": [
+            {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
+            for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
+        ],
     }
     # Optional sensitivity knobs are accepted and returned for transparency.
     scenario["walking_speed_mps"] = 1.0
     scenario["waiting_time_min"] = 10.0
     scenario["transport_speed_kmh"] = 20.0
-    simulated_df = apply_intervention(features_df, scenario)
+    try:
+        simulated_df, _ = apply_intervention(features_df, scenario, baseline_scores)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     simulated_scores = predict(model, simulated_df, feature_names)
 
     baseline_rows = _facility_rows(features_df, baseline_scores, "accessibility_score")
@@ -160,6 +170,7 @@ def compare_city_scenarios(city_id: str, payload: ComparePayload) -> dict[str, A
 def get_city_recommendations(city_id: str) -> dict[str, Any]:
     try:
         features_df, baseline_scores = ensure_baseline_data(city_id)
+        _, healthcare_gdf, _ = _load_city_geo(city_id)
         model, feature_names, _ = load_model(city_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"City '{city_id}' not found")
@@ -173,10 +184,18 @@ def get_city_recommendations(city_id: str) -> dict[str, Any]:
         ("facility_plus", {"add_facilities": 1}),
         ("combined", {"stop_density_multiplier": 1.2, "reduce_nearest_stop_distance_pct": 0.15, "add_facilities": 1}),
     ]
+    existing_facility_locations = [
+        {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
+        for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
+    ]
 
     sim_payload: list[dict[str, Any]] = []
     for name, scenario in scenarios:
-        sim_df = apply_intervention(features_df, scenario)
+        scenario = {**scenario, "existing_facility_locations": existing_facility_locations}
+        try:
+            sim_df, _ = apply_intervention(features_df, scenario, baseline_scores)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
         sim_scores = predict(model, sim_df, feature_names)
         sim_rows = _facility_rows(sim_df, sim_scores, "accessibility_score")
         sim_payload.append({"scenario": name, "baseline_rows": baseline_rows.to_dict(orient="records"), "simulated_rows": sim_rows.to_dict(orient="records")})
@@ -227,6 +246,7 @@ def run_sensitivity_analysis(city_id: str, payload: SensitivityPayload) -> dict[
     """
     try:
         features_df, baseline_scores = ensure_baseline_data(city_id)
+        _, healthcare_gdf, _ = _load_city_geo(city_id)
         model, feature_names, _ = load_model(city_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"City '{city_id}' not found")
@@ -240,9 +260,16 @@ def run_sensitivity_analysis(city_id: str, payload: SensitivityPayload) -> dict[
         "stop_density_multiplier": transit_factor,
         "reduce_nearest_stop_distance_pct": max(0.0, min(0.4, (1.0 - walk_factor) * 0.25)),
         "add_facilities": 0,
+        "existing_facility_locations": [
+            {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
+            for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
+        ],
     }
 
-    simulated_df = apply_intervention(features_df, scenario)
+    try:
+        simulated_df, _ = apply_intervention(features_df, scenario, baseline_scores)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     simulated_scores = predict(model, simulated_df, feature_names)
     baseline_rows = _facility_rows(features_df, baseline_scores, "accessibility_score")
     simulated_rows = _facility_rows(simulated_df, simulated_scores, "accessibility_score")

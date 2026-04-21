@@ -19,30 +19,45 @@ FEATURE_COLS = [
     "num_healthcare_facilities",
     "healthcare_density_1km",
     "distance_to_city_center_km",
-    "local_edge_count_500m",
-    "local_edge_length_500m",
-    "nearest_node_degree",
-    "distance_to_nearest_node_m",
     "interaction_stop_pop_density",
     "interaction_fac_pop",
-    "interaction_built_stop",
-    "neighbor_accessibility_mean",
 ]
 
 
 def _target_accessibility_score(df: pd.DataFrame) -> pd.Series:
-    inv_distance = 1.0 / df["distance_to_nearest_stop_m"].clip(lower=1e-6)
+    inv_distance = 1.0 / pd.to_numeric(df["distance_to_nearest_stop_m"], errors="coerce").fillna(0.0).clip(lower=1e-6)
     stop_rank = df["stop_density"].rank(pct=True, ascending=True)
     inv_dist_rank = inv_distance.rank(pct=True, ascending=True)
     hc_rank = df["healthcare_density_1km"].rank(pct=True, ascending=True)
     return stop_rank * 0.4 + inv_dist_rank * 0.3 + hc_rank * 0.3
 
 
+def _scaled_score_series(values: pd.Series) -> pd.Series:
+    numeric = pd.to_numeric(values, errors="coerce").fillna(0.0)
+    if float(numeric.max()) > 1.5:
+        numeric = numeric / 100.0
+    return numeric.clip(lower=0.0, upper=1.0)
+
+
+def _prepare_features(df: pd.DataFrame, feature_names: list[str]) -> pd.DataFrame:
+    out = df.copy()
+    for col in feature_names:
+        if col not in out.columns:
+            out[col] = 0.0
+        out[col] = pd.to_numeric(out[col], errors="coerce")
+    out[feature_names] = out[feature_names].fillna(0.0)
+    return out
+
+
 def train_model(features_df: pd.DataFrame, city_id: str) -> tuple[GradientBoostingRegressor, list[str], pd.DataFrame]:
     if features_df.empty:
         raise ValueError("Cannot train model on empty features")
-    train_df = features_df.copy()
-    train_df["accessibility_score"] = _target_accessibility_score(train_df)
+    train_df = _prepare_features(features_df, FEATURE_COLS)
+    existing_score = train_df.get("accessibility_score")
+    if existing_score is not None and pd.to_numeric(existing_score, errors="coerce").notna().any():
+        train_df["accessibility_score"] = _scaled_score_series(existing_score)
+    else:
+        train_df["accessibility_score"] = _target_accessibility_score(train_df)
     x = train_df[FEATURE_COLS].to_numpy(dtype=float)
     y = train_df["accessibility_score"].to_numpy(dtype=float)
     model = GradientBoostingRegressor(
@@ -85,5 +100,6 @@ def load_model(city_id: str) -> tuple[GradientBoostingRegressor, list[str], pd.D
 def predict(model: GradientBoostingRegressor, features_df: pd.DataFrame, feature_names: list[str]) -> np.ndarray:
     if features_df.empty:
         return np.array([], dtype=float)
-    scores = model.predict(features_df[feature_names].to_numpy(dtype=float))
+    prepared = _prepare_features(features_df, feature_names)
+    scores = model.predict(prepared[feature_names].to_numpy(dtype=float))
     return np.clip(scores, 0, 1)

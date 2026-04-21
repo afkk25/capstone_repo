@@ -8,6 +8,9 @@ export default function MapPage({
   baselineFacilities,
   simulatedFacilities,
   transportStops,
+  baselineSupplyFacilities = [],
+  addedScenarioFacilities = [],
+  addedScenarioStops = [],
   isLoading,
   activeLayer,
   onLayerChange,
@@ -39,6 +42,9 @@ export default function MapPage({
           baselineFacilities={baselineFacilities}
           simulatedFacilities={isSimulated ? simulatedFacilities : null}
           transportStops={transportStops}
+          baselineSupplyFacilities={baselineSupplyFacilities}
+          addedScenarioFacilities={addedScenarioFacilities}
+          addedScenarioStops={addedScenarioStops}
           isLoading={isLoading}
           activeLayer={activeLayer}
           onLayerChange={onLayerChange}
@@ -112,6 +118,18 @@ export default function MapPage({
               <span className="inline-block h-3 w-3 rounded-full bg-[#888780]" />
               <span>{t("map.transportStop")}</span>
             </div>
+            {isSimulated ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-3 w-3 rounded-full bg-[#7C3AED]" />
+                  <span>Added scenario facilities</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-3 w-3 rounded-full bg-[#2563EB]" />
+                  <span>Added scenario stops</span>
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className="mt-2 border-t border-gray-200 pt-2 text-[12px] text-gray-700">

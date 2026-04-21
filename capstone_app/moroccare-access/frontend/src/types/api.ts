@@ -15,8 +15,13 @@ export type CityDto = {
 export type BaselineFacilityDto = {
   id?: string | number;
   name?: string;
+  origin_id?: string | number;
+  district?: string;
   district_name?: string;
+  district_id?: string | number | null;
   urban_ring?: string;
+  lat?: number;
+  lon?: number;
   latitude?: number;
   longitude?: number;
   geometry?: unknown;
@@ -28,7 +33,19 @@ export type BaselineFacilityDto = {
   population?: number;
   baseline_score?: number;
   simulated_score?: number;
+  before_score?: number;
+  after_score?: number;
+  before_travel_time_min?: number;
   delta?: number;
+};
+
+export type OriginDto = BaselineFacilityDto;
+
+export type FacilityPointDto = {
+  id?: string | number;
+  name?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type TransportStopDto = {
@@ -41,8 +58,22 @@ export type TransportStopDto = {
 };
 
 export type BaselineResponse = {
-  facilities?: BaselineFacilityDto[];
+  analysis_unit?: string;
+  warnings?: string[];
+  origins?: OriginDto[];
+  facilities?: FacilityPointDto[] | BaselineFacilityDto[]; // legacy backends may still send origin rows here
   transport_stops?: TransportStopDto[];
+  district_summaries?: Array<{
+    district_name?: string;
+    district_id?: string | number | null;
+    origin_count?: number;
+    population?: number;
+    avg_accessibility_score?: number;
+    underserved_pct?: number;
+    rank?: number;
+    centroid_latitude?: number;
+    centroid_longitude?: number;
+  }>;
   equity?: Record<string, unknown>;
   scenarios_available?: string[];
 };
@@ -104,16 +135,51 @@ export type ExplainabilityResponse = {
 };
 
 export type SimulationRequest = {
+  intervention_type?: "healthcare_facility" | "transport_stop" | "add_healthcare_facility" | "add_transport_stop" | "improve_service";
+  latitude?: number;
+  longitude?: number;
   stop_density_multiplier?: number;
   reduce_nearest_stop_distance_pct?: number;
   add_facilities?: number;
+  facility_locations?: Array<{ latitude: number; longitude: number }>;
+  transport_stop_locations?: Array<{ latitude: number; longitude: number }>;
+  existing_facility_locations?: Array<{ latitude: number; longitude: number }>;
   walking_speed_mps?: number;
   waiting_time_min?: number;
   transport_speed_kmh?: number;
 };
 
 export type SimulationResponse = {
-  facilities?: BaselineFacilityDto[];
+  city_id?: string;
+  analysis_unit?: string;
+  warnings?: string[];
+  summary?: {
+    city_before_avg_score: number;
+    city_after_avg_score: number;
+    city_before_avg_tt: number;
+    city_after_avg_tt: number;
+    total_pop_improved: number;
+    total_origins_improved: number;
+  };
+  districts?: Array<{
+    district_name: string;
+    before_avg_score: number;
+    after_avg_score: number;
+    score_delta: number;
+    before_avg_tt: number;
+    after_avg_tt: number;
+    pop_improved: number;
+    origins_improved: number;
+  }>;
+  origins?: OriginDto[];
+  facilities?: BaselineFacilityDto[]; // legacy alias
+  added_facilities?: Array<{ latitude: number; longitude: number; source?: string }>;
+  added_transport_stops?: Array<{ latitude: number; longitude: number; source?: string }>;
+  auto_placed_facilities?: Array<{ latitude: number; longitude: number; source?: string }>;
+  impacted_origin_ids?: Array<string>;
+  district_summaries_before?: BaselineResponse["district_summaries"];
+  district_summaries_after?: BaselineResponse["district_summaries"];
+  scenario?: SimulationRequest;
   avg_delta?: number;
   equity?: Record<string, unknown>;
 };
@@ -164,7 +230,9 @@ export type UploadCityResponse = {
 
 export type FrontendDistrict = {
   id: string;
-  districtName: string;
+  districtName: string; // display label, usually district aggregate name
+  originName?: string;
+  districtId?: string | number | null;
   urbanRing: string;
   latitude: number;
   longitude: number;
@@ -177,4 +245,6 @@ export type FrontendDistrict = {
   population: number;
   delta: number;
 };
+
+export type FrontendOrigin = FrontendDistrict;
 

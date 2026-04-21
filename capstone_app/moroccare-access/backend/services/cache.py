@@ -25,6 +25,7 @@ def city_freshness_token(city_id: str) -> str:
     Cache keys change automatically when CSVs/artifacts change.
     """
     from core.config import city_dir
+    from services.notebook_bridge.loaders import CityDataNotFoundError, get_city_paths
 
     folder = city_dir(city_id)
     paths = [
@@ -34,7 +35,23 @@ def city_freshness_token(city_id: str) -> str:
         folder / "feature_names.json",
         folder / "features.csv",
         folder / "source_hash.txt",
+        folder / "baseline_metadata.json",
+        folder / "districts.geojson",
+        folder / "districts.gpkg",
+        folder / "origins.csv",
     ]
+    try:
+        notebook_paths = get_city_paths(city_id)
+        paths.extend(
+            [
+                notebook_paths.interim_origin_metrics_csv,
+                notebook_paths.interim_worldpop_origins_csv,
+                notebook_paths.interim_worldpop_origin_points_csv,
+                notebook_paths.final_district_summary_csv,
+            ]
+        )
+    except CityDataNotFoundError:
+        pass
     mtimes = []
     for p in paths:
         mtimes.append(f"{p.name}:{p.stat().st_mtime}" if p.exists() else f"{p.name}:missing")

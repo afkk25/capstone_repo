@@ -71,7 +71,10 @@ def rank_underserved_districts(data: pd.DataFrame | list[dict[str, Any]]) -> lis
     if df.empty:
         return []
 
-    district_col = "district_name" if "district_name" in df.columns else "urban_ring"
+    if "analysis_unit" in df.columns and (df["analysis_unit"].astype(str) == "facility_proxy").all():
+        district_col = None
+    else:
+        district_col = "district_name" if "district_name" in df.columns else "urban_ring"
     if district_col not in df.columns:
         district_col = None
 
