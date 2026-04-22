@@ -27,7 +27,7 @@ const FALLBACK_INTERVENTIONS = [
   },
   {
     id: "improve_service",
-    label: "Improve stop access",
+    label: "Improve access near a stop",
     backendInterventionType: "transport_stop",
     placementTarget: "transport_stop_locations",
     scenarioPatch: { add_facilities: 0 },
@@ -52,7 +52,7 @@ function average(items, selector) {
 }
 
 function formatPercent(value) {
-  if (!Number.isFinite(value)) return "Not available";
+  if (!Number.isFinite(value)) return "Unavailable";
   return `${(value * 100).toFixed(1)}%`;
 }
 
@@ -62,32 +62,44 @@ function scorePercentToRatio(value) {
 }
 
 function formatMinutes(value) {
-  if (!Number.isFinite(value)) return "Not available";
+  if (!Number.isFinite(value)) return "Unavailable";
   return `${value.toFixed(1)} min`;
 }
 
 function formatCount(value) {
-  if (!Number.isFinite(value)) return "Not available";
+  if (!Number.isFinite(value)) return "Unavailable";
   return Math.round(value).toLocaleString();
 }
 
 function formatDistance(value) {
-  if (!Number.isFinite(value)) return "Not available";
+  if (!Number.isFinite(value)) return "Unavailable";
   if (value < 1000) return `${Math.round(value)} m`;
   return `${(value / 1000).toFixed(value < 5000 ? 1 : 0)} km`;
 }
 
-function formatMeaningfulDelta(value, { multiplier = 1, decimals = 1, unit = "", epsilon = 0.0005 } = {}) {
-  if (!Number.isFinite(value)) return "Not available";
+function formatMeaningfulDelta(value, { multiplier = 1, decimals = 1, unit = "", epsilon = 0.0005, positiveIsGood = true } = {}) {
+  if (!Number.isFinite(value)) return { text: "Unavailable", tone: "neutral" };
   const scaled = value * multiplier;
-  if (Math.abs(scaled) < epsilon) return "No meaningful change detected";
+  if (Math.abs(scaled) < epsilon) return { text: "No meaningful change", tone: "neutral" };
   const sign = scaled > 0 ? "+" : "";
-  return `${sign}${scaled.toFixed(decimals)}${unit}`;
+  const good = positiveIsGood ? scaled > 0 : scaled < 0;
+  return { text: `${sign}${scaled.toFixed(decimals)}${unit}`, tone: good ? "good" : "watch" };
 }
 
 function interventionLabel(interventionType, interventionIndex) {
-  if (!interventionType) return "Not selected yet";
+  if (!interventionType) return "";
   return interventionIndex.get(interventionType)?.label || interventionType;
+}
+
+function interventionDescription(option) {
+  if (!option) return "";
+  if (option.placementTarget === "facility_locations") {
+    return "Test a new care location and estimate which nearby origin areas improve.";
+  }
+  if (option.id === "improve_service") {
+    return "Target a stop-access improvement area and estimate travel-time impact.";
+  }
+  return "Place a new public transport access point and estimate nearby benefits.";
 }
 
 function getSimulationDefaults(city) {
@@ -129,17 +141,17 @@ function getAvailableInterventions(city) {
 }
 
 function friendlyStopLabel(stop) {
-  if (!stop) return "Not available yet";
+  if (!stop) return "";
   if (stop.stop_name) return stop.stop_name;
   if (Number.isFinite(stop.cluster_id)) return `Stop cluster ${stop.cluster_id}`;
   return "Nearby transport stop";
 }
 
 function friendlyAreaStatus(district) {
-  if (!district) return "Place a marker to identify the nearest service area.";
-  if (district.accessibilityScore < 0.45 || district.underserved) return "This area appears underserved.";
-  if (district.accessibilityScore < 0.65) return "This area may benefit from targeted support.";
-  return "This area is already moderately served.";
+  if (!district) return "Area context will appear after a map location is selected.";
+  if (district.accessibilityScore < 0.45 || district.underserved) return "This area appears underserved and may merit priority attention.";
+  if (district.accessibilityScore < 0.65) return "This area has moderate access and may benefit from targeted support.";
+  return "This area is relatively well served; review whether investment should target lower-access areas.";
 }
 
 function buildPayload({ selectedIntervention, placement, mode, advancedSettings, cityDefaults }) {
@@ -164,6 +176,17 @@ function buildPayload({ selectedIntervention, placement, mode, advancedSettings,
   return payload;
 }
 
+function toneClass(tone) {
+  if (tone === "good") return "text-[#0F6E56]";
+  if (tone === "watch") return "text-[#B45309]";
+  return "text-slate-600";
+}
+
+function DeltaValue({ delta, options }) {
+  const formatted = formatMeaningfulDelta(delta, options);
+  return <span className={`font-semibold ${toneClass(formatted.tone)}`}>{formatted.text}</span>;
+}
+
 export default function Simulate({
   city,
   baselineFacilities = [],
@@ -184,7 +207,7 @@ export default function Simulate({
   const [interventionType, setInterventionType] = useState("");
   const [placement, setPlacement] = useState(null);
   const [showInfluenceZone, setShowInfluenceZone] = useState(true);
-  const [showBaselineStops, setShowBaselineStops] = useState(false);
+  const [showBaselineStops, setShowBaselineStops] = useState(true);
   const [showBaselineFacilities, setShowBaselineFacilities] = useState(false);
   const [mapLayer, setMapLayer] = useState("baseline");
   const [advancedSettings, setAdvancedSettings] = useState(NEUTRAL_ADVANCED);
@@ -201,12 +224,16 @@ export default function Simulate({
     setInterventionType("");
     setPlacement(null);
     setShowInfluenceZone(true);
-    setShowBaselineStops(false);
+    setShowBaselineStops(true);
     setShowBaselineFacilities(false);
     setMapLayer("baseline");
     setAdvancedSettings(citySimulationDefaults);
     setLastRunSignature("");
   }, [cityKey, citySimulationDefaults]);
+
+  useEffect(() => {
+    if (!simulatedFacilities.length) setMapLayer("baseline");
+  }, [simulatedFacilities.length]);
 
   const payload = useMemo(
     () =>
@@ -221,16 +248,8 @@ export default function Simulate({
   );
 
   const payloadSignature = useMemo(() => (payload ? JSON.stringify(payload) : ""), [payload]);
-
-  const requiresPlacement = Boolean(interventionType);
   const canRunSimulation = Boolean(payload && interventionType && placement);
   const resultsOutdated = Boolean(hasResult && lastRunSignature && payloadSignature && payloadSignature !== lastRunSignature);
-
-  useEffect(() => {
-    if (!simulatedFacilities.length) {
-      setMapLayer("baseline");
-    }
-  }, [simulatedFacilities.length]);
 
   const selectedDistrict = useMemo(() => {
     if (!placement || !baselineFacilities.length) return null;
@@ -255,14 +274,13 @@ export default function Simulate({
       }))
       .filter((row) => row.distanceM <= 10_000)
       .sort((a, b) => a.distanceM - b.distanceM)
-      .slice(0, 3);
+      .slice(0, 5);
   }, [baselineFacilities, placement]);
 
   const nearestTransportStop = useMemo(() => {
     if (!placement || !transportStops.length) return null;
     let nearest = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
-
     transportStops.forEach((stop) => {
       const latitude = Number(stop.latitude);
       const longitude = Number(stop.longitude);
@@ -273,15 +291,11 @@ export default function Simulate({
         nearestDistance = distance;
       }
     });
-
     return nearest ? { ...nearest, distanceM: nearestDistance } : null;
   }, [placement, transportStops]);
 
   const simulationSummary = simulationResult?.summary || null;
-  const simulationDistrictRows = useMemo(
-    () => (Array.isArray(simulationResult?.districts) ? simulationResult.districts : []),
-    [simulationResult]
-  );
+  const simulationDistrictRows = useMemo(() => (Array.isArray(simulationResult?.districts) ? simulationResult.districts : []), [simulationResult]);
 
   const districtImpacts = useMemo(() => {
     if (simulationDistrictRows.length) {
@@ -301,12 +315,12 @@ export default function Simulate({
       .map((row) => {
         const simulated = simulatedById.get(row.id);
         if (!simulated) return null;
-        const delta = simulated.accessibilityScore - row.accessibilityScore;
         return {
           id: row.id,
           districtName: row.districtName,
-          delta,
-          population: row.population
+          delta: simulated.accessibilityScore - row.accessibilityScore,
+          population: Number(row.population) || 0,
+          originsImproved: simulated.accessibilityScore > row.accessibilityScore ? 1 : 0
         };
       })
       .filter(Boolean)
@@ -319,6 +333,7 @@ export default function Simulate({
     if (explicit.length) return explicit.map((id) => String(id));
     return impactedDistrictIds.map((id) => String(id));
   }, [simulationResult, impactedDistrictIds]);
+
   const scenarioAddedFacilities = useMemo(
     () =>
       (Array.isArray(simulationResult?.added_facilities) ? simulationResult.added_facilities : []).filter(
@@ -326,6 +341,7 @@ export default function Simulate({
       ),
     [simulationResult]
   );
+
   const scenarioAddedStops = useMemo(
     () =>
       (Array.isArray(simulationResult?.added_transport_stops) ? simulationResult.added_transport_stops : []).filter(
@@ -341,19 +357,19 @@ export default function Simulate({
         : average(baselineFacilities, (row) => row.accessibilityScore),
     [baselineFacilities, simulationSummary]
   );
-  const baselineAvgTravel = useMemo(
-    () =>
-      Number.isFinite(Number(simulationSummary?.city_before_avg_tt))
-        ? Number(simulationSummary.city_before_avg_tt)
-        : average(baselineFacilities, (row) => row.travelTimeMin),
-    [baselineFacilities, simulationSummary]
-  );
   const simulatedAvgAccessibility = useMemo(
     () =>
       Number.isFinite(Number(simulationSummary?.city_after_avg_score))
         ? scorePercentToRatio(simulationSummary.city_after_avg_score)
         : average(simulatedFacilities, (row) => row.accessibilityScore),
     [simulatedFacilities, simulationSummary]
+  );
+  const baselineAvgTravel = useMemo(
+    () =>
+      Number.isFinite(Number(simulationSummary?.city_before_avg_tt))
+        ? Number(simulationSummary.city_before_avg_tt)
+        : average(baselineFacilities, (row) => row.travelTimeMin),
+    [baselineFacilities, simulationSummary]
   );
   const simulatedAvgTravel = useMemo(
     () =>
@@ -389,96 +405,40 @@ export default function Simulate({
     ? comparisonResult.population_affected
     : 0;
   const originsImproved = Number.isFinite(Number(simulationSummary?.total_origins_improved)) ? Number(simulationSummary.total_origins_improved) : null;
-  const baselineUnderservedPopulation = useMemo(
-    () => baselineFacilities.reduce((sum, row) => sum + (row.underserved ? Number(row.population) || 0 : 0), 0),
-    [baselineFacilities]
-  );
-  const simulatedUnderservedPopulation = useMemo(
-    () => simulatedFacilities.reduce((sum, row) => sum + (row.underserved ? Number(row.population) || 0 : 0), 0),
-    [simulatedFacilities]
-  );
+
+  const baselineUnderservedPopulation = useMemo(() => baselineFacilities.reduce((sum, row) => sum + (row.underserved ? Number(row.population) || 0 : 0), 0), [baselineFacilities]);
+  const simulatedUnderservedPopulation = useMemo(() => simulatedFacilities.reduce((sum, row) => sum + (row.underserved ? Number(row.population) || 0 : 0), 0), [simulatedFacilities]);
   const underservedPopulationDelta = simulatedUnderservedPopulation - baselineUnderservedPopulation;
 
-  const selectedAreaLabel = selectedDistrict?.districtName || (placement ? "Selected location" : "Place a marker on the map");
-  const selectedAreaPopulation = selectedDistrict?.population ? formatCount(selectedDistrict.population) : "Not available yet";
-  const nearbyPopulationEstimate = nearbyDistricts.length
-    ? formatCount(nearbyDistricts.reduce((sum, row) => sum + (Number(row.population) || 0), 0))
-    : selectedDistrict?.population
-      ? formatCount(selectedDistrict.population)
-      : "Not available yet";
+  const selectedAreaLabel = selectedDistrict?.districtName || "Selected map location";
+  const nearbyPopulationEstimate = nearbyDistricts.length ? nearbyDistricts.reduce((sum, row) => sum + (Number(row.population) || 0), 0) : Number(selectedDistrict?.population) || 0;
+  const selectedInterventionLabel = interventionLabel(interventionType, interventionIndex);
+  const planningStep = !interventionType ? 1 : !placement ? 2 : !hasResult ? 4 : 5;
+  const mapInstruction = !interventionType
+    ? "Select an intervention to activate map placement."
+    : !placement
+    ? "Click the map to place the intervention. Drag the marker to refine it."
+    : "Location selected. Review the area context, then evaluate the scenario.";
 
-  const preRunSummary = useMemo(() => {
-    if (!interventionType) return "Choose an intervention to see a plain-language planning summary.";
-    if (requiresPlacement && !placement) return "Place a marker on the map to review the selected area and nearby services.";
-    if (!selectedDistrict && !placement) return "This scenario will use citywide assumptions until a location is chosen.";
-    if (!selectedDistrict) return "The marker is ready. Review the summary below before running the scenario.";
-    return `${selectedDistrict.districtName} is the nearest service area. ${friendlyAreaStatus(selectedDistrict)}`;
-  }, [interventionType, placement, requiresPlacement, selectedDistrict]);
+  const technicalPayload = payload ? JSON.stringify(payload, null, 2) : "Select an intervention and place it on the map to generate the backend scenario payload.";
 
-  const summaryCards = useMemo(() => {
-    const cards = [
-      {
-        label: "Selected location",
-        value: placement ? "Marker placed on the map" : "Place a marker on the map",
-        helper: selectedDistrict ? `Nearest service area: ${selectedAreaLabel}.` : "The map is the primary input for this scenario."
-      },
-      {
-        label: "Nearest service area",
-        value: selectedAreaLabel,
-        helper: selectedDistrict ? friendlyAreaStatus(selectedDistrict) : "Will be identified after a marker is placed."
-      },
-      {
-        label: "Nearby population",
-        value: nearbyPopulationEstimate,
-        helper: placement && nearbyDistricts.length ? nearbyDistricts.map((row) => row.districtName).join(", ") : "Estimated from nearby districts."
-      },
-      {
-        label: "Nearest transport stop",
-        value: nearestTransportStop ? `${friendlyStopLabel(nearestTransportStop)} · ${formatDistance(nearestTransportStop.distanceM)}` : "Not available yet",
-        helper: nearestTransportStop ? "Useful for checking how close the current network already is." : "Add a marker to identify the closest stop."
-      },
-      {
-        label: "Intervention type",
-        value: interventionLabel(interventionType, interventionIndex),
-        helper: mode === "basic" ? "Guided planning mode keeps the setup simple." : "Advanced mode lets technical users fine-tune assumptions."
-      }
-    ];
-    if (hasResult && Number.isFinite(originsImproved)) {
-      cards.push({
-        label: "Improved origins",
-        value: formatCount(originsImproved),
-        helper: "Origin points where travel time improved after this intervention."
-      });
-    }
-    if (hasResult && Number.isFinite(populationAffected)) {
-      cards.push({
-        label: "Population improved",
-        value: Math.abs(populationAffected) < 1 ? "No meaningful change detected" : formatCount(populationAffected),
-        helper: "Residents located in origins with improved travel time."
-      });
-    }
-    return cards;
-  }, [hasResult, interventionType, interventionIndex, mode, nearestTransportStop, nearbyDistricts, nearbyPopulationEstimate, placement, populationAffected, selectedAreaLabel, selectedDistrict, originsImproved]);
+  const scenarioNarrative = useMemo(() => {
+    if (!interventionType) return "Select an intervention and click the map to begin.";
+    if (!placement) return `${selectedInterventionLabel} is selected. Click the map where the intervention should be tested.`;
+    const stopContext = nearestTransportStop ? ` The closest existing stop is ${friendlyStopLabel(nearestTransportStop)} (${formatDistance(nearestTransportStop.distanceM)} away).` : "";
+    return `${selectedInterventionLabel} will be evaluated near ${selectedAreaLabel}.${stopContext}`;
+  }, [interventionType, placement, selectedInterventionLabel, selectedAreaLabel, nearestTransportStop]);
 
   const resultHeadline = useMemo(() => {
-    if (!hasResult) return "Run a simulation to compare before and after planning outcomes.";
-    const meaningfulAccessibility = Math.abs(deltaAccessibility) >= 0.005;
-    const meaningfulTravel = Math.abs(deltaTravel) >= 0.05;
-    const meaningfulEquity = inequalityChange !== null && Math.abs(inequalityChange) >= 0.001;
-    if (!meaningfulAccessibility && !meaningfulTravel && !meaningfulEquity) return "Minimal impact under the current scenario.";
-    const positiveSignals = [];
-    if (deltaAccessibility > 0.005) positiveSignals.push("accessibility improved");
-    if (deltaTravel < -0.05) positiveSignals.push("travel time fell");
-    if (inequalityChange !== null && inequalityChange < -0.001) positiveSignals.push("equity improved");
-    if (positiveSignals.length) return `This scenario suggests ${positiveSignals.join(" and ")}.`;
-    return "The scenario changes are mixed or small, so this is best treated as a light-touch intervention.";
-  }, [deltaAccessibility, deltaTravel, hasResult, inequalityChange]);
-
-  const technicalPayload = useMemo(() => (payload ? JSON.stringify(payload, null, 2) : "No scenario configured."), [payload]);
+    if (!hasResult) return "Scenario impact will appear here after evaluation.";
+    if (deltaAccessibility > 0.005) return "The evaluated scenario improves average accessibility across affected origin areas.";
+    if (deltaAccessibility < -0.005) return "The evaluated scenario may reduce accessibility for some areas; review the map before using it for planning.";
+    return "The evaluated scenario shows limited citywide change; inspect local impacts on the map.";
+  }, [deltaAccessibility, hasResult]);
 
   const runScenario = () => {
     if (!payload || !canRunSimulation || simulationPending) return;
-    const label = `${mode === "basic" ? "Guided" : "Advanced"} mode · ${interventionLabel(interventionType, interventionIndex)}`;
+    const label = `${mode === "basic" ? "Guided" : "Advanced"} evaluation: ${selectedInterventionLabel}`;
     onRunSimulation({
       customPayload: payload,
       customLabel: label
@@ -488,129 +448,209 @@ export default function Simulate({
   };
 
   return (
-    <section className="space-y-4">
-      <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="font-heading text-[18px] font-bold text-gray-900">Simulation workspace</h2>
-        <p className="mt-1 max-w-3xl text-[14px] text-gray-700">Plan a scenario directly on the map, review the likely planning impact, and switch to advanced tuning only when you need tighter control.</p>
+    <section className="space-y-5">
+      <article className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-[#F8FBF8] via-white to-[#EEF6F2] p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0F6E56]">Guided intervention workspace</p>
+            <h2 className="mt-2 font-heading text-2xl font-bold text-slate-950">Evaluate healthcare access scenarios on the map</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+              Select an intervention, place it geographically, review who may be affected, and compare the modelled before-and-after accessibility impact.
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/80 bg-white/85 px-4 py-3 text-sm text-slate-700 shadow-sm">
+            <div className="font-semibold text-slate-900">{city?.name || city?.display_name || "Selected city"}</div>
+            <div>{baselineFacilities.length.toLocaleString()} origin areas evaluated</div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-2 md:grid-cols-5">
+          {[
+            ["1", "Select intervention"],
+            ["2", "Place on map"],
+            ["3", "Review context"],
+            ["4", "Evaluate scenario"],
+            ["5", "Compare impact"]
+          ].map(([number, label], index) => {
+            const active = planningStep >= index + 1;
+            return (
+              <div key={label} className={`rounded-xl border px-3 py-2 text-sm ${active ? "border-[#0F6E56]/30 bg-white text-slate-950" : "border-slate-200 bg-white/55 text-slate-500"}`}>
+                <span className={`mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${active ? "bg-[#0F6E56] text-white" : "bg-slate-200 text-slate-600"}`}>{number}</span>
+                {label}
+              </div>
+            );
+          })}
+        </div>
       </article>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[340px_1fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <article className="min-h-[680px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="font-heading text-base font-bold text-slate-950">Planning map</h3>
+              <p className="text-sm text-slate-600">{mapInstruction}</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <button type="button" onClick={() => setShowInfluenceZone((prev) => !prev)} className={`rounded-full border px-3 py-1.5 font-semibold ${showInfluenceZone ? "border-[#0F6E56] bg-[#0F6E56]/10 text-[#0F6E56]" : "border-slate-300 text-slate-600"}`}>
+                Planning radius
+              </button>
+              <button type="button" onClick={() => setShowBaselineStops((prev) => !prev)} className={`rounded-full border px-3 py-1.5 font-semibold ${showBaselineStops ? "border-[#2563EB] bg-blue-50 text-blue-700" : "border-slate-300 text-slate-600"}`}>
+                Existing stops
+              </button>
+              <button type="button" onClick={() => setShowBaselineFacilities((prev) => !prev)} className={`rounded-full border px-3 py-1.5 font-semibold ${showBaselineFacilities ? "border-slate-500 bg-slate-100 text-slate-800" : "border-slate-300 text-slate-600"}`}>
+                Existing facilities
+              </button>
+            </div>
+          </div>
+
+          <div className="h-[620px]">
+            <SimulationWorkspaceMap
+              city={city}
+              baselineFacilities={baselineFacilities}
+              simulatedFacilities={simulatedFacilities}
+              transportStops={transportStops}
+              baselineSupplyFacilities={baselineSupplyFacilities}
+              scenarioAddedFacilities={scenarioAddedFacilities}
+              scenarioAddedStops={scenarioAddedStops}
+              interventionType={interventionType}
+              placement={placement}
+              onPlacementChange={setPlacement}
+              selectedDistrictId={selectedDistrict?.id || null}
+              impactedDistrictIds={impactedOriginIds}
+              mapLayer={mapLayer}
+              onMapLayerChange={setMapLayer}
+              showBaselineStops={showBaselineStops}
+              showBaselineFacilities={showBaselineFacilities}
+              showInfluenceZone={showInfluenceZone}
+              isLoading={isLoading || simulationPending}
+              loadingLabel={simulationPending ? "Computing scenario impact..." : "Loading map data..."}
+              interactionHint={mapInstruction}
+              selectedInterventionLabel={selectedInterventionLabel}
+            />
+          </div>
+        </article>
+
         <aside className="space-y-4">
-          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h3 className="font-heading text-[15px] font-bold text-gray-900">1. Choose mode</h3>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setMode("basic")} className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${mode === "basic" ? "border-[#0F6E56] bg-[#0F6E56]/10 text-[#0F6E56]" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>
-                Basic mode
-              </button>
-              <button type="button" onClick={() => setMode("advanced")} className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${mode === "advanced" ? "border-slate-400 bg-slate-50 text-slate-800" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>
-                Advanced mode
-              </button>
-            </div>
-            <p className="mt-2 text-[12px] text-gray-600">
-              {mode === "basic"
-                ? "Basic mode keeps the page focused on the map and plain-language planning cues."
-                : "Advanced mode remains available for technical review, but it stays secondary to the map-based workflow."}
-            </p>
-          </article>
-
-          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h3 className="font-heading text-[15px] font-bold text-gray-900">2. Choose a planning action</h3>
-            <div className="mt-3 space-y-2 text-sm">
-              {interventionOptions.map((option) => (
-                <label key={option.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50">
-                  <input type="radio" name="intervention-type" checked={interventionType === option.id} onChange={() => setInterventionType(option.id)} />
-                  <span>{option.label}</span>
-                </label>
-              ))}
-              {!interventionOptions.length ? <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">No city-specific interventions are configured for this city yet.</div> : null}
-            </div>
-          </article>
-
-          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h3 className="font-heading text-[15px] font-bold text-gray-900">3. Place and review</h3>
-            <div className="mt-2 space-y-2 text-[13px] text-gray-700">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500">Planning action</div>
-                <div className="mt-1 font-semibold text-gray-900">{interventionLabel(interventionType, interventionIndex)}</div>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step 1</p>
+                <h3 className="font-heading text-base font-bold text-slate-950">Select intervention</h3>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500">Selected location</div>
-                <div className="mt-1 font-semibold text-gray-900">{placement ? selectedAreaLabel : "Not selected yet"}</div>
-                {selectedDistrict ? <div className="mt-1 text-xs text-gray-600">Nearest service area: {friendlyAreaStatus(selectedDistrict)}</div> : null}
-                {placement ? (
-                  <button type="button" onClick={() => setPlacement(null)} className="mt-2 rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-white">
-                    Clear placement
+              <span className="rounded-full bg-[#0F6E56]/10 px-3 py-1 text-xs font-semibold text-[#0F6E56]">Guided mode</span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {interventionOptions.map((option) => {
+                const selected = interventionType === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setInterventionType(option.id)}
+                    className={`w-full rounded-xl border p-3 text-left transition ${
+                      selected ? "border-[#0F6E56] bg-[#F0F8F4] shadow-sm" : "border-slate-200 bg-white hover:border-[#0F6E56]/40 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-bold text-slate-950">{option.label}</div>
+                        <div className="mt-1 text-xs leading-5 text-slate-600">{interventionDescription(option)}</div>
+                      </div>
+                      <span className={`mt-0.5 h-3 w-3 rounded-full border ${selected ? "border-[#0F6E56] bg-[#0F6E56]" : "border-slate-300"}`} />
+                    </div>
                   </button>
-                ) : null}
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500">Planning summary</div>
-                <div className="mt-1 text-[13px] text-gray-800">{preRunSummary}</div>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Nearby population</div>
-                  <div className="mt-1 font-semibold text-gray-900">{selectedDistrict ? selectedAreaPopulation : nearbyPopulationEstimate}</div>
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Closest stop</div>
-                  <div className="mt-1 font-semibold text-gray-900">{nearestTransportStop ? friendlyStopLabel(nearestTransportStop) : "Not available yet"}</div>
-                  {nearestTransportStop ? <div className="mt-1 text-xs text-gray-600">{formatDistance(nearestTransportStop.distanceM)} away</div> : null}
-                </div>
-              </div>
+                );
+              })}
+              {!interventionOptions.length ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">No interventions are configured for this city.</div> : null}
             </div>
           </article>
 
-          {mode === "advanced" ? (
-            <article className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-              <h3 className="font-heading text-[15px] font-bold text-slate-900">Advanced parameters</h3>
-              <p className="mt-1 text-[12px] text-slate-600">Optional technical controls for policy users and reviewers.</p>
-              <div className="mt-3 space-y-4 text-[13px] text-slate-700">
-                <label className="block">
-                  <div className="flex items-center justify-between">
-                    <span>Suggested stop density</span>
-                    <span className="font-semibold">{advancedSettings.stop_density_multiplier.toFixed(2)}x</span>
-                  </div>
-                  <input type="range" min={1} max={3} step={0.05} value={advancedSettings.stop_density_multiplier} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, stop_density_multiplier: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
-                </label>
-                <label className="block">
-                  <div className="flex items-center justify-between">
-                    <span>Improve stop access</span>
-                    <span className="font-semibold">{(advancedSettings.reduce_nearest_stop_distance_pct * 100).toFixed(0)}%</span>
-                  </div>
-                  <input type="range" min={0} max={0.5} step={0.01} value={advancedSettings.reduce_nearest_stop_distance_pct} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, reduce_nearest_stop_distance_pct: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
-                </label>
-                <label className="block">
-                  <div className="flex items-center justify-between">
-                    <span>Suggested facility additions</span>
-                    <span className="font-semibold">{advancedSettings.add_facilities}</span>
-                  </div>
-                  <input type="range" min={0} max={10} step={1} value={advancedSettings.add_facilities} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, add_facilities: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
-                </label>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Steps 2-3</p>
+            <h3 className="mt-1 font-heading text-base font-bold text-slate-950">Placement and area context</h3>
+            {!interventionType ? (
+              <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                Select an intervention first. The map will then become the main input for placing the scenario.
               </div>
-            </article>
-          ) : null}
+            ) : !placement ? (
+              <div className="mt-3 rounded-xl border border-dashed border-[#0F6E56]/40 bg-[#F5FBF8] p-4 text-sm leading-6 text-slate-700">
+                {selectedInterventionLabel} is ready. Click on the map to choose the location to evaluate.
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Selected area</div>
+                  <div className="mt-1 font-bold text-slate-950">{selectedAreaLabel}</div>
+                  <div className="mt-1 text-xs leading-5 text-slate-600">{friendlyAreaStatus(selectedDistrict)}</div>
+                  <button type="button" onClick={() => setPlacement(null)} className="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    Clear map location
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estimated nearby population served</div>
+                    <div className="mt-1 text-lg font-bold text-slate-950">{nearbyPopulationEstimate > 0 ? formatCount(nearbyPopulationEstimate) : "Population not available"}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Closest existing stop</div>
+                    <div className="mt-1 font-bold text-slate-950">{nearestTransportStop ? friendlyStopLabel(nearestTransportStop) : "No stop context available"}</div>
+                    {nearestTransportStop ? <div className="mt-1 text-xs text-slate-600">{formatDistance(nearestTransportStop.distanceM)} from selected location</div> : null}
+                  </div>
+                </div>
+              </div>
+            )}
+          </article>
 
-          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h3 className="font-heading text-[15px] font-bold text-gray-900">4. Run the scenario</h3>
-            {resultsOutdated ? <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">The scenario was updated after the last run. Run it again to refresh the results.</div> : null}
-            <div className="mt-3 space-y-2 text-[13px]">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={showInfluenceZone} onChange={(event) => setShowInfluenceZone(event.target.checked)} />
-                Show planning radius
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={showBaselineStops} onChange={(event) => setShowBaselineStops(event.target.checked)} />
-                Show existing transport stops
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={showBaselineFacilities} onChange={(event) => setShowBaselineFacilities(event.target.checked)} />
-                Show existing healthcare facilities
-              </label>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step 4</p>
+                <h3 className="mt-1 font-heading text-base font-bold text-slate-950">Review and evaluate</h3>
+              </div>
+              <button type="button" onClick={() => setMode((prev) => (prev === "advanced" ? "basic" : "advanced"))} className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                {mode === "advanced" ? "Hide advanced" : "Advanced"}
+              </button>
             </div>
-            <div className="mt-3 grid grid-cols-1 gap-2">
-              <button type="button" onClick={runScenario} disabled={!canRunSimulation || simulationPending} className="rounded-lg bg-[#0F6E56] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
-                {simulationPending ? "Running simulation..." : "Run simulation"}
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-700">{scenarioNarrative}</div>
+
+            {mode === "advanced" ? (
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Optional technical tuning</div>
+                <div className="mt-3 space-y-4 text-sm text-slate-700">
+                  <label className="block">
+                    <div className="flex items-center justify-between">
+                      <span>Transport stop density multiplier</span>
+                      <span className="font-semibold">{advancedSettings.stop_density_multiplier.toFixed(2)}x</span>
+                    </div>
+                    <input type="range" min={1} max={3} step={0.05} value={advancedSettings.stop_density_multiplier} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, stop_density_multiplier: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
+                  </label>
+                  <label className="block">
+                    <div className="flex items-center justify-between">
+                      <span>Nearest-stop distance reduction</span>
+                      <span className="font-semibold">{(advancedSettings.reduce_nearest_stop_distance_pct * 100).toFixed(0)}%</span>
+                    </div>
+                    <input type="range" min={0} max={0.5} step={0.01} value={advancedSettings.reduce_nearest_stop_distance_pct} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, reduce_nearest_stop_distance_pct: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
+                  </label>
+                  <label className="block">
+                    <div className="flex items-center justify-between">
+                      <span>Additional auto-placed facilities</span>
+                      <span className="font-semibold">{advancedSettings.add_facilities}</span>
+                    </div>
+                    <input type="range" min={0} max={10} step={1} value={advancedSettings.add_facilities} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, add_facilities: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
+                  </label>
+                </div>
+                <details className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-slate-700">Backend scenario payload</summary>
+                  <pre className={`mt-2 max-h-56 overflow-auto whitespace-pre-wrap text-[11px] text-slate-600 ${isRtl ? "text-right" : "text-left"}`}>{technicalPayload}</pre>
+                </details>
+              </div>
+            ) : null}
+
+            {resultsOutdated ? <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">The scenario changed after the last evaluation. Evaluate again to refresh the results.</div> : null}
+
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              <button type="button" onClick={runScenario} disabled={!canRunSimulation || simulationPending} className="rounded-xl bg-[#0F6E56] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0B5B47] disabled:cursor-not-allowed disabled:opacity-55">
+                {simulationPending ? "Computing scenario..." : "Evaluate scenario"}
               </button>
               {hasResult ? (
                 <button
@@ -619,7 +659,7 @@ export default function Simulate({
                     onResetSimulation();
                     setLastRunSignature("");
                   }}
-                  className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Reset to baseline
                 </button>
@@ -627,145 +667,77 @@ export default function Simulate({
             </div>
           </article>
         </aside>
-
-        <article className="min-h-[600px]">
-          <SimulationWorkspaceMap
-            city={city}
-            baselineFacilities={baselineFacilities}
-            simulatedFacilities={simulatedFacilities}
-            transportStops={transportStops}
-            baselineSupplyFacilities={baselineSupplyFacilities}
-            scenarioAddedFacilities={scenarioAddedFacilities}
-            scenarioAddedStops={scenarioAddedStops}
-            interventionType={interventionType}
-            placement={placement}
-            onPlacementChange={setPlacement}
-            selectedDistrictId={selectedDistrict?.id || null}
-            impactedDistrictIds={impactedOriginIds}
-            mapLayer={mapLayer}
-            onMapLayerChange={setMapLayer}
-            showBaselineStops={showBaselineStops}
-            showBaselineFacilities={showBaselineFacilities}
-            showInfluenceZone={showInfluenceZone}
-            isLoading={isLoading}
-          />
-        </article>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <h3 className="font-heading text-[16px] font-bold text-gray-900">Scenario summary</h3>
-          <p className="mt-1 text-[13px] text-gray-600">{activeSimulationLabel ? `Most recent run: ${activeSimulationLabel}` : "No scenario has been run yet."}</p>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {summaryCards.map((card) => (
-              <div key={card.label} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500">{card.label}</div>
-                <div className="mt-1 font-semibold text-gray-900">{card.value}</div>
-                <div className="mt-1 text-xs text-gray-600">{card.helper}</div>
-              </div>
-            ))}
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step 5</p>
+            <h3 className="mt-1 font-heading text-xl font-bold text-slate-950">Planning impact</h3>
+            <p className="mt-1 text-sm text-slate-600">{resultHeadline}</p>
           </div>
-          {mode === "advanced" ? (
-            <details className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-slate-700">Technical details</summary>
-              <p className="mt-1 text-xs text-slate-600">Shown only in Advanced mode for technical review.</p>
-              <div className={`mt-2 overflow-x-auto rounded border border-slate-200 bg-white p-2 text-[11px] text-slate-700 ${isRtl ? "text-right" : "text-left"}`}>
-                <pre className="whitespace-pre-wrap">{technicalPayload}</pre>
-              </div>
-            </details>
-          ) : null}
-        </article>
+          {activeSimulationLabel ? <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">Latest: {activeSimulationLabel}</div> : null}
+        </div>
 
-        <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <h3 className="font-heading text-[16px] font-bold text-gray-900">Before vs after results</h3>
-          <p className="mt-1 text-[13px] text-gray-600">{resultHeadline}</p>
-          {hasResult ? (
-            <>
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Average accessibility</div>
-                  <div className="mt-1 text-[13px] font-semibold text-gray-900">{formatPercent(baselineAvgAccessibility)} → {formatPercent(simulatedAvgAccessibility)}</div>
-                  <div className="mt-1 text-xs text-gray-600">{formatMeaningfulDelta(deltaAccessibility, { multiplier: 100, decimals: 2, unit: " pp", epsilon: 0.01 })}</div>
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Average travel time</div>
-                  <div className="mt-1 text-[13px] font-semibold text-gray-900">{formatMinutes(baselineAvgTravel)} → {formatMinutes(simulatedAvgTravel)}</div>
-                  <div className="mt-1 text-xs text-gray-600">{formatMeaningfulDelta(deltaTravel, { multiplier: 1, decimals: 2, unit: " min", epsilon: 0.05 })}</div>
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Service areas improved</div>
-                  <div className="mt-1 text-[13px] font-semibold text-gray-900">{districtsImproved} of {districtsTotal}</div>
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Population positively affected</div>
-                  <div className="mt-1 text-[13px] font-semibold text-gray-900">{Math.abs(populationAffected) < 1 ? "No meaningful change detected" : formatCount(populationAffected)}</div>
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Underserved population</div>
-                  <div className="mt-1 text-[13px] font-semibold text-gray-900">
-                    {formatCount(baselineUnderservedPopulation)} → {formatCount(simulatedUnderservedPopulation)}
-                  </div>
-                  <div className="mt-1 text-xs text-gray-600">{formatMeaningfulDelta(underservedPopulationDelta, { decimals: 0, unit: " residents", epsilon: 1 })}</div>
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500">Nearby origin clusters likely to benefit</div>
-                  <div className="mt-1 text-[13px] font-semibold text-gray-900">
-                    {districtImpacts.some((row) => row.delta > 0.001)
-                      ? districtImpacts
-                          .filter((row) => row.delta > 0.001)
-                          .slice(0, 3)
-                          .map((row) => row.districtName)
-                          .join(", ")
-                      : "No clear area-level gain yet"}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-[13px] text-gray-700">
-                <div className="font-semibold text-gray-900" title="Equity change shows whether accessibility is becoming more evenly distributed across origin areas. Negative values indicate a more equitable pattern.">
-                  Equity change
-                </div>
-                <div className="mt-1">
-                  {inequalityChange === null
-                    ? "Not available"
-                    : formatMeaningfulDelta(inequalityChange, {
-                        multiplier: 1,
-                        decimals: 3,
-                        unit: " Gini points",
-                        epsilon: 0.001
-                      })}
-                </div>
-                <div className="mt-1 text-xs text-gray-600">Gini points are a compact measure of how evenly access is distributed. Lower is more even.</div>
-              </div>
-            </>
-          ) : (
-            <div className="mt-3 rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500">Run a simulation to see clear before/after KPI cards and origin-level impact.</div>
-          )}
-        </article>
-      </div>
-
-      <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h3 className="font-heading text-[16px] font-bold text-gray-900">Impacted origin areas</h3>
         {hasResult ? (
-          districtImpacts.some((row) => Math.abs(row.delta) >= 0.005) ? (
-            <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-              {districtImpacts.slice(0, 8).map((row) => (
-                <div key={row.id} className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-[13px] text-gray-700">
-                  <div className="font-semibold text-gray-900">{row.districtName}</div>
-                  <div className="mt-1">
-                    Accessibility change: {" "}
-                    <span className={row.delta >= 0 ? "font-semibold text-blue-700" : "font-semibold text-red-700"}>
-                      {formatMeaningfulDelta(row.delta, { multiplier: 100, decimals: 2, unit: " pp", epsilon: 0.01 })}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-gray-600">Population: {Math.round(row.population).toLocaleString()}</div>
-                </div>
-              ))}
+          <>
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Average accessibility</div>
+                <div className="mt-2 text-lg font-bold text-slate-950">{formatPercent(baselineAvgAccessibility)} to {formatPercent(simulatedAvgAccessibility)}</div>
+                <div className="mt-1 text-sm"><DeltaValue delta={deltaAccessibility} options={{ multiplier: 100, decimals: 2, unit: " pp", epsilon: 0.01 }} /></div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Average travel time</div>
+                <div className="mt-2 text-lg font-bold text-slate-950">{formatMinutes(baselineAvgTravel)} to {formatMinutes(simulatedAvgTravel)}</div>
+                <div className="mt-1 text-sm"><DeltaValue delta={deltaTravel} options={{ decimals: 2, unit: " min", epsilon: 0.05, positiveIsGood: false }} /></div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estimated population positively affected</div>
+                <div className="mt-2 text-lg font-bold text-slate-950">{Math.abs(populationAffected) < 1 ? "No meaningful change" : formatCount(populationAffected)}</div>
+                <div className="mt-1 text-sm text-slate-600">{Number.isFinite(originsImproved) ? `${formatCount(originsImproved)} origin areas improved` : "Origin count unavailable"}</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Service areas improved</div>
+                <div className="mt-2 text-lg font-bold text-slate-950">{districtsImproved} of {districtsTotal}</div>
+                <div className="mt-1 text-sm text-slate-600">{inequalityChange === null ? "Equity change unavailable" : <DeltaValue delta={inequalityChange} options={{ decimals: 3, unit: " Gini", epsilon: 0.001 }} />}</div>
+              </div>
             </div>
-          ) : (
-            <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">No meaningful area-level change was detected for this scenario.</div>
-          )
+
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h4 className="font-heading text-base font-bold text-slate-950">Planner interpretation</h4>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {deltaAccessibility > 0.005
+                    ? "This scenario produces a positive accessibility signal. Use the impact map to check whether benefits align with underserved areas before prioritizing investment."
+                    : "This scenario produces limited average change. It may still be useful locally, but it should be compared against alternative locations or intervention types."}
+                </p>
+                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                  Underserved population: {formatCount(baselineUnderservedPopulation)} to {formatCount(simulatedUnderservedPopulation)}.{" "}
+                  <DeltaValue delta={underservedPopulationDelta} options={{ decimals: 0, unit: " residents", epsilon: 1, positiveIsGood: false }} />
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h4 className="font-heading text-base font-bold text-slate-950">Most affected origin areas</h4>
+                {districtImpacts.some((row) => Math.abs(row.delta) >= 0.005) ? (
+                  <div className="mt-3 space-y-2">
+                    {districtImpacts.slice(0, 5).map((row) => (
+                      <div key={row.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                        <span className="font-semibold text-slate-900">{row.districtName}</span>
+                        <DeltaValue delta={row.delta} options={{ multiplier: 100, decimals: 2, unit: " pp", epsilon: 0.01 }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">No origin area crossed the meaningful-change threshold for this scenario.</div>
+                )}
+              </div>
+            </div>
+          </>
         ) : (
-          <div className="mt-3 rounded-lg border border-dashed border-gray-300 p-3 text-sm text-gray-500">Origin impact details will appear after the simulation run.</div>
+          <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
+            Scenario impact will appear after evaluation, including accessibility change, travel-time change, affected population, and impacted origin areas.
+          </div>
         )}
       </article>
 

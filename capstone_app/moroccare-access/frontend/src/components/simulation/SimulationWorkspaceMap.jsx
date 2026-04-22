@@ -45,7 +45,7 @@ function mapPointForMarker(interventionType) {
   if (interventionType === "add_transport_stop") return { color: "#2563EB", symbol: "S", radiusM: 500, label: "New transport stop" };
   if (interventionType === "add_healthcare_facility")
     return { color: "#7C3AED", symbol: "H", radiusM: 1000, label: "New healthcare facility" };
-  return { color: "#B45309", symbol: "I", radiusM: 800, label: "Service improvement focus area" };
+  return { color: "#B45309", symbol: "A", radiusM: 800, label: "Access improvement focus area" };
 }
 
 function FitToData({ center, rows, placement }) {
@@ -109,7 +109,10 @@ export default function SimulationWorkspaceMap({
   showBaselineStops = false,
   showBaselineFacilities = false,
   showInfluenceZone = true,
-  isLoading = false
+  isLoading = false,
+  loadingLabel = "Loading map data...",
+  interactionHint = "",
+  selectedInterventionLabel = ""
 }) {
   const mergedRows = useMemo(() => {
     const simById = new Map(simulatedFacilities.map((row) => [row.id, row]));
@@ -328,33 +331,33 @@ export default function SimulationWorkspaceMap({
         </Pane>
       </MapContainer>
 
-      <div className="absolute left-3 top-3 z-[900] rounded-lg border border-gray-200 bg-white/95 p-3 text-xs shadow-sm">
-        <div className="font-semibold uppercase tracking-wide text-gray-500">Map layers</div>
+      <div className="absolute left-3 top-3 z-[900] rounded-xl border border-gray-200 bg-white/95 p-3 text-xs shadow-sm">
+        <div className="font-semibold uppercase tracking-wide text-gray-500">Scenario view</div>
         <div className="mt-2 space-y-1">
           <label className="flex items-center gap-2">
             <input type="radio" name="sim-map-layer" checked={activeLayer === "baseline"} onChange={() => onMapLayerChange?.("baseline")} />
-            Baseline view
+            Baseline access
           </label>
           {hasSimulation ? (
             <label className="flex items-center gap-2">
               <input type="radio" name="sim-map-layer" checked={activeLayer === "impact"} onChange={() => onMapLayerChange?.("impact")} />
-              Impact view
+              Impact change
             </label>
           ) : null}
           {hasSimulation ? (
             <label className="flex items-center gap-2">
               <input type="radio" name="sim-map-layer" checked={activeLayer === "after"} onChange={() => onMapLayerChange?.("after")} />
-              After scenario
+              After evaluation
             </label>
           ) : null}
         </div>
       </div>
 
-      <div className="absolute right-3 top-3 z-[900] max-w-[260px] rounded-lg border border-gray-200 bg-white/95 p-3 text-xs shadow-sm">
+      <div className="absolute right-3 top-3 z-[900] max-w-[260px] rounded-xl border border-gray-200 bg-white/95 p-3 text-xs shadow-sm">
         <div className="font-semibold uppercase tracking-wide text-gray-500">Map guide</div>
         <div className="mt-2 space-y-3">
           <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Origin shading</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Origin area shading</div>
             <div className="mt-1 space-y-1.5">
               {legendItems.map((item) => (
                 <div key={item.label} className="flex items-center gap-2 text-gray-700">
@@ -378,13 +381,14 @@ export default function SimulationWorkspaceMap({
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-[900] max-w-[350px] rounded-lg border border-gray-200 bg-white/95 px-3 py-2 text-xs text-gray-700 shadow-sm">
-        {canPlaceFromMap ? "Click the map to place the marker, then drag it to fine-tune the location." : "Select an intervention to enable map placement."}
+      <div className="absolute bottom-3 left-3 z-[900] max-w-[420px] rounded-xl border border-gray-200 bg-white/95 px-3 py-2 text-xs text-gray-700 shadow-sm">
+        <div className="font-semibold text-gray-900">{selectedInterventionLabel || "Map-first scenario setup"}</div>
+        <div className="mt-0.5">{interactionHint || (canPlaceFromMap ? "Click the map to place the marker, then drag it to refine the location." : "Select an intervention to enable map placement.")}</div>
       </div>
 
       {isLoading ? (
         <div className="absolute inset-0 z-[920] flex items-center justify-center bg-white/75 p-4">
-          <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">Loading map data...</div>
+          <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">{loadingLabel}</div>
         </div>
       ) : null}
     </div>

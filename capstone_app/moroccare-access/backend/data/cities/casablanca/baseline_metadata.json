@@ -4,6 +4,6 @@
   "warnings": [
     "Origin-level data not found for city 'casablanca'. Falling back to facility proxy rows."
   ],
-  "source_hash": "origin-first-v1|healthcare.csv:8039:1776509108.201018|transport_stops.csv:120691:1776509108.222021|origin_accessibility_metrics.csv:missing|worldpop_origins.csv:missing|worldpop_origin_points.csv:missing|district_accessibility_summary.csv:missing",
-  "version": "origin-first-v1"
+  "source_hash": "origin-first-v2|healthcare.csv:8039:1776509108.201018|transport_stops.csv:120691:1776509108.222021|origin_accessibility_metrics.csv:missing|worldpop_origins.csv:missing|worldpop_origin_points.csv:missing|district_accessibility_summary.csv:missing",
+  "version": "origin-first-v2"
 }
