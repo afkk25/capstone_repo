@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import FacilityCard from "../FacilityCard";
 import KeyIndicators from "./KeyIndicators";
-import RecommendationsCard from "./RecommendationsCard";
-import TopDistrictsTable from "./TopDistrictsTable";
 import TopFilterBar from "./TopFilterBar";
 
 function toNumber(value, fallback = 0) {
@@ -67,29 +65,6 @@ function summarizeFacilityTransit(facilities) {
   };
 }
 
-function normalizePlanningRank(row) {
-  const rawScore = toNumber(row.avg_accessibility_score ?? row.score ?? row.percent, 0);
-  const avgScore = rawScore > 1 ? rawScore / 100 : rawScore;
-  return {
-    name: row.district || row.district_name || row.name || "Unknown",
-    avgScore,
-    underservedPct: toNumber(row.underserved_pct, 0),
-    population: toNumber(row.population, 0),
-    rank: toNumber(row.rank, 0)
-  };
-}
-
-function backendRecommendationText(item) {
-  if (!item || typeof item !== "object") return "";
-  const scenario = String(item.scenario || "Recommended intervention").replace(/_/g, " ");
-  const explanation = String(item.explanation || "").trim();
-  if (explanation) return explanation;
-  const score = Number(item.score);
-  return Number.isFinite(score)
-    ? `${scenario}: strongest tested option with a planning score of ${score.toFixed(2)}.`
-    : `${scenario}: review this intervention as a candidate planning action.`;
-}
-
 export default function OverviewPage({
   city,
   facilities,
@@ -104,8 +79,6 @@ export default function OverviewPage({
   onAddCity,
   districtSummaries: backendDistrictSummaries = [],
   citySummary = null,
-  planningRanking = [],
-  backendRecommendations = [],
   analysisUnit = "origin"
 }) {
   const [selectedDistrict, setSelectedDistrict] = useState("");
@@ -129,17 +102,6 @@ export default function OverviewPage({
     const fromFacilities = facilities.map((row) => row.districtName).filter(Boolean);
     return [...new Set([...fromDistricts, ...fromFacilities])].sort((a, b) => a.localeCompare(b));
   }, [districtSummaries, facilities]);
-  const topDistricts = useMemo(
-    () => {
-      const ranked = planningRanking.map(normalizePlanningRank).filter((row) => row.name && row.name !== "Unknown" && Number.isFinite(row.avgScore));
-      const sourceRows = ranked.length ? ranked : districtSummaries;
-      return [...sourceRows]
-        .sort((a, b) => a.avgScore - b.avgScore)
-        .slice(0, 5)
-        .map((row) => ({ name: row.name, percent: pct(row.avgScore * 100) }));
-    },
-    [districtSummaries, planningRanking]
-  );
 
   const facilityTransit = useMemo(() => summarizeFacilityTransit(baselineSupplyFacilities), [baselineSupplyFacilities]);
   const baseline = useMemo(() => {
@@ -180,27 +142,6 @@ export default function OverviewPage({
     { label: "Coverage Gap", value: facilities.length ? `${baseline.coverageGap}%` : "Not available", basis: "baseline", helper: "Origin areas above the 60-minute threshold." }
   ];
 
-  const recommendations = useMemo(() => {
-    const backendItems = backendRecommendations.map(backendRecommendationText).filter(Boolean).slice(0, 3);
-    if (backendItems.length >= 3) return backendItems;
-    const sourceDistricts = Array.isArray(simulation?.districts) && simulation.districts.length
-      ? simulation.districts.map((row) => ({
-          name: row.district_name,
-          avgScore: toNumber(row.after_avg_score, 0) > 1 ? toNumber(row.after_avg_score, 0) / 100 : toNumber(row.after_avg_score, 0),
-          popImprovedPotential: toNumber(row.pop_improved, 0),
-          coverageGap: 1 - (toNumber(row.after_avg_score, 0) > 1 ? toNumber(row.after_avg_score, 0) / 100 : toNumber(row.after_avg_score, 0))
-        }))
-      : districtSummaries;
-    const lowest = [...sourceDistricts].sort((a, b) => a.avgScore - b.avgScore)[0];
-    const pop = [...sourceDistricts].sort((a, b) => b.popImprovedPotential - a.popImprovedPotential)[0] || lowest;
-    const gap = [...sourceDistricts].sort((a, b) => b.coverageGap - a.coverageGap)[0] || lowest;
-    const generatedItems = [
-      `Improve bus coverage in ${lowest?.name || "Sidi Moumen"} to reduce access gaps for peripheral origins.`,
-      `Add healthcare facility capacity in ${pop?.name || "Ain Chock"} where the potential population benefit is highest.`,
-      `Increase connectivity in ${gap?.name || "Sidi Bernoussi"} through feeder routes and better stop spacing.`
-    ];
-    return [...backendItems, ...generatedItems].slice(0, 3);
-  }, [backendRecommendations, districtSummaries, simulation]);
   const isFacilityProxy = analysisUnit === "facility_proxy";
   const rankingTitle = isFacilityProxy ? "Healthcare Facility Reachability Ranking" : "Origin Area Accessibility Ranking";
   const rankingIntro = isFacilityProxy
@@ -233,8 +174,6 @@ export default function OverviewPage({
 
       <div className="mc-overview-summary-grid">
         <KeyIndicators indicators={indicators} />
-        <TopDistrictsTable districts={topDistricts} />
-        <RecommendationsCard recommendations={recommendations} />
       </div>
 
       <section className="mc-card mc-ranking-card">

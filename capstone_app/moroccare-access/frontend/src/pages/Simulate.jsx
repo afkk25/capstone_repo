@@ -403,6 +403,22 @@ function buildInterpretation(accessDelta, giniDelta, improvedCount, totalLocatio
   return "Results are mixed. Review the location-level impact below before drawing conclusions.";
 }
 
+function decisionSummary({ hasResult, simulationPending, placement, selectedInterventionLabel, accessDelta, timeDelta, accessibleDelta, locationTerm }) {
+  if (simulationPending) return "Evaluating the selected location. Results will update once the model finishes.";
+  if (!placement) return "Select an intervention, then click the map to test how accessibility changes.";
+  if (!hasResult) return `${selectedInterventionLabel || "The intervention"} is placed. Run or wait for evaluation to review the estimated impact.`;
+  if (accessDelta >= 0.02 || accessibleDelta > 0) {
+    return `Promising option: accessibility improves by ${(accessDelta * 100).toFixed(1)} percentage points and ${Math.max(0, accessibleDelta).toLocaleString()} more ${locationTerm} fall within the selected travel-time threshold.`;
+  }
+  if (timeDelta < -1) {
+    return `Modest travel-time benefit: average travel time improves by ${Math.abs(timeDelta).toFixed(1)} minutes, but network-wide access changes remain limited.`;
+  }
+  if (accessDelta < -0.01) {
+    return "This placement appears to reduce estimated accessibility. Compare another location before prioritizing it.";
+  }
+  return "Small estimated impact: this placement does not materially change citywide access. Try a lower-access area or a different intervention type.";
+}
+
 function stakeholderWarningText(simulationResult, scenarioWarnings) {
   if (!simulationResult) return "";
   if (simulationResult.analysis_unit === "facility_proxy") {
@@ -438,8 +454,9 @@ export default function Simulate({
   const [showBaselineFacilities, setShowBaselineFacilities] = useState(true);
   const [showRoutes, setShowRoutes] = useState(false);
   const [showAccessibilityLayer, setShowAccessibilityLayer] = useState(true);
-  const [simulatorMode, setSimulatorMode] = useState("simulation");
   const [compareMode, setCompareMode] = useState(false);
+  const [setupCollapsed, setSetupCollapsed] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [mapLayer, setMapLayer] = useState("baseline");
   const [advancedSettings, setAdvancedSettings] = useState(NEUTRAL_ADVANCED);
   const [lastRunSignature, setLastRunSignature] = useState("");
@@ -462,8 +479,9 @@ export default function Simulate({
     setShowBaselineFacilities(true);
     setShowRoutes(false);
     setShowAccessibilityLayer(true);
-    setSimulatorMode("simulation");
     setCompareMode(false);
+    setSetupCollapsed(false);
+    setAdvancedOpen(false);
     setMapLayer("baseline");
     setAdvancedSettings(citySimulationDefaults);
     setLastRunSignature("");
@@ -620,15 +638,25 @@ export default function Simulate({
     if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
     return Math.round(value).toLocaleString();
   };
+  const selectedInterventionLabel = interventionLabel(interventionType, interventionIndex);
   const interpretation = buildInterpretation(accessDelta, giniImprovement ?? 0, improvedOriginCount, simulationOrigins.length, impactLocationTerm);
   const scenarioStatus =
     accessDelta > 0.02
-      ? { label: "Meaningful improvement", tone: "positive" }
+      ? { label: "Meaningful estimated improvement", tone: "positive" }
       : accessDelta < -0.02
-      ? { label: "Negative impact", tone: "negative" }
-      : { label: "Small modelled effect", tone: "neutral" };
+      ? { label: "Potential negative impact", tone: "negative" }
+      : { label: "Small estimated impact", tone: "neutral" };
+  const plannerDecisionSummary = decisionSummary({
+    hasResult,
+    simulationPending,
+    placement,
+    selectedInterventionLabel,
+    accessDelta,
+    timeDelta,
+    accessibleDelta,
+    locationTerm: impactLocationTerm
+  });
   const runTimeLabel = hasResult ? lastRunTimeLabel || activeSimulationLabel || "latest run" : "";
-  const selectedInterventionLabel = interventionLabel(interventionType, interventionIndex);
   const activeStep = !interventionType ? 1 : !placement ? 2 : !hasResult && !simulationPending ? 4 : hasResult ? 5 : 4;
   const scenarioWarnings = Array.isArray(simulationResult?.warnings) ? simulationResult.warnings : [];
   const fallbackWarning = hasResult && (simulationResult?.analysis_unit === "facility_proxy" || scenarioWarnings.some((warning) => /origin|fallback|facility proxy/i.test(String(warning))));
@@ -649,6 +677,10 @@ export default function Simulate({
     return () => window.clearTimeout(timeout);
   }, [warningVisible]);
 
+  useEffect(() => {
+    if (placement) setSetupCollapsed(true);
+  }, [placement]);
+
   const runScenario = () => {
     if (!payload || !canRunSimulation || simulationPending) return;
     onRunSimulation({
@@ -660,7 +692,7 @@ export default function Simulate({
   };
 
   useEffect(() => {
-    if (simulatorMode !== "simulation" || !payload || !canRunSimulation || simulationPending || payloadSignature === lastRunSignature) return;
+    if (!payload || !canRunSimulation || simulationPending || payloadSignature === lastRunSignature) return;
     const timeout = window.setTimeout(() => {
       onRunSimulation({
         customPayload: payload,
@@ -670,12 +702,11 @@ export default function Simulate({
       setLastRunTimeLabel(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     }, 600);
     return () => window.clearTimeout(timeout);
-  }, [canRunSimulation, lastRunSignature, onRunSimulation, payload, payloadSignature, selectedInterventionLabel, simulationPending, simulatorMode]);
+  }, [canRunSimulation, lastRunSignature, onRunSimulation, payload, payloadSignature, selectedInterventionLabel, simulationPending]);
 
   const chooseIntervention = (optionId) => {
     const nextValue = interventionType === optionId ? "" : optionId;
     setInterventionType(nextValue);
-    if (nextValue) setSimulatorMode("simulation");
     setPlacement(null);
     setMapLayer("baseline");
     setLastRunSignature("");
@@ -716,12 +747,17 @@ export default function Simulate({
         </div>
       </header>
 
-      <div className="simdash-grid">
+      <div className={`simdash-grid ${setupCollapsed ? "is-setup-collapsed" : ""}`}>
         <aside className="simdash-panel simdash-left-panel">
-          <section className="simdash-section">
+          <div className="simdash-sidebar-tools">
+            <button type="button" onClick={() => setSetupCollapsed((prev) => !prev)}>
+              {setupCollapsed ? "Show setup" : "Hide setup"}
+            </button>
+          </div>
+          <section className="simdash-section simdash-primary-section">
             <div className="simdash-section-head">
-              <span>A</span>
-              <h2>Add elements</h2>
+              <span>1</span>
+              <h2>Select intervention</h2>
             </div>
             <div className="simdash-action-stack">
               {interventionOptions
@@ -746,30 +782,40 @@ export default function Simulate({
             </p>
           </section>
 
-          <section className="simdash-section">
+          <section className="simdash-section simdash-place-section">
             <div className="simdash-section-head">
-              <span>B</span>
-              <h2>Scenario settings</h2>
+              <span>2</span>
+              <h2>Place and evaluate</h2>
             </div>
             <label className="simdash-range">
               <span>Max travel time <b>{advancedSettings.max_travel_time_min} min</b></span>
               <input type="range" min="10" max="60" step="5" value={advancedSettings.max_travel_time_min} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, max_travel_time_min: Number(event.target.value) }))} />
             </label>
-            <label className="simdash-range">
-              <span>Walking distance to stops <b>{advancedSettings.walking_distance_m} m</b></span>
-              <input type="range" min="200" max="1200" step="100" value={advancedSettings.walking_distance_m} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, walking_distance_m: Number(event.target.value) }))} />
-            </label>
-            <label className="simdash-range">
-              <span>Transport speed <b>{advancedSettings.transport_speed_kmh} km/h</b></span>
-              <input type="range" min="8" max="35" step="1" value={advancedSettings.transport_speed_kmh} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, transport_speed_kmh: Number(event.target.value) }))} />
-            </label>
-            <small className="simdash-note">Transport speed is sent to the simulation model. Travel-time threshold is used to summarize results.</small>
+            <button type="button" className="simdash-run-cta" disabled={!canRunSimulation || simulationPending} onClick={runScenario}>
+              {simulationPending ? "Evaluating..." : hasResult ? "Re-evaluate location" : "Evaluate scenario"}
+            </button>
+            <button type="button" className="simdash-advanced-toggle" onClick={() => setAdvancedOpen((prev) => !prev)}>
+              {advancedOpen ? "Hide advanced settings" : "Advanced settings"}
+            </button>
+            {advancedOpen ? (
+              <div className="simdash-advanced-area">
+                <label className="simdash-range">
+                  <span>Walking distance to stops <b>{advancedSettings.walking_distance_m} m</b></span>
+                  <input type="range" min="200" max="1200" step="100" value={advancedSettings.walking_distance_m} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, walking_distance_m: Number(event.target.value) }))} />
+                </label>
+                <label className="simdash-range">
+                  <span>Transport speed <b>{advancedSettings.transport_speed_kmh} km/h</b></span>
+                  <input type="range" min="8" max="35" step="1" value={advancedSettings.transport_speed_kmh} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, transport_speed_kmh: Number(event.target.value) }))} />
+                </label>
+                <small className="simdash-note">Transport speed is sent to the model. Other settings summarize and guide interpretation.</small>
+              </div>
+            ) : null}
           </section>
 
           <section className="simdash-section">
             <div className="simdash-section-head">
-              <span>C</span>
-              <h2>Layers</h2>
+              <span>3</span>
+              <h2>Map layers</h2>
             </div>
             <label className="simdash-check"><input type="checkbox" checked={showBaselineFacilities} onChange={(event) => setShowBaselineFacilities(event.target.checked)} /> Show facilities</label>
             <label className="simdash-check"><input type="checkbox" checked={showBaselineStops} onChange={(event) => setShowBaselineStops(event.target.checked)} /> Show transport stops</label>
@@ -777,16 +823,6 @@ export default function Simulate({
             <label className="simdash-check"><input type="checkbox" checked={showAccessibilityLayer} onChange={(event) => setShowAccessibilityLayer(event.target.checked)} /> Show accessibility heatmap</label>
           </section>
 
-          <section className="simdash-section">
-            <div className="simdash-section-head">
-              <span>D</span>
-              <h2>Mode</h2>
-            </div>
-            <div className="simdash-mode-switch">
-              <button type="button" className={simulatorMode === "view" ? "is-selected" : ""} onClick={() => setSimulatorMode("view")}>View mode</button>
-              <button type="button" className={simulatorMode === "simulation" ? "is-selected" : ""} onClick={() => setSimulatorMode("simulation")}>Simulation mode</button>
-            </div>
-          </section>
         </aside>
 
         <main className="simdash-map-panel">
@@ -798,7 +834,7 @@ export default function Simulate({
             baselineSupplyFacilities={baselineSupplyFacilities}
             scenarioAddedFacilities={(Array.isArray(simulationResult?.added_facilities) ? simulationResult.added_facilities : []).filter((row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude)))}
             scenarioAddedStops={(Array.isArray(simulationResult?.added_transport_stops) ? simulationResult.added_transport_stops : []).filter((row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude)))}
-            interventionType={simulatorMode === "simulation" ? interventionType : ""}
+            interventionType={interventionType}
             placement={placement}
             onPlacementChange={setPlacement}
             selectedDistrictId={selectedDistrict?.id || null}
@@ -808,39 +844,49 @@ export default function Simulate({
             showBaselineStops={showBaselineStops}
             showBaselineFacilities={showBaselineFacilities}
             showAccessibilityLayer={showAccessibilityLayer}
-            showMapLegend={false}
-            showInfluenceZone={simulatorMode === "simulation" && showInfluenceZone}
+            showMapLegend
+            showInfluenceZone={showInfluenceZone}
             isLoading={isLoading || simulationPending}
             loadingLabel={simulationPending ? "Evaluating scenario..." : "Loading map data..."}
           />
           <div className="simdash-map-status">
-            <strong>{simulatorMode === "simulation" ? "Simulation mode" : "View mode"}</strong>
-            <span>{placement ? planningSummary : "Select an intervention and click the map."}</span>
+            <strong>{placement ? "Placement selected" : "Click map to place"}</strong>
+            <span>{placement ? `${selectedContext.locationValue}${nearestTransportStop ? `, ${formatDistance(nearestTransportStop.distanceM)} from nearest stop` : ""}` : "Select an intervention, then click the map."}</span>
           </div>
         </main>
 
         <aside className="simdash-panel simdash-right-panel">
-          <section className="simdash-section">
+          <section className={`simdash-section simdash-decision is-${scenarioStatus.tone}`}>
             <div className="simdash-results-head">
               <div>
-                <p>Results</p>
-                <h2>{hasResult ? scenarioStatus.label : simulationPending ? "Evaluating scenario" : "Awaiting placement"}</h2>
+                <p>Decision summary</p>
+                <h2>{hasResult ? scenarioStatus.label : simulationPending ? "Evaluating scenario" : "Ready to test"}</h2>
               </div>
               {runTimeLabel ? <span>{runTimeLabel}</span> : null}
             </div>
+            <p>{plannerDecisionSummary}</p>
+          </section>
+
+          <section className="simdash-section">
+            <div className="simdash-results-head">
+              <div>
+                <p>Key metrics</p>
+                <h2>Estimated access change</h2>
+              </div>
+            </div>
             <div className="simdash-metrics">
               <div className="simdash-metric">
-                <span>Accessibility Score</span>
+                <span>Average accessibility</span>
                 <strong>{fmtPct(hasResult ? accessAfter : accessBefore)}</strong>
                 <em className={accessDelta >= 0 ? "is-positive" : "is-negative"}>{hasResult ? scoreDeltaText : "baseline"}</em>
               </div>
               <div className="simdash-metric">
-                <span>Avg Travel Time</span>
+                <span>Average travel time</span>
                 <strong>{fmtTime(hasResult ? timeAfter : timeBefore)}</strong>
                 <em className={timeDelta <= 0 ? "is-positive" : "is-negative"}>{hasResult ? timeDeltaText : "baseline"}</em>
               </div>
               <div className="simdash-metric">
-                <span>Within {maxTravelTime} min</span>
+                <span>Locations within {maxTravelTime} min</span>
                 <strong>{scenarioAccessibleCount.toLocaleString()}</strong>
                 <em className={accessibleDelta >= 0 ? "is-positive" : "is-negative"}>{hasResult ? `${accessibleDelta >= 0 ? "+" : ""}${accessibleDelta}` : "locations"}</em>
               </div>
@@ -871,25 +917,13 @@ export default function Simulate({
               <h2>Insights</h2>
             </div>
             <ul className="simdash-insights">
-              <li>{hasResult ? interpretation : "Place an intervention to generate before-and-after insights."}</li>
+              <li>{hasResult ? interpretation : "Select an intervention and place it on the map to generate before-and-after insights."}</li>
               {placement ? <li>Scenario evaluated near {selectedContext.locationValue}.</li> : null}
+              {hasResult ? <li>{accessibleDelta >= 0 ? `${accessibleDelta.toLocaleString()} additional ${impactLocationTerm} meet the ${maxTravelTime}-minute threshold.` : `${Math.abs(accessibleDelta).toLocaleString()} fewer ${impactLocationTerm} meet the ${maxTravelTime}-minute threshold.`}</li> : null}
               {!populationContext.supported ? <li>{populationContext.value}</li> : null}
             </ul>
           </section>
 
-          <section className="simdash-section">
-            <div className="simdash-section-head">
-              <span>D</span>
-              <h2>Legend</h2>
-            </div>
-            <div className="simdash-legend">
-              <span><i className="is-high" /> High access</span>
-              <span><i className="is-mid" /> Medium access</span>
-              <span><i className="is-low" /> Low access</span>
-              <span><i className="is-stop" /> Transport stop</span>
-              <span><i className="is-new" /> New intervention</span>
-            </div>
-          </section>
         </aside>
       </div>
     </section>

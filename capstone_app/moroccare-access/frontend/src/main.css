@@ -4554,6 +4554,14 @@ body {
   overflow: hidden;
 }
 
+.simdash-grid.is-setup-collapsed {
+  grid-template-columns: minmax(520px, 1fr) 360px;
+}
+
+.simdash-grid.is-setup-collapsed .simdash-left-panel {
+  display: none;
+}
+
 .simdash-panel {
   min-width: 0;
   overflow-y: auto;
@@ -4569,7 +4577,7 @@ body {
 }
 
 .simdash-section {
-  padding: 15px;
+  padding: 13px 15px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -4647,6 +4655,19 @@ body {
   box-shadow: inset 0 0 0 1px rgba(15, 159, 110, 0.12);
 }
 
+.simdash-primary-section {
+  padding-top: 17px;
+  padding-bottom: 16px;
+}
+
+.simdash-primary-section .simdash-section-head h2 {
+  font-size: 16px;
+}
+
+.simdash-primary-section .simdash-add-button {
+  min-height: 48px;
+}
+
 .simdash-helper,
 .simdash-note,
 .simdash-context-note {
@@ -4659,7 +4680,7 @@ body {
 .simdash-range {
   display: grid;
   gap: 8px;
-  margin-bottom: 13px;
+  margin-bottom: 11px;
 }
 
 .simdash-range span {
@@ -4681,6 +4702,71 @@ body {
   accent-color: var(--accent-teal);
 }
 
+.simdash-workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  margin: 10px 0;
+}
+
+.simdash-workflow span {
+  min-width: 0;
+  padding: 6px 5px;
+  border-radius: 999px;
+  background: #f2f6f4;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.simdash-workflow span.is-active {
+  background: #e9f8f0;
+  color: var(--accent-teal);
+}
+
+.simdash-workflow span.is-complete {
+  background: var(--accent-teal);
+  color: #ffffff;
+}
+
+.simdash-run-cta {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent-teal);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.simdash-run-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.simdash-advanced-toggle {
+  width: 100%;
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: left;
+  cursor: pointer;
+}
+
+.simdash-advanced-area {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: #f8fcfa;
+}
+
 .simdash-check {
   display: flex;
   align-items: center;
@@ -4700,32 +4786,6 @@ body {
   color: var(--text-secondary);
 }
 
-.simdash-mode-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 4px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: #f5faf7;
-}
-
-.simdash-mode-switch button {
-  min-height: 34px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 850;
-  cursor: pointer;
-}
-
-.simdash-mode-switch button.is-selected {
-  background: var(--accent-teal);
-  color: #ffffff;
-}
-
 .simdash-map-panel {
   position: relative;
   min-width: 0;
@@ -4743,28 +4803,32 @@ body {
 
 .simdash-map-status {
   position: absolute;
-  left: 14px;
-  bottom: 14px;
+  left: 12px;
+  bottom: 12px;
   z-index: 700;
   display: grid;
   gap: 2px;
-  max-width: min(520px, calc(100% - 28px));
-  padding: 10px 12px;
+  max-width: min(360px, calc(100% - 24px));
+  padding: 8px 10px;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 12px 30px rgba(16, 35, 27, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(16, 35, 27, 0.1);
 }
 
 .simdash-map-status strong {
   color: var(--accent-teal);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .simdash-map-status span {
   color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.4;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .simdash-results-head {
@@ -4779,6 +4843,30 @@ body {
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 800;
+}
+
+.simdash-decision {
+  border-left: 4px solid var(--border-color);
+  background: #fbfefc;
+}
+
+.simdash-decision.is-positive {
+  border-left-color: var(--success-green);
+}
+
+.simdash-decision.is-negative {
+  border-left-color: var(--danger-red);
+}
+
+.simdash-decision.is-neutral {
+  border-left-color: var(--warning-orange);
+}
+
+.simdash-decision p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .simdash-metric {
