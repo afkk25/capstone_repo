@@ -90,7 +90,13 @@ def _build_response(
     scenario: dict[str, Any],
     scenario_entities: dict[str, list[dict[str, float | str]]],
 ) -> dict[str, Any]:
-    equity = compute_equity(simulated_df, simulated_scores)
+    baseline_equity = compute_equity(features_df, baseline_scores)
+    simulated_equity = compute_equity(simulated_df, simulated_scores)
+    equity = {
+        **simulated_equity,
+        "gini_before": float(baseline_equity.get("gini_coefficient", 0.0)),
+        "gini_after": float(simulated_equity.get("gini_coefficient", 0.0)),
+    }
     score_2sfca = derive_2sfca_scores(simulated_df).to_numpy(dtype=float)
     baseline_rows_for_summary = features_df.copy().reset_index(drop=True)
     simulated_rows_for_summary = simulated_df.copy().reset_index(drop=True)
@@ -170,6 +176,12 @@ def _build_response(
         "analysis_unit": analysis_unit,
         "warnings": metadata.get("warnings", []),
         "summary": {
+            "avg_score_before": float(baseline_summary["avg_accessibility_score"]),
+            "avg_score_after": float(simulated_summary["avg_accessibility_score"]),
+            "avg_travel_time_before": float(baseline_summary["avg_travel_time"]),
+            "avg_travel_time_after": float(simulated_summary["avg_travel_time"]),
+            "improved_population": float(populations[total_improved_mask].sum()) if populations.size else 0.0,
+            "improved_origin_count": int(total_improved_mask.sum()),
             "city_before_avg_score": float(baseline_summary["avg_accessibility_score"] * 100.0),
             "city_after_avg_score": float(simulated_summary["avg_accessibility_score"] * 100.0),
             "city_before_avg_tt": float(baseline_summary["avg_travel_time"]),

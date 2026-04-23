@@ -18,9 +18,9 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 }
 
 function getAccessibilityColor(value) {
-  if (value < 0.35) return "#D85A30";
-  if (value <= 0.65) return "#EF9F27";
-  return "#3B6D11";
+  if (value < 0.33) return "#e74c3c";
+  if (value <= 0.66) return "#f39c12";
+  return "#2ecc71";
 }
 
 function getColor(value, layer) {
@@ -130,9 +130,12 @@ export default function MapView({
 
   return (
     <div className="panel-card relative h-full overflow-hidden">
-      <MapContainer center={mapCenter} zoom={city.default_zoom || 11} scrollWheelZoom className="h-full w-full" preferCanvas>
+      <MapContainer center={mapCenter} zoom={city.default_zoom || 11} scrollWheelZoom className="h-full w-full mc-leaflet-dark" preferCanvas>
         <FitBounds city={city} facilitiesForBounds={facilitiesForBounds} />
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        />
 
         <Pane name="origins" style={{ zIndex: 450 }}>
           {activeRows.map((row) => {
@@ -163,7 +166,7 @@ export default function MapView({
                     <div>
                       {t("map.distanceToStop")}:{" "}
                       <span className="num-ltr">
-                        {Number.isFinite(row.nearestStopDistanceMeters) ? `${toLocaleNumber(Math.round(row.nearestStopDistanceMeters), language)}m` : "—"}
+                        {Number.isFinite(row.nearestStopDistanceMeters) ? `${toLocaleNumber(Math.round(row.nearestStopDistanceMeters), language)}m` : "N/A"}
                       </span>
                     </div>
                     <div>
@@ -192,27 +195,9 @@ export default function MapView({
                 key={`stop-${stop.cluster_id ?? idx}`}
                 center={[Number(stop.latitude), Number(stop.longitude)]}
                 radius={3}
-                pathOptions={{ color: "#888780", fillColor: "#888780", fillOpacity: 0.5, opacity: 0.5, weight: 1 }}
+                pathOptions={{ color: "#48cae4", fillColor: "#48cae4", fillOpacity: 0.45, opacity: 0.65, weight: 1 }}
               />
             ))}
-        </Pane>
-
-        <Pane name="supply-facilities" style={{ zIndex: 455 }}>
-          {baselineSupplyFacilities.map((facility) => (
-            <CircleMarker
-              key={`supply-${facility.id}`}
-              center={[Number(facility.latitude), Number(facility.longitude)]}
-              radius={2.8}
-              pathOptions={{ color: "#6B7280", fillColor: "#CBD5E1", fillOpacity: 0.7, opacity: 0.8, weight: 1 }}
-            >
-              <Popup>
-                <div className="text-xs">
-                  <div className="font-semibold text-slate-900">{facility.name || "Facility"}</div>
-                  <div>Existing healthcare facility</div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
         </Pane>
 
         <Pane name="scenario-added" style={{ zIndex: 470 }}>
@@ -250,15 +235,15 @@ export default function MapView({
       </MapContainer>
 
       {onLayerChange ? (
-        <div className={`absolute top-3 z-[900] rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm ${sideClass(isRtl, "right-3", "left-3")}`}>
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t("map.layers")}</div>
-          <label className="mt-2 flex items-center gap-2 text-xs text-slate-700">
+        <div className={`absolute top-3 z-[900] rounded-xl border border-[var(--border-color)] bg-white/95 p-3 text-[var(--text-primary)] shadow-sm backdrop-blur ${sideClass(isRtl, "right-3", "left-3")}`}>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{t("map.layers")}</div>
+          <label className="mt-2 flex items-center gap-2 text-xs text-[var(--text-primary)]">
             <input type="checkbox" checked={showTransportStops} onChange={(event) => setShowTransportStops(event.target.checked)} />
             {t("map.showStops")}
           </label>
 
-          <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t("map.colorBy")}</div>
-          <div className="mt-1 space-y-1 text-xs text-slate-700">
+          <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{t("map.colorBy")}</div>
+          <div className="mt-1 space-y-1 text-xs text-[var(--text-primary)]">
             <label className="flex items-center gap-2">
               <input type="radio" name="colorBy" value="accessibility" checked={activeLayer === "accessibility"} onChange={(event) => onLayerChange(event.target.value)} />
               {t("map.accessibilityScore")}

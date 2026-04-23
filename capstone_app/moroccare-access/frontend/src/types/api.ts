@@ -41,10 +41,12 @@ export type BaselineFacilityDto = {
   id?: string | number;
   name?: string;
   origin_id?: string | number;
+  origin_name?: string;
   district?: string;
   district_name?: string;
   district_id?: string | number | null;
   urban_ring?: string;
+  analysis_unit?: string;
   lat?: number;
   lon?: number;
   latitude?: number;
@@ -264,6 +266,7 @@ export type FrontendDistrict = {
   id: string;
   districtName: string; // display label, usually district aggregate name
   originName?: string;
+  analysisUnit?: string;
   districtId?: string | number | null;
   urbanRing: string;
   latitude: number;

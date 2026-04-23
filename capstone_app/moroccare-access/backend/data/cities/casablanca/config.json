@@ -9,6 +9,10 @@
     18,
     999
   ],
+  "datasets": {
+    "district_boundaries": "data/processed/districts_with_worldpop.gpkg",
+    "district_summary": "data/final/district_accessibility_summary.csv"
+  },
   "feature_flags": {
     "default_point_simulation_city": true,
     "allow_unscoped_origin_metrics": true

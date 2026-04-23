@@ -47,6 +47,8 @@ def city_freshness_token(city_id: str) -> str:
                 notebook_paths.interim_origin_metrics_csv,
                 notebook_paths.interim_worldpop_origins_csv,
                 notebook_paths.interim_worldpop_origin_points_csv,
+                notebook_paths.processed_districts_with_worldpop_gpkg,
+                notebook_paths.final_district_summary_gpkg,
                 notebook_paths.final_district_summary_csv,
             ]
         )

@@ -1,6 +1,14 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCities, fetchCityBaseline, fetchCityDistrictGeojson, fetchCityExplainability } from "../api/cities";
+import {
+  fetchCities,
+  fetchCityBaseline,
+  fetchCityDistrictGeojson,
+  fetchCityExplainability,
+  fetchCityRanking,
+  fetchCityRecommendations,
+  fetchCitySummary
+} from "../api/cities";
 
 export function useCityData(cityId) {
   const citiesQuery = useQuery({
@@ -23,6 +31,24 @@ export function useCityData(cityId) {
     enabled: Boolean(resolvedCityId)
   });
 
+  const summaryQuery = useQuery({
+    queryKey: ["summary", resolvedCityId],
+    queryFn: () => fetchCitySummary(resolvedCityId),
+    enabled: Boolean(resolvedCityId)
+  });
+
+  const rankingQuery = useQuery({
+    queryKey: ["ranking", resolvedCityId],
+    queryFn: () => fetchCityRanking(resolvedCityId),
+    enabled: Boolean(resolvedCityId)
+  });
+
+  const recommendationsQuery = useQuery({
+    queryKey: ["recommendations", resolvedCityId],
+    queryFn: () => fetchCityRecommendations(resolvedCityId),
+    enabled: Boolean(resolvedCityId)
+  });
+
   const districtsQuery = useQuery({
     queryKey: ["districts", resolvedCityId],
     queryFn: () => fetchCityDistrictGeojson(resolvedCityId),
@@ -34,12 +60,18 @@ export function useCityData(cityId) {
     baselineQuery.refetch();
     districtsQuery.refetch();
     explainabilityQuery.refetch();
+    summaryQuery.refetch();
+    rankingQuery.refetch();
+    recommendationsQuery.refetch();
   }, [resolvedCityId]);
 
   return {
     citiesQuery,
     baselineQuery,
     districtsQuery,
-    explainabilityQuery
+    explainabilityQuery,
+    summaryQuery,
+    rankingQuery,
+    recommendationsQuery
   };
 }

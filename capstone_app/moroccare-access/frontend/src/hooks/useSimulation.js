@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { runComparison, runSimulation } from "../api/simulations";
-
-function isPointInterventionPayload(payload) {
-  return Boolean(payload && typeof payload === "object" && "intervention_type" in payload);
-}
+import { runSimulation } from "../api/simulations";
 
 export function useSimulation() {
   const [simulationResult, setSimulationResult] = useState(null);
@@ -15,18 +11,9 @@ export function useSimulation() {
     onMutate: () => {
       setComparisonResult(null);
     },
-    onSuccess: async (data, variables) => {
+    onSuccess: (data) => {
       setSimulationResult(data);
-      if (isPointInterventionPayload(variables.payload)) {
-        setComparisonResult(null);
-        return;
-      }
-      try {
-        const comparison = await runComparison(variables.cityId, variables.payload);
-        setComparisonResult(comparison);
-      } catch {
-        setComparisonResult(null);
-      }
+      setComparisonResult(null);
     }
   });
 

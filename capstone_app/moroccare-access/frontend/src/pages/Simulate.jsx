@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import SimulationWorkspaceMap from "../components/simulation/SimulationWorkspaceMap";
-import { useI18n } from "../i18n/I18nProvider";
 
 const NEUTRAL_ADVANCED = {
   stop_density_multiplier: 1.0,
   reduce_nearest_stop_distance_pct: 0.0,
-  add_facilities: 0
+  add_facilities: 0,
+  max_travel_time_min: 30,
+  walking_distance_m: 600,
+  transport_speed_kmh: 18
 };
+
+const MEANINGFUL_DELTA = 0.005;
 
 const FALLBACK_INTERVENTIONS = [
   {
@@ -51,39 +55,94 @@ function average(items, selector) {
   return items.reduce((sum, item) => sum + selector(item), 0) / items.length;
 }
 
-function formatPercent(value) {
-  if (!Number.isFinite(value)) return "Unavailable";
-  return `${(value * 100).toFixed(1)}%`;
-}
-
 function scorePercentToRatio(value) {
   if (!Number.isFinite(Number(value))) return NaN;
   return Math.max(0, Math.min(1, Number(value) / 100));
 }
 
+function formatPercent(value, digits = 1) {
+  if (!Number.isFinite(value)) return "Not available yet";
+  return `${(value * 100).toFixed(digits)}%`;
+}
+
 function formatMinutes(value) {
-  if (!Number.isFinite(value)) return "Unavailable";
+  if (!Number.isFinite(value)) return "Not available yet";
   return `${value.toFixed(1)} min`;
 }
 
 function formatCount(value) {
-  if (!Number.isFinite(value)) return "Unavailable";
+  if (!Number.isFinite(value)) return "Not available yet";
   return Math.round(value).toLocaleString();
 }
 
 function formatDistance(value) {
-  if (!Number.isFinite(value)) return "Unavailable";
+  if (!Number.isFinite(value)) return "Awaiting placement";
   if (value < 1000) return `${Math.round(value)} m`;
   return `${(value / 1000).toFixed(value < 5000 ? 1 : 0)} km`;
 }
 
-function formatMeaningfulDelta(value, { multiplier = 1, decimals = 1, unit = "", epsilon = 0.0005, positiveIsGood = true } = {}) {
-  if (!Number.isFinite(value)) return { text: "Unavailable", tone: "neutral" };
+function normalizeScoreValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return NaN;
+  return numeric > 1.5 ? numeric / 100 : numeric;
+}
+
+function scoreToTravelMinutes(score) {
+  const normalized = normalizeScoreValue(score);
+  if (!Number.isFinite(normalized)) return NaN;
+  return (1 - Math.max(0, Math.min(1, normalized))) * 60;
+}
+
+function rowTravelMinutes(row, mode = "baseline") {
+  const explicit = Number(mode === "scenario" ? row.travel_time_min ?? row.after_travel_time_min : row.before_travel_time_min ?? row.travel_time_min);
+  if (Number.isFinite(explicit)) return explicit;
+  const score = mode === "scenario" ? row.simulated_score ?? row.after_score ?? row.accessibility_score : row.baseline_score ?? row.before_score ?? row.accessibility_score;
+  return scoreToTravelMinutes(score);
+}
+
+function summarizeRows(rows, mode = "accessibility") {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const scores = safeRows
+    .map((row) =>
+      normalizeScoreValue(
+        mode === "baseline"
+          ? row.before_score ?? row.baseline_score ?? row.accessibility_score
+          : row.after_score ?? row.simulated_score ?? row.accessibility_score
+      )
+    )
+    .filter(Number.isFinite);
+  const travelTimes = safeRows
+    .map((row) => {
+      const explicit = Number(mode === "baseline" ? row.before_travel_time_min ?? row.travel_time_min : row.travel_time_min);
+      if (Number.isFinite(explicit)) return explicit;
+      return scoreToTravelMinutes(mode === "baseline" ? row.before_score ?? row.baseline_score ?? row.accessibility_score : row.after_score ?? row.simulated_score ?? row.accessibility_score);
+    })
+    .filter(Number.isFinite);
+  const underservedPopulation = safeRows.reduce((sum, row) => {
+    const score = normalizeScoreValue(mode === "baseline" ? row.before_score ?? row.baseline_score ?? row.accessibility_score : row.after_score ?? row.simulated_score ?? row.accessibility_score);
+    if (!Number.isFinite(score) || score >= 0.5) return sum;
+    return sum + (Number(row.population) || 0);
+  }, 0);
+  return {
+    avg_accessibility_score: scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : NaN,
+    avg_travel_time: travelTimes.length ? travelTimes.reduce((sum, time) => sum + time, 0) / travelTimes.length : NaN,
+    underserved_population: underservedPopulation
+  };
+}
+
+function deltaMeta(value, { multiplier = 1, decimals = 1, unit = "", epsilon = 0.0005, positiveIsGood = true, useGrouping = false } = {}) {
+  if (!Number.isFinite(value) || Math.abs(value * multiplier) < epsilon) {
+    return { text: "0", tone: "neutral", direction: "neutral" };
+  }
   const scaled = value * multiplier;
-  if (Math.abs(scaled) < epsilon) return { text: "No meaningful change", tone: "neutral" };
   const sign = scaled > 0 ? "+" : "";
   const good = positiveIsGood ? scaled > 0 : scaled < 0;
-  return { text: `${sign}${scaled.toFixed(decimals)}${unit}`, tone: good ? "good" : "watch" };
+  const formattedValue = useGrouping ? Math.abs(Math.round(scaled)).toLocaleString() : Math.abs(scaled).toFixed(decimals);
+  return {
+    text: `${scaled < 0 ? "-" : sign}${formattedValue}${unit}`,
+    tone: good ? "positive" : "negative",
+    direction: scaled > 0 ? "positive" : "negative"
+  };
 }
 
 function interventionLabel(interventionType, interventionIndex) {
@@ -91,15 +150,11 @@ function interventionLabel(interventionType, interventionIndex) {
   return interventionIndex.get(interventionType)?.label || interventionType;
 }
 
-function interventionDescription(option) {
-  if (!option) return "";
-  if (option.placementTarget === "facility_locations") {
-    return "Test a new care location and estimate which nearby origin areas improve.";
-  }
-  if (option.id === "improve_service") {
-    return "Target a stop-access improvement area and estimate travel-time impact.";
-  }
-  return "Place a new public transport access point and estimate nearby benefits.";
+function interventionMeta(option) {
+  const id = option?.id || "";
+  if (id === "add_transport_stop") return { icon: "S", description: "Improve public transport reach near underserved origins." };
+  if (id === "add_healthcare_facility") return { icon: "H", description: "Test a new healthcare access point at a candidate location." };
+  return { icon: "A", description: "Improve access conditions around an existing stop area." };
 }
 
 function getSimulationDefaults(city) {
@@ -107,7 +162,10 @@ function getSimulationDefaults(city) {
   return {
     stop_density_multiplier: Number.isFinite(Number(defaults.stop_density_multiplier)) ? Number(defaults.stop_density_multiplier) : 1.0,
     reduce_nearest_stop_distance_pct: Number.isFinite(Number(defaults.reduce_nearest_stop_distance_pct)) ? Number(defaults.reduce_nearest_stop_distance_pct) : 0.0,
-    add_facilities: Number.isFinite(Number(defaults.add_facilities)) ? Number(defaults.add_facilities) : 0
+    add_facilities: Number.isFinite(Number(defaults.add_facilities)) ? Number(defaults.add_facilities) : 0,
+    max_travel_time_min: Number.isFinite(Number(defaults.max_travel_time_min)) ? Number(defaults.max_travel_time_min) : 30,
+    walking_distance_m: Number.isFinite(Number(defaults.walking_distance_m)) ? Number(defaults.walking_distance_m) : 600,
+    transport_speed_kmh: Number.isFinite(Number(defaults.transport_speed_kmh)) ? Number(defaults.transport_speed_kmh) : 18
   };
 }
 
@@ -122,12 +180,11 @@ function getAvailableInterventions(city) {
         if (!id) return null;
         const backendInterventionType = String(item?.backend_intervention_type || "").toLowerCase();
         if (backendInterventionType && !supportedTypes.has(backendInterventionType)) return null;
-        const placementTarget = item?.placement_target === "facility_locations" ? "facility_locations" : "transport_stop_locations";
         return {
           id,
           label: String(item?.label || id.replace(/_/g, " ")),
           backendInterventionType: backendInterventionType || "transport_stop",
-          placementTarget,
+          placementTarget: item?.placement_target === "facility_locations" ? "facility_locations" : "transport_stop_locations",
           scenarioPatch: item?.scenario_patch && typeof item.scenario_patch === "object" ? item.scenario_patch : {},
           aliases: Array.isArray(item?.aliases) ? item.aliases.map((alias) => String(alias).toLowerCase()) : [],
           rank: index
@@ -141,17 +198,95 @@ function getAvailableInterventions(city) {
 }
 
 function friendlyStopLabel(stop) {
-  if (!stop) return "";
+  if (!stop) return "No stop context";
   if (stop.stop_name) return stop.stop_name;
   if (Number.isFinite(stop.cluster_id)) return `Stop cluster ${stop.cluster_id}`;
   return "Nearby transport stop";
 }
 
-function friendlyAreaStatus(district) {
-  if (!district) return "Area context will appear after a map location is selected.";
-  if (district.accessibilityScore < 0.45 || district.underserved) return "This area appears underserved and may merit priority attention.";
-  if (district.accessibilityScore < 0.65) return "This area has moderate access and may benefit from targeted support.";
-  return "This area is relatively well served; review whether investment should target lower-access areas.";
+function hasUsableDistrict(row) {
+  if (!row) return false;
+  const district = String(row.districtName || "").trim();
+  const origin = String(row.originName || "").trim();
+  if (!district || ["service location", "unknown", "unassigned area"].includes(district.toLowerCase())) return false;
+  return district !== origin;
+}
+
+function serviceContextFor(row, datasetAnalysisUnit = "") {
+  const isFacilityProxy = row?.analysisUnit === "facility_proxy" || datasetAnalysisUnit === "facility_proxy";
+  if (!row) {
+    return {
+      locationLabel: "Selected location",
+      locationValue: "Map location",
+      locationSubLabel: "",
+      showDistrict: false,
+      districtValue: "",
+      analysisUnitLabel: "Location-based model"
+    };
+  }
+  return {
+    locationLabel: isFacilityProxy ? "Nearest evaluated facility" : "Nearest origin area",
+    locationValue: row.originName || row.districtName || "Map location",
+    locationSubLabel: Number.isFinite(row.markerDistanceM) ? `${formatDistance(row.markerDistanceM)} from placement` : "",
+    showDistrict: hasUsableDistrict(row),
+    districtValue: row.districtName,
+    analysisUnitLabel: isFacilityProxy ? "Facility-level context" : "Area-level context"
+  };
+}
+
+function populationContextFor(rows, placement) {
+  const rowsWithPopulation = (Array.isArray(rows) ? rows : []).filter((row) => {
+    const population = Number(row.population);
+    return (
+      Number.isFinite(population) &&
+      population > 0 &&
+      Number.isFinite(Number(row.latitude)) &&
+      Number.isFinite(Number(row.longitude))
+    );
+  });
+
+  if (!rowsWithPopulation.length) {
+    return {
+      supported: false,
+      value: "Population context is not included in this city package.",
+      subLabel: "Scenario impact remains based on the accessibility model."
+    };
+  }
+
+  if (!placement) {
+    return {
+      supported: true,
+      value: "Awaiting placement",
+      subLabel: "within 10 km"
+    };
+  }
+
+  const nearbyPopulation = rowsWithPopulation
+    .map((row) => ({
+      ...row,
+      distanceM: haversineMeters(placement.latitude, placement.longitude, row.latitude, row.longitude)
+    }))
+    .filter((row) => row.distanceM <= 10_000)
+    .reduce((sum, row) => sum + Number(row.population || 0), 0);
+
+  if (nearbyPopulation <= 0) {
+    return {
+      supported: true,
+      value: "No nearby population",
+      subLabel: "within 10 km"
+    };
+  }
+
+  return {
+    supported: true,
+    value:
+      nearbyPopulation >= 1000000
+        ? `${(nearbyPopulation / 1000000).toFixed(1)}M`
+        : nearbyPopulation >= 1000
+        ? `${Math.round(nearbyPopulation / 1000)}k`
+        : Math.round(nearbyPopulation).toLocaleString(),
+    subLabel: "within 10 km"
+  };
 }
 
 function buildPayload({ selectedIntervention, placement, mode, advancedSettings, cityDefaults }) {
@@ -159,7 +294,7 @@ function buildPayload({ selectedIntervention, placement, mode, advancedSettings,
   const payload = {
     ...cityDefaults,
     ...selectedIntervention.scenarioPatch,
-    ...(mode === "advanced" ? advancedSettings : {}),
+    transport_speed_kmh: Number(advancedSettings.transport_speed_kmh || cityDefaults.transport_speed_kmh || 18),
     facility_locations: [],
     transport_stop_locations: []
   };
@@ -176,19 +311,112 @@ function buildPayload({ selectedIntervention, placement, mode, advancedSettings,
   return payload;
 }
 
-function toneClass(tone) {
-  if (tone === "good") return "text-[#0F6E56]";
-  if (tone === "watch") return "text-[#B45309]";
-  return "text-slate-600";
+function StepCard({ step, title, status, id, compact = false, children }) {
+  const runClass = id === "step-run" ? " step-run-section" : "";
+  return (
+    <section id={id} className={`simulate-step-card step-section step-card${runClass} ${compact ? "is-compact" : ""} is-${status}`}>
+      <div className="simulate-step-card-head">
+        <div className="simulate-step-label step-label"><span>{step}</span> {title}</div>
+      </div>
+      {children}
+    </section>
+  );
 }
 
-function DeltaValue({ delta, options }) {
-  const formatted = formatMeaningfulDelta(delta, options);
-  return <span className={`font-semibold ${toneClass(formatted.tone)}`}>{formatted.text}</span>;
+function ContextChip({ label, value, subLabel }) {
+  return (
+    <div className="simulate-context-chip ctx-card">
+      <div className="ctx-label">{label}</div>
+      <strong className="ctx-value">{value}</strong>
+      {subLabel ? <small>{subLabel}</small> : null}
+    </div>
+  );
+}
+
+function KpiSkeleton() {
+  return (
+    <div className="simulate-kpi-card is-neutral">
+      <div className="simulate-kpi-label">Loading</div>
+      <div className="simulate-skeleton" />
+      <div className="simulate-kpi-before">computing model output</div>
+    </div>
+  );
+}
+
+function KpiCard({ label, value, before, beforeHint = "", delta, positiveIsGood = true, unit = "", deltaOptions = {}, deltaText = null, tone = null, deltaTitle = "" }) {
+  const meta = deltaText == null ? deltaMeta(delta, { multiplier: 1, decimals: 1, unit, positiveIsGood, ...deltaOptions }) : { text: deltaText, tone };
+  return (
+    <div className={`simulate-kpi-card kpi-card is-${meta.tone}`}>
+      <div className="simulate-kpi-label">{label}</div>
+      <div className="simulate-kpi-value-row kpi-value-row">
+        <strong className="kpi-main-value">{value}</strong>
+        <span className={`simulate-delta-pill kpi-delta-badge is-${meta.tone}`} title={deltaTitle}>{meta.text}</span>
+      </div>
+      <div className="simulate-kpi-before">was {before}{beforeHint ? <span className="kpi-before-hint"> {beforeHint}</span> : null}</div>
+    </div>
+  );
+}
+
+function PlayEmptyState() {
+  return (
+    <div className="simulate-empty-state">
+      <div className="simulate-empty-play-icon" aria-hidden="true" />
+      <h3>No scenario run yet</h3>
+      <p>Select an intervention, place it on the map, and run the scenario to see before-and-after outcomes here.</p>
+    </div>
+  );
+}
+
+function sortDistrictRows(beforeRows = [], afterRows = []) {
+  const beforeByName = new Map(beforeRows.map((row) => [String(row.district_name), row]));
+  return afterRows
+    .map((after) => {
+      const name = String(after.district_name || "District");
+      const before = beforeByName.get(name);
+      if (!before) return null;
+      const beforeScore = Number(before.avg_accessibility_score);
+      const afterScore = Number(after.avg_accessibility_score);
+      if (!Number.isFinite(beforeScore) || !Number.isFinite(afterScore)) return null;
+      return { name, before: beforeScore, after: afterScore, delta: afterScore - beforeScore };
+    })
+    .filter(Boolean)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+}
+
+function summaryScore(value, fallback = NaN) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return numeric > 1.5 ? numeric / 100 : numeric;
+}
+
+function buildInterpretation(accessDelta, giniDelta, improvedCount, totalLocations, locationTerm = "areas") {
+  const improvedPct = totalLocations > 0 ? improvedCount / totalLocations : 0;
+  if (accessDelta < 0.005 && giniDelta < 0.005) {
+    return `This scenario produces limited system-wide change (delta accessibility: ${(accessDelta * 100).toFixed(1)}pp). The placement may be outside the current service network or in an already well-served area. Try placing the intervention in an orange or red zone on the map for stronger impact.`;
+  }
+  if (accessDelta >= 0.02 && giniDelta >= 0.01) {
+    return `Strong scenario: accessibility improves by ${(accessDelta * 100).toFixed(1)}pp and inequality reduces by ${giniDelta.toFixed(3)} Gini points, benefiting ${improvedCount.toLocaleString()} ${locationTerm} (${(improvedPct * 100).toFixed(0)}% of the network). This is a high-priority candidate for adoption.`;
+  }
+  if (accessDelta >= 0.01) {
+    return `Moderate improvement: ${(accessDelta * 100).toFixed(1)}pp average gain across ${improvedCount.toLocaleString()} ${locationTerm}. Equity impact is limited; compare with another placement before prioritizing investment.`;
+  }
+  return "Results are mixed. Review the location-level impact below before drawing conclusions.";
+}
+
+function stakeholderWarningText(simulationResult, scenarioWarnings) {
+  if (!simulationResult) return "";
+  if (simulationResult.analysis_unit === "facility_proxy") {
+    return "District-level comparison is not available for the current dataset. This city currently supports impact analysis at representative service locations.";
+  }
+  if (scenarioWarnings.length) {
+    return "Some comparison views are limited by the available city dataset. The scenario summary remains based on supported model outputs.";
+  }
+  return "";
 }
 
 export default function Simulate({
   city,
+  analysisUnit = "",
   baselineFacilities = [],
   simulatedFacilities = [],
   baselineSupplyFacilities = [],
@@ -202,16 +430,22 @@ export default function Simulate({
   activeSimulationLabel,
   onResetSimulation
 }) {
-  const { isRtl } = useI18n();
   const [mode, setMode] = useState("basic");
   const [interventionType, setInterventionType] = useState("");
   const [placement, setPlacement] = useState(null);
   const [showInfluenceZone, setShowInfluenceZone] = useState(true);
   const [showBaselineStops, setShowBaselineStops] = useState(true);
-  const [showBaselineFacilities, setShowBaselineFacilities] = useState(false);
+  const [showBaselineFacilities, setShowBaselineFacilities] = useState(true);
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [showAccessibilityLayer, setShowAccessibilityLayer] = useState(true);
+  const [simulatorMode, setSimulatorMode] = useState("simulation");
+  const [compareMode, setCompareMode] = useState(false);
   const [mapLayer, setMapLayer] = useState("baseline");
   const [advancedSettings, setAdvancedSettings] = useState(NEUTRAL_ADVANCED);
   const [lastRunSignature, setLastRunSignature] = useState("");
+  const [lastRunTimeLabel, setLastRunTimeLabel] = useState("");
+  const [showAllAreas, setShowAllAreas] = useState(false);
+  const [warningVisible, setWarningVisible] = useState(false);
 
   const cityKey = city?.id || city?.city_id || "";
   const interventionOptions = useMemo(() => getAvailableInterventions(city), [city]);
@@ -225,15 +459,26 @@ export default function Simulate({
     setPlacement(null);
     setShowInfluenceZone(true);
     setShowBaselineStops(true);
-    setShowBaselineFacilities(false);
+    setShowBaselineFacilities(true);
+    setShowRoutes(false);
+    setShowAccessibilityLayer(true);
+    setSimulatorMode("simulation");
+    setCompareMode(false);
     setMapLayer("baseline");
     setAdvancedSettings(citySimulationDefaults);
     setLastRunSignature("");
+    setLastRunTimeLabel("");
+    setShowAllAreas(false);
+    setWarningVisible(false);
   }, [cityKey, citySimulationDefaults]);
 
   useEffect(() => {
     if (!simulatedFacilities.length) setMapLayer("baseline");
   }, [simulatedFacilities.length]);
+
+  useEffect(() => {
+    if (simulationResult) setMapLayer(compareMode ? "impact" : "after");
+  }, [compareMode, simulationResult]);
 
   const payload = useMemo(
     () =>
@@ -256,6 +501,7 @@ export default function Simulate({
     let nearest = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
     baselineFacilities.forEach((row) => {
+      if (!Number.isFinite(Number(row.latitude)) || !Number.isFinite(Number(row.longitude))) return;
       const distance = haversineMeters(placement.latitude, placement.longitude, row.latitude, row.longitude);
       if (distance < nearestDistance) {
         nearest = row;
@@ -263,18 +509,6 @@ export default function Simulate({
       }
     });
     return nearest ? { ...nearest, markerDistanceM: nearestDistance } : null;
-  }, [baselineFacilities, placement]);
-
-  const nearbyDistricts = useMemo(() => {
-    if (!placement || !baselineFacilities.length) return [];
-    return baselineFacilities
-      .map((row) => ({
-        ...row,
-        distanceM: haversineMeters(placement.latitude, placement.longitude, row.latitude, row.longitude)
-      }))
-      .filter((row) => row.distanceM <= 10_000)
-      .sort((a, b) => a.distanceM - b.distanceM)
-      .slice(0, 5);
   }, [baselineFacilities, placement]);
 
   const nearestTransportStop = useMemo(() => {
@@ -294,454 +528,370 @@ export default function Simulate({
     return nearest ? { ...nearest, distanceM: nearestDistance } : null;
   }, [placement, transportStops]);
 
-  const simulationSummary = simulationResult?.summary || null;
-  const simulationDistrictRows = useMemo(() => (Array.isArray(simulationResult?.districts) ? simulationResult.districts : []), [simulationResult]);
+  const selectedContext = useMemo(() => serviceContextFor(selectedDistrict, analysisUnit), [selectedDistrict, analysisUnit]);
+  const populationContext = useMemo(() => populationContextFor(baselineFacilities, placement), [baselineFacilities, placement]);
 
-  const districtImpacts = useMemo(() => {
-    if (simulationDistrictRows.length) {
-      return simulationDistrictRows
-        .map((row, index) => ({
-          id: String(row.district_name ?? index),
-          districtName: String(row.district_name ?? `District ${index + 1}`),
-          delta: Number(row.score_delta || 0) / 100,
-          population: Number(row.pop_improved || 0),
-          originsImproved: Number(row.origins_improved || 0)
-        }))
-        .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-    }
-    if (!simulatedFacilities.length) return [];
-    const simulatedById = new Map(simulatedFacilities.map((row) => [row.id, row]));
-    return baselineFacilities
-      .map((row) => {
-        const simulated = simulatedById.get(row.id);
-        if (!simulated) return null;
+  const simulationOrigins = Array.isArray(simulationResult?.origins) ? simulationResult.origins : [];
+  const simulationSummary = simulationResult?.summary || {};
+  const accessBefore = summaryScore(
+    simulationSummary.avg_score_before ?? simulationSummary.city_before_avg_score,
+    simulationOrigins.length ? average(simulationOrigins, (row) => normalizeScoreValue(row.baseline_score ?? row.before_score)) : average(baselineFacilities, (row) => row.accessibilityScore)
+  );
+  const accessAfter = summaryScore(
+    simulationSummary.avg_score_after ?? simulationSummary.city_after_avg_score,
+    simulationOrigins.length ? average(simulationOrigins, (row) => normalizeScoreValue(row.simulated_score ?? row.after_score ?? row.accessibility_score)) : average(simulatedFacilities, (row) => row.accessibilityScore)
+  );
+  const accessDelta = accessAfter - accessBefore;
+  const timeBefore = Number.isFinite(Number(simulationSummary.avg_travel_time_before ?? simulationSummary.city_before_avg_tt))
+    ? Number(simulationSummary.avg_travel_time_before ?? simulationSummary.city_before_avg_tt)
+    : (1 - accessBefore) * 60;
+  const timeAfter = Number.isFinite(Number(simulationSummary.avg_travel_time_after ?? simulationSummary.city_after_avg_tt))
+    ? Number(simulationSummary.avg_travel_time_after ?? simulationSummary.city_after_avg_tt)
+    : (1 - accessAfter) * 60;
+  const timeDelta = timeAfter - timeBefore;
+  const giniBefore = simulationResult?.equity?.gini_before ?? null;
+  const giniAfter = simulationResult?.equity?.gini_after ?? simulationResult?.equity?.gini_coefficient ?? null;
+  const giniDeltaRaw = giniBefore != null && giniAfter != null ? Number(giniAfter) - Number(giniBefore) : null;
+  const giniImprovement = giniBefore != null && giniAfter != null ? Number(giniBefore) - Number(giniAfter) : null;
+  const baselineUnderservedPopulation = simulationOrigins
+    .filter((origin) => normalizeScoreValue(origin.baseline_score ?? origin.before_score) < 0.5)
+    .reduce((sum, origin) => sum + (Number(origin.population) || 0), 0);
+  const simulatedUnderservedPopulation = simulationOrigins
+    .filter((origin) => normalizeScoreValue(origin.simulated_score ?? origin.after_score ?? origin.accessibility_score) < 0.5)
+    .reduce((sum, origin) => sum + (Number(origin.population) || 0), 0);
+  const underservedPopulationDelta = simulatedUnderservedPopulation - baselineUnderservedPopulation;
+  const districtsBefore = Array.isArray(simulationResult?.district_summaries_before) ? simulationResult.district_summaries_before : [];
+  const districtsAfter = Array.isArray(simulationResult?.district_summaries_after) ? simulationResult.district_summaries_after : [];
+  const districtRows = useMemo(() => sortDistrictRows(districtsBefore, districtsAfter), [districtsBefore, districtsAfter]);
+  const originRows = useMemo(() => {
+    const rows = Array.isArray(simulationResult?.origins) ? simulationResult.origins : [];
+    return rows
+      .filter((row) => Math.abs(Number(row.delta ?? 0)) >= MEANINGFUL_DELTA)
+      .map((row, index) => {
+        const before = normalizeScoreValue(row.baseline_score ?? row.before_score);
+        const after = normalizeScoreValue(row.simulated_score ?? row.after_score ?? row.accessibility_score);
+        const area = String(row.origin_name ?? row.name ?? row.origin_id ?? `Area ${index + 1}`);
+        const rawDistrict = String(row.district_name ?? "");
+        const rowAnalysisUnit = String(row.analysis_unit ?? simulationResult?.analysis_unit ?? "");
+        const district =
+          rowAnalysisUnit === "facility_proxy" || !rawDistrict || rawDistrict === area || rawDistrict.toLowerCase() === "unknown"
+            ? "Service location"
+            : rawDistrict;
         return {
-          id: row.id,
-          districtName: row.districtName,
-          delta: simulated.accessibilityScore - row.accessibilityScore,
-          population: Number(row.population) || 0,
-          originsImproved: simulated.accessibilityScore > row.accessibilityScore ? 1 : 0
+          id: String(row.id ?? row.origin_id ?? index),
+          area,
+          district,
+          before,
+          after,
+          delta: Number.isFinite(Number(row.delta)) ? Number(row.delta) : after - before
         };
       })
-      .filter(Boolean)
       .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-  }, [baselineFacilities, simulatedFacilities, simulationDistrictRows]);
+  }, [simulationResult]);
 
-  const impactedDistrictIds = useMemo(() => districtImpacts.filter((row) => Math.abs(row.delta) >= 0.005).map((row) => row.id), [districtImpacts]);
-  const impactedOriginIds = useMemo(() => {
-    const explicit = Array.isArray(simulationResult?.impacted_origin_ids) ? simulationResult.impacted_origin_ids : [];
-    if (explicit.length) return explicit.map((id) => String(id));
-    return impactedDistrictIds.map((id) => String(id));
-  }, [simulationResult, impactedDistrictIds]);
-
-  const scenarioAddedFacilities = useMemo(
-    () =>
-      (Array.isArray(simulationResult?.added_facilities) ? simulationResult.added_facilities : []).filter(
-        (row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude))
-      ),
-    [simulationResult]
-  );
-
-  const scenarioAddedStops = useMemo(
-    () =>
-      (Array.isArray(simulationResult?.added_transport_stops) ? simulationResult.added_transport_stops : []).filter(
-        (row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude))
-      ),
-    [simulationResult]
-  );
-
-  const baselineAvgAccessibility = useMemo(
-    () =>
-      Number.isFinite(Number(simulationSummary?.city_before_avg_score))
-        ? scorePercentToRatio(simulationSummary.city_before_avg_score)
-        : average(baselineFacilities, (row) => row.accessibilityScore),
-    [baselineFacilities, simulationSummary]
-  );
-  const simulatedAvgAccessibility = useMemo(
-    () =>
-      Number.isFinite(Number(simulationSummary?.city_after_avg_score))
-        ? scorePercentToRatio(simulationSummary.city_after_avg_score)
-        : average(simulatedFacilities, (row) => row.accessibilityScore),
-    [simulatedFacilities, simulationSummary]
-  );
-  const baselineAvgTravel = useMemo(
-    () =>
-      Number.isFinite(Number(simulationSummary?.city_before_avg_tt))
-        ? Number(simulationSummary.city_before_avg_tt)
-        : average(baselineFacilities, (row) => row.travelTimeMin),
-    [baselineFacilities, simulationSummary]
-  );
-  const simulatedAvgTravel = useMemo(
-    () =>
-      Number.isFinite(Number(simulationSummary?.city_after_avg_tt))
-        ? Number(simulationSummary.city_after_avg_tt)
-        : average(simulatedFacilities, (row) => row.travelTimeMin),
-    [simulatedFacilities, simulationSummary]
-  );
-
-  const comparison = comparisonResult?.comparison || null;
-  const deltaAccessibility =
-    Number.isFinite(Number(simulationSummary?.city_after_avg_score)) && Number.isFinite(Number(simulationSummary?.city_before_avg_score))
-      ? scorePercentToRatio(simulationSummary.city_after_avg_score) - scorePercentToRatio(simulationSummary.city_before_avg_score)
-      : Number.isFinite(comparison?.delta_accessibility)
-      ? comparison.delta_accessibility
-      : simulatedAvgAccessibility - baselineAvgAccessibility;
-  const deltaTravel =
-    Number.isFinite(Number(simulationSummary?.city_after_avg_tt)) && Number.isFinite(Number(simulationSummary?.city_before_avg_tt))
-      ? Number(simulationSummary.city_after_avg_tt) - Number(simulationSummary.city_before_avg_tt)
-      : Number.isFinite(comparison?.delta_travel_time)
-      ? comparison.delta_travel_time
-      : simulatedAvgTravel - baselineAvgTravel;
-  const inequalityChange = Number.isFinite(comparison?.inequality_change) ? comparison.inequality_change : null;
-  const districtsImproved = simulationDistrictRows.length
-    ? simulationDistrictRows.filter((row) => Number(row.score_delta || 0) > 0).length
-    : Number.isFinite(comparisonResult?.districts_improved)
-    ? comparisonResult.districts_improved
-    : districtImpacts.filter((row) => row.delta > 0.001).length;
-  const districtsTotal = simulationDistrictRows.length || (Number.isFinite(comparisonResult?.districts_total) ? comparisonResult.districts_total : baselineFacilities.length);
-  const populationAffected = Number.isFinite(Number(simulationSummary?.total_pop_improved))
-    ? Number(simulationSummary.total_pop_improved)
-    : Number.isFinite(comparisonResult?.population_affected)
-    ? comparisonResult.population_affected
-    : 0;
-  const originsImproved = Number.isFinite(Number(simulationSummary?.total_origins_improved)) ? Number(simulationSummary.total_origins_improved) : null;
-
-  const baselineUnderservedPopulation = useMemo(() => baselineFacilities.reduce((sum, row) => sum + (row.underserved ? Number(row.population) || 0 : 0), 0), [baselineFacilities]);
-  const simulatedUnderservedPopulation = useMemo(() => simulatedFacilities.reduce((sum, row) => sum + (row.underserved ? Number(row.population) || 0 : 0), 0), [simulatedFacilities]);
-  const underservedPopulationDelta = simulatedUnderservedPopulation - baselineUnderservedPopulation;
-
-  const selectedAreaLabel = selectedDistrict?.districtName || "Selected map location";
-  const nearbyPopulationEstimate = nearbyDistricts.length ? nearbyDistricts.reduce((sum, row) => sum + (Number(row.population) || 0), 0) : Number(selectedDistrict?.population) || 0;
+  const visibleOriginRows = showAllAreas ? originRows : originRows.slice(0, 10);
+  const improvedOriginCount = simulationOrigins.filter((origin) => Number(origin.delta ?? 0) > MEANINGFUL_DELTA).length;
+  const impactedDistrictCount = districtRows.filter((row) => Math.abs(Number(row.delta ?? 0)) >= MEANINGFUL_DELTA).length;
+  const isFacilityLevelModel = analysisUnit === "facility_proxy" || simulationResult?.analysis_unit === "facility_proxy";
+  const impactLocationTerm = isFacilityLevelModel ? "evaluated locations" : "areas";
+  const impactLocationSingular = isFacilityLevelModel ? "Location" : "Area";
+  const districtColumnLabel = isFacilityLevelModel ? "Context" : "District";
+  const baselineLocationRows = simulationOrigins.length ? simulationOrigins : baselineFacilities;
+  const scenarioLocationRows = hasResult && simulationOrigins.length ? simulationOrigins : simulatedFacilities.length ? simulatedFacilities : baselineFacilities;
+  const maxTravelTime = Number(advancedSettings.max_travel_time_min || 30);
+  const baselineAccessibleCount = baselineLocationRows.filter((row) => rowTravelMinutes(row, "baseline") <= maxTravelTime).length;
+  const scenarioAccessibleCount = scenarioLocationRows.filter((row) => rowTravelMinutes(row, hasResult ? "scenario" : "baseline") <= maxTravelTime).length;
+  const accessibleDelta = scenarioAccessibleCount - baselineAccessibleCount;
+  const scoreDeltaText = `${accessDelta >= 0 ? "+" : ""}${(accessDelta * 100).toFixed(1)}%`;
+  const timeDeltaText = `${timeDelta <= 0 ? "" : "+"}${timeDelta.toFixed(1)} min`;
+  const fmtPct = (value) => `${(value * 100).toFixed(1)}%`;
+  const fmtPp = (value) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)} pp`;
+  const fmtTime = (value) => `${value.toFixed(1)} min`;
+  const fmtGini = (value) => (value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "N/A");
+  const fmtGiniDelta = (value) => {
+    if (value == null || !Number.isFinite(Number(value))) return "N/A";
+    const numeric = Number(value);
+    if (numeric === 0) return "0.000";
+    const direction = numeric < 0 ? "reduced" : "increased";
+    const sign = numeric >= 0 ? "+" : "-";
+    return `${direction} ${sign}${Math.abs(numeric).toFixed(3)}`;
+  };
+  const fmtUnd = (value) => {
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+    return Math.round(value).toLocaleString();
+  };
+  const interpretation = buildInterpretation(accessDelta, giniImprovement ?? 0, improvedOriginCount, simulationOrigins.length, impactLocationTerm);
+  const scenarioStatus =
+    accessDelta > 0.02
+      ? { label: "Meaningful improvement", tone: "positive" }
+      : accessDelta < -0.02
+      ? { label: "Negative impact", tone: "negative" }
+      : { label: "Small modelled effect", tone: "neutral" };
+  const runTimeLabel = hasResult ? lastRunTimeLabel || activeSimulationLabel || "latest run" : "";
   const selectedInterventionLabel = interventionLabel(interventionType, interventionIndex);
-  const planningStep = !interventionType ? 1 : !placement ? 2 : !hasResult ? 4 : 5;
-  const mapInstruction = !interventionType
-    ? "Select an intervention to activate map placement."
-    : !placement
-    ? "Click the map to place the intervention. Drag the marker to refine it."
-    : "Location selected. Review the area context, then evaluate the scenario.";
+  const activeStep = !interventionType ? 1 : !placement ? 2 : !hasResult && !simulationPending ? 4 : hasResult ? 5 : 4;
+  const scenarioWarnings = Array.isArray(simulationResult?.warnings) ? simulationResult.warnings : [];
+  const fallbackWarning = hasResult && (simulationResult?.analysis_unit === "facility_proxy" || scenarioWarnings.some((warning) => /origin|fallback|facility proxy/i.test(String(warning))));
+  const warningMessage = stakeholderWarningText(simulationResult, scenarioWarnings);
+  const showWarningToast = hasResult && Boolean(warningMessage) && !fallbackWarning;
 
-  const technicalPayload = payload ? JSON.stringify(payload, null, 2) : "Select an intervention and place it on the map to generate the backend scenario payload.";
+  useEffect(() => {
+    if (!showWarningToast) {
+      setWarningVisible(false);
+      return;
+    }
+    setWarningVisible(true);
+  }, [showWarningToast]);
 
-  const scenarioNarrative = useMemo(() => {
-    if (!interventionType) return "Select an intervention and click the map to begin.";
-    if (!placement) return `${selectedInterventionLabel} is selected. Click the map where the intervention should be tested.`;
-    const stopContext = nearestTransportStop ? ` The closest existing stop is ${friendlyStopLabel(nearestTransportStop)} (${formatDistance(nearestTransportStop.distanceM)} away).` : "";
-    return `${selectedInterventionLabel} will be evaluated near ${selectedAreaLabel}.${stopContext}`;
-  }, [interventionType, placement, selectedInterventionLabel, selectedAreaLabel, nearestTransportStop]);
-
-  const resultHeadline = useMemo(() => {
-    if (!hasResult) return "Scenario impact will appear here after evaluation.";
-    if (deltaAccessibility > 0.005) return "The evaluated scenario improves average accessibility across affected origin areas.";
-    if (deltaAccessibility < -0.005) return "The evaluated scenario may reduce accessibility for some areas; review the map before using it for planning.";
-    return "The evaluated scenario shows limited citywide change; inspect local impacts on the map.";
-  }, [deltaAccessibility, hasResult]);
+  useEffect(() => {
+    if (!warningVisible) return;
+    const timeout = window.setTimeout(() => setWarningVisible(false), 7000);
+    return () => window.clearTimeout(timeout);
+  }, [warningVisible]);
 
   const runScenario = () => {
     if (!payload || !canRunSimulation || simulationPending) return;
-    const label = `${mode === "basic" ? "Guided" : "Advanced"} evaluation: ${selectedInterventionLabel}`;
     onRunSimulation({
       customPayload: payload,
-      customLabel: label
+      customLabel: selectedInterventionLabel || "Custom scenario"
     });
     setLastRunSignature(payloadSignature);
-    setMapLayer("impact");
+    setLastRunTimeLabel(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
   };
 
+  useEffect(() => {
+    if (simulatorMode !== "simulation" || !payload || !canRunSimulation || simulationPending || payloadSignature === lastRunSignature) return;
+    const timeout = window.setTimeout(() => {
+      onRunSimulation({
+        customPayload: payload,
+        customLabel: selectedInterventionLabel || "Custom scenario"
+      });
+      setLastRunSignature(payloadSignature);
+      setLastRunTimeLabel(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    }, 600);
+    return () => window.clearTimeout(timeout);
+  }, [canRunSimulation, lastRunSignature, onRunSimulation, payload, payloadSignature, selectedInterventionLabel, simulationPending, simulatorMode]);
+
+  const chooseIntervention = (optionId) => {
+    const nextValue = interventionType === optionId ? "" : optionId;
+    setInterventionType(nextValue);
+    if (nextValue) setSimulatorMode("simulation");
+    setPlacement(null);
+    setMapLayer("baseline");
+    setLastRunSignature("");
+    setLastRunTimeLabel("");
+    setShowAllAreas(false);
+    if (hasResult) onResetSimulation();
+  };
+
+  const statusFor = (step) => {
+    if (activeStep > step) return "complete";
+    if (activeStep === step) return "active";
+    return "future";
+  };
+
+  const planningSummary = placement
+    ? `${selectedInterventionLabel || "Selected intervention"} will be evaluated near ${selectedContext.locationValue || "the selected map location"}. The closest stop is ${friendlyStopLabel(nearestTransportStop)}${nearestTransportStop ? ` (${formatDistance(nearestTransportStop.distanceM)})` : ""}.`
+    : "Select an intervention and place it on the map to review local planning context.";
+
   return (
-    <section className="space-y-5">
-      <article className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-[#F8FBF8] via-white to-[#EEF6F2] p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0F6E56]">Guided intervention workspace</p>
-            <h2 className="mt-2 font-heading text-2xl font-bold text-slate-950">Evaluate healthcare access scenarios on the map</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              Select an intervention, place it geographically, review who may be affected, and compare the modelled before-and-after accessibility impact.
+    <section className="simdash-page">
+      <header className="simdash-topbar">
+        <div>
+          <p>Planning tool</p>
+          <h1>Accessibility Simulator</h1>
+        </div>
+        <div className="simdash-topbar-actions">
+          <span className="simdash-city">{city?.display_name || city?.name || city?.id || "Selected city"}</span>
+          <button type="button" onClick={() => { onResetSimulation(); setPlacement(null); setLastRunSignature(""); setLastRunTimeLabel(""); }}>
+            Reset
+          </button>
+          <button type="button" disabled title="Scenario saving is not configured for this dataset.">
+            Save scenario
+          </button>
+          <label className="simdash-toggle">
+            <input type="checkbox" checked={compareMode} disabled={!hasResult} onChange={(event) => setCompareMode(event.target.checked)} />
+            <span>Compare mode</span>
+          </label>
+        </div>
+      </header>
+
+      <div className="simdash-grid">
+        <aside className="simdash-panel simdash-left-panel">
+          <section className="simdash-section">
+            <div className="simdash-section-head">
+              <span>A</span>
+              <h2>Add elements</h2>
+            </div>
+            <div className="simdash-action-stack">
+              {interventionOptions
+                .filter((option) => ["add_transport_stop", "add_healthcare_facility"].includes(option.id))
+                .map((option) => {
+                  const selected = interventionType === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`simdash-add-button ${selected ? "is-selected" : ""}`}
+                      onClick={() => chooseIntervention(option.id)}
+                    >
+                      <span>{option.id === "add_transport_stop" ? "+" : "+"}</span>
+                      <strong>{option.label}</strong>
+                    </button>
+                  );
+                })}
+            </div>
+            <p className="simdash-helper">
+              {interventionType ? "Click the map to place the selected intervention. Drag the marker to refine it." : "Choose an intervention, then place it directly on the map."}
             </p>
-          </div>
-          <div className="rounded-xl border border-white/80 bg-white/85 px-4 py-3 text-sm text-slate-700 shadow-sm">
-            <div className="font-semibold text-slate-900">{city?.name || city?.display_name || "Selected city"}</div>
-            <div>{baselineFacilities.length.toLocaleString()} origin areas evaluated</div>
-          </div>
-        </div>
+          </section>
 
-        <div className="mt-5 grid grid-cols-1 gap-2 md:grid-cols-5">
-          {[
-            ["1", "Select intervention"],
-            ["2", "Place on map"],
-            ["3", "Review context"],
-            ["4", "Evaluate scenario"],
-            ["5", "Compare impact"]
-          ].map(([number, label], index) => {
-            const active = planningStep >= index + 1;
-            return (
-              <div key={label} className={`rounded-xl border px-3 py-2 text-sm ${active ? "border-[#0F6E56]/30 bg-white text-slate-950" : "border-slate-200 bg-white/55 text-slate-500"}`}>
-                <span className={`mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${active ? "bg-[#0F6E56] text-white" : "bg-slate-200 text-slate-600"}`}>{number}</span>
-                {label}
-              </div>
-            );
-          })}
-        </div>
-      </article>
-
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <article className="min-h-[680px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h3 className="font-heading text-base font-bold text-slate-950">Planning map</h3>
-              <p className="text-sm text-slate-600">{mapInstruction}</p>
+          <section className="simdash-section">
+            <div className="simdash-section-head">
+              <span>B</span>
+              <h2>Scenario settings</h2>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <button type="button" onClick={() => setShowInfluenceZone((prev) => !prev)} className={`rounded-full border px-3 py-1.5 font-semibold ${showInfluenceZone ? "border-[#0F6E56] bg-[#0F6E56]/10 text-[#0F6E56]" : "border-slate-300 text-slate-600"}`}>
-                Planning radius
-              </button>
-              <button type="button" onClick={() => setShowBaselineStops((prev) => !prev)} className={`rounded-full border px-3 py-1.5 font-semibold ${showBaselineStops ? "border-[#2563EB] bg-blue-50 text-blue-700" : "border-slate-300 text-slate-600"}`}>
-                Existing stops
-              </button>
-              <button type="button" onClick={() => setShowBaselineFacilities((prev) => !prev)} className={`rounded-full border px-3 py-1.5 font-semibold ${showBaselineFacilities ? "border-slate-500 bg-slate-100 text-slate-800" : "border-slate-300 text-slate-600"}`}>
-                Existing facilities
-              </button>
+            <label className="simdash-range">
+              <span>Max travel time <b>{advancedSettings.max_travel_time_min} min</b></span>
+              <input type="range" min="10" max="60" step="5" value={advancedSettings.max_travel_time_min} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, max_travel_time_min: Number(event.target.value) }))} />
+            </label>
+            <label className="simdash-range">
+              <span>Walking distance to stops <b>{advancedSettings.walking_distance_m} m</b></span>
+              <input type="range" min="200" max="1200" step="100" value={advancedSettings.walking_distance_m} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, walking_distance_m: Number(event.target.value) }))} />
+            </label>
+            <label className="simdash-range">
+              <span>Transport speed <b>{advancedSettings.transport_speed_kmh} km/h</b></span>
+              <input type="range" min="8" max="35" step="1" value={advancedSettings.transport_speed_kmh} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, transport_speed_kmh: Number(event.target.value) }))} />
+            </label>
+            <small className="simdash-note">Transport speed is sent to the simulation model. Travel-time threshold is used to summarize results.</small>
+          </section>
+
+          <section className="simdash-section">
+            <div className="simdash-section-head">
+              <span>C</span>
+              <h2>Layers</h2>
             </div>
-          </div>
+            <label className="simdash-check"><input type="checkbox" checked={showBaselineFacilities} onChange={(event) => setShowBaselineFacilities(event.target.checked)} /> Show facilities</label>
+            <label className="simdash-check"><input type="checkbox" checked={showBaselineStops} onChange={(event) => setShowBaselineStops(event.target.checked)} /> Show transport stops</label>
+            <label className="simdash-check is-disabled"><input type="checkbox" checked={showRoutes} disabled onChange={(event) => setShowRoutes(event.target.checked)} /> Show routes <small>not available</small></label>
+            <label className="simdash-check"><input type="checkbox" checked={showAccessibilityLayer} onChange={(event) => setShowAccessibilityLayer(event.target.checked)} /> Show accessibility heatmap</label>
+          </section>
 
-          <div className="h-[620px]">
-            <SimulationWorkspaceMap
-              city={city}
-              baselineFacilities={baselineFacilities}
-              simulatedFacilities={simulatedFacilities}
-              transportStops={transportStops}
-              baselineSupplyFacilities={baselineSupplyFacilities}
-              scenarioAddedFacilities={scenarioAddedFacilities}
-              scenarioAddedStops={scenarioAddedStops}
-              interventionType={interventionType}
-              placement={placement}
-              onPlacementChange={setPlacement}
-              selectedDistrictId={selectedDistrict?.id || null}
-              impactedDistrictIds={impactedOriginIds}
-              mapLayer={mapLayer}
-              onMapLayerChange={setMapLayer}
-              showBaselineStops={showBaselineStops}
-              showBaselineFacilities={showBaselineFacilities}
-              showInfluenceZone={showInfluenceZone}
-              isLoading={isLoading || simulationPending}
-              loadingLabel={simulationPending ? "Computing scenario impact..." : "Loading map data..."}
-              interactionHint={mapInstruction}
-              selectedInterventionLabel={selectedInterventionLabel}
-            />
-          </div>
-        </article>
+          <section className="simdash-section">
+            <div className="simdash-section-head">
+              <span>D</span>
+              <h2>Mode</h2>
+            </div>
+            <div className="simdash-mode-switch">
+              <button type="button" className={simulatorMode === "view" ? "is-selected" : ""} onClick={() => setSimulatorMode("view")}>View mode</button>
+              <button type="button" className={simulatorMode === "simulation" ? "is-selected" : ""} onClick={() => setSimulatorMode("simulation")}>Simulation mode</button>
+            </div>
+          </section>
+        </aside>
 
-        <aside className="space-y-4">
-          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
+        <main className="simdash-map-panel">
+          <SimulationWorkspaceMap
+            city={city}
+            baselineFacilities={baselineFacilities}
+            simulatedFacilities={simulatedFacilities}
+            transportStops={transportStops}
+            baselineSupplyFacilities={baselineSupplyFacilities}
+            scenarioAddedFacilities={(Array.isArray(simulationResult?.added_facilities) ? simulationResult.added_facilities : []).filter((row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude)))}
+            scenarioAddedStops={(Array.isArray(simulationResult?.added_transport_stops) ? simulationResult.added_transport_stops : []).filter((row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude)))}
+            interventionType={simulatorMode === "simulation" ? interventionType : ""}
+            placement={placement}
+            onPlacementChange={setPlacement}
+            selectedDistrictId={selectedDistrict?.id || null}
+            impactedDistrictIds={(Array.isArray(simulationResult?.impacted_origin_ids) ? simulationResult.impacted_origin_ids : []).map(String)}
+            mapLayer={mapLayer}
+            onMapLayerChange={setMapLayer}
+            showBaselineStops={showBaselineStops}
+            showBaselineFacilities={showBaselineFacilities}
+            showAccessibilityLayer={showAccessibilityLayer}
+            showMapLegend={false}
+            showInfluenceZone={simulatorMode === "simulation" && showInfluenceZone}
+            isLoading={isLoading || simulationPending}
+            loadingLabel={simulationPending ? "Evaluating scenario..." : "Loading map data..."}
+          />
+          <div className="simdash-map-status">
+            <strong>{simulatorMode === "simulation" ? "Simulation mode" : "View mode"}</strong>
+            <span>{placement ? planningSummary : "Select an intervention and click the map."}</span>
+          </div>
+        </main>
+
+        <aside className="simdash-panel simdash-right-panel">
+          <section className="simdash-section">
+            <div className="simdash-results-head">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step 1</p>
-                <h3 className="font-heading text-base font-bold text-slate-950">Select intervention</h3>
+                <p>Results</p>
+                <h2>{hasResult ? scenarioStatus.label : simulationPending ? "Evaluating scenario" : "Awaiting placement"}</h2>
               </div>
-              <span className="rounded-full bg-[#0F6E56]/10 px-3 py-1 text-xs font-semibold text-[#0F6E56]">Guided mode</span>
+              {runTimeLabel ? <span>{runTimeLabel}</span> : null}
             </div>
-            <div className="mt-3 space-y-2">
-              {interventionOptions.map((option) => {
-                const selected = interventionType === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setInterventionType(option.id)}
-                    className={`w-full rounded-xl border p-3 text-left transition ${
-                      selected ? "border-[#0F6E56] bg-[#F0F8F4] shadow-sm" : "border-slate-200 bg-white hover:border-[#0F6E56]/40 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-bold text-slate-950">{option.label}</div>
-                        <div className="mt-1 text-xs leading-5 text-slate-600">{interventionDescription(option)}</div>
-                      </div>
-                      <span className={`mt-0.5 h-3 w-3 rounded-full border ${selected ? "border-[#0F6E56] bg-[#0F6E56]" : "border-slate-300"}`} />
-                    </div>
-                  </button>
-                );
-              })}
-              {!interventionOptions.length ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">No interventions are configured for this city.</div> : null}
+            <div className="simdash-metrics">
+              <div className="simdash-metric">
+                <span>Accessibility Score</span>
+                <strong>{fmtPct(hasResult ? accessAfter : accessBefore)}</strong>
+                <em className={accessDelta >= 0 ? "is-positive" : "is-negative"}>{hasResult ? scoreDeltaText : "baseline"}</em>
+              </div>
+              <div className="simdash-metric">
+                <span>Avg Travel Time</span>
+                <strong>{fmtTime(hasResult ? timeAfter : timeBefore)}</strong>
+                <em className={timeDelta <= 0 ? "is-positive" : "is-negative"}>{hasResult ? timeDeltaText : "baseline"}</em>
+              </div>
+              <div className="simdash-metric">
+                <span>Within {maxTravelTime} min</span>
+                <strong>{scenarioAccessibleCount.toLocaleString()}</strong>
+                <em className={accessibleDelta >= 0 ? "is-positive" : "is-negative"}>{hasResult ? `${accessibleDelta >= 0 ? "+" : ""}${accessibleDelta}` : "locations"}</em>
+              </div>
             </div>
-          </article>
+          </section>
 
-          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Steps 2-3</p>
-            <h3 className="mt-1 font-heading text-base font-bold text-slate-950">Placement and area context</h3>
-            {!interventionType ? (
-              <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                Select an intervention first. The map will then become the main input for placing the scenario.
-              </div>
-            ) : !placement ? (
-              <div className="mt-3 rounded-xl border border-dashed border-[#0F6E56]/40 bg-[#F5FBF8] p-4 text-sm leading-6 text-slate-700">
-                {selectedInterventionLabel} is ready. Click on the map to choose the location to evaluate.
-              </div>
-            ) : (
-              <div className="mt-3 space-y-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Selected area</div>
-                  <div className="mt-1 font-bold text-slate-950">{selectedAreaLabel}</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-600">{friendlyAreaStatus(selectedDistrict)}</div>
-                  <button type="button" onClick={() => setPlacement(null)} className="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                    Clear map location
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estimated nearby population served</div>
-                    <div className="mt-1 text-lg font-bold text-slate-950">{nearbyPopulationEstimate > 0 ? formatCount(nearbyPopulationEstimate) : "Population not available"}</div>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Closest existing stop</div>
-                    <div className="mt-1 font-bold text-slate-950">{nearestTransportStop ? friendlyStopLabel(nearestTransportStop) : "No stop context available"}</div>
-                    {nearestTransportStop ? <div className="mt-1 text-xs text-slate-600">{formatDistance(nearestTransportStop.distanceM)} from selected location</div> : null}
-                  </div>
-                </div>
-              </div>
-            )}
-          </article>
-
-          <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step 4</p>
-                <h3 className="mt-1 font-heading text-base font-bold text-slate-950">Review and evaluate</h3>
-              </div>
-              <button type="button" onClick={() => setMode((prev) => (prev === "advanced" ? "basic" : "advanced"))} className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                {mode === "advanced" ? "Hide advanced" : "Advanced"}
-              </button>
+          <section className="simdash-section">
+            <div className="simdash-section-head">
+              <span>B</span>
+              <h2>Before vs After</h2>
             </div>
-            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-700">{scenarioNarrative}</div>
-
-            {mode === "advanced" ? (
-              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Optional technical tuning</div>
-                <div className="mt-3 space-y-4 text-sm text-slate-700">
-                  <label className="block">
-                    <div className="flex items-center justify-between">
-                      <span>Transport stop density multiplier</span>
-                      <span className="font-semibold">{advancedSettings.stop_density_multiplier.toFixed(2)}x</span>
-                    </div>
-                    <input type="range" min={1} max={3} step={0.05} value={advancedSettings.stop_density_multiplier} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, stop_density_multiplier: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
-                  </label>
-                  <label className="block">
-                    <div className="flex items-center justify-between">
-                      <span>Nearest-stop distance reduction</span>
-                      <span className="font-semibold">{(advancedSettings.reduce_nearest_stop_distance_pct * 100).toFixed(0)}%</span>
-                    </div>
-                    <input type="range" min={0} max={0.5} step={0.01} value={advancedSettings.reduce_nearest_stop_distance_pct} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, reduce_nearest_stop_distance_pct: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
-                  </label>
-                  <label className="block">
-                    <div className="flex items-center justify-between">
-                      <span>Additional auto-placed facilities</span>
-                      <span className="font-semibold">{advancedSettings.add_facilities}</span>
-                    </div>
-                    <input type="range" min={0} max={10} step={1} value={advancedSettings.add_facilities} onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, add_facilities: Number(event.target.value) }))} className="mt-2 w-full accent-[#0F6E56]" />
-                  </label>
-                </div>
-                <details className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <summary className="cursor-pointer text-xs font-semibold text-slate-700">Backend scenario payload</summary>
-                  <pre className={`mt-2 max-h-56 overflow-auto whitespace-pre-wrap text-[11px] text-slate-600 ${isRtl ? "text-right" : "text-left"}`}>{technicalPayload}</pre>
-                </details>
-              </div>
-            ) : null}
-
-            {resultsOutdated ? <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">The scenario changed after the last evaluation. Evaluate again to refresh the results.</div> : null}
-
-            <div className="mt-4 grid grid-cols-1 gap-2">
-              <button type="button" onClick={runScenario} disabled={!canRunSimulation || simulationPending} className="rounded-xl bg-[#0F6E56] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#0B5B47] disabled:cursor-not-allowed disabled:opacity-55">
-                {simulationPending ? "Computing scenario..." : "Evaluate scenario"}
-              </button>
-              {hasResult ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onResetSimulation();
-                    setLastRunSignature("");
-                  }}
-                  className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Reset to baseline
-                </button>
-              ) : null}
+            <div className="simdash-compare-row">
+              <span>Before</span>
+              <b>{fmtPct(accessBefore)}</b>
+              <i style={{ width: `${Math.max(2, accessBefore * 100)}%` }} />
             </div>
-          </article>
+            <div className="simdash-compare-row">
+              <span>After</span>
+              <b>{hasResult ? fmtPct(accessAfter) : "Run scenario"}</b>
+              <i className="is-after" style={{ width: `${Math.max(2, (hasResult ? accessAfter : accessBefore) * 100)}%` }} />
+            </div>
+            {hasResult ? <div className={`simdash-change ${accessDelta >= 0 ? "is-positive" : "is-negative"}`}>Change {fmtPp(accessDelta)}</div> : null}
+          </section>
+
+          <section className="simdash-section">
+            <div className="simdash-section-head">
+              <span>C</span>
+              <h2>Insights</h2>
+            </div>
+            <ul className="simdash-insights">
+              <li>{hasResult ? interpretation : "Place an intervention to generate before-and-after insights."}</li>
+              {placement ? <li>Scenario evaluated near {selectedContext.locationValue}.</li> : null}
+              {!populationContext.supported ? <li>{populationContext.value}</li> : null}
+            </ul>
+          </section>
+
+          <section className="simdash-section">
+            <div className="simdash-section-head">
+              <span>D</span>
+              <h2>Legend</h2>
+            </div>
+            <div className="simdash-legend">
+              <span><i className="is-high" /> High access</span>
+              <span><i className="is-mid" /> Medium access</span>
+              <span><i className="is-low" /> Low access</span>
+              <span><i className="is-stop" /> Transport stop</span>
+              <span><i className="is-new" /> New intervention</span>
+            </div>
+          </section>
         </aside>
       </div>
-
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step 5</p>
-            <h3 className="mt-1 font-heading text-xl font-bold text-slate-950">Planning impact</h3>
-            <p className="mt-1 text-sm text-slate-600">{resultHeadline}</p>
-          </div>
-          {activeSimulationLabel ? <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">Latest: {activeSimulationLabel}</div> : null}
-        </div>
-
-        {hasResult ? (
-          <>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Average accessibility</div>
-                <div className="mt-2 text-lg font-bold text-slate-950">{formatPercent(baselineAvgAccessibility)} to {formatPercent(simulatedAvgAccessibility)}</div>
-                <div className="mt-1 text-sm"><DeltaValue delta={deltaAccessibility} options={{ multiplier: 100, decimals: 2, unit: " pp", epsilon: 0.01 }} /></div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Average travel time</div>
-                <div className="mt-2 text-lg font-bold text-slate-950">{formatMinutes(baselineAvgTravel)} to {formatMinutes(simulatedAvgTravel)}</div>
-                <div className="mt-1 text-sm"><DeltaValue delta={deltaTravel} options={{ decimals: 2, unit: " min", epsilon: 0.05, positiveIsGood: false }} /></div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estimated population positively affected</div>
-                <div className="mt-2 text-lg font-bold text-slate-950">{Math.abs(populationAffected) < 1 ? "No meaningful change" : formatCount(populationAffected)}</div>
-                <div className="mt-1 text-sm text-slate-600">{Number.isFinite(originsImproved) ? `${formatCount(originsImproved)} origin areas improved` : "Origin count unavailable"}</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Service areas improved</div>
-                <div className="mt-2 text-lg font-bold text-slate-950">{districtsImproved} of {districtsTotal}</div>
-                <div className="mt-1 text-sm text-slate-600">{inequalityChange === null ? "Equity change unavailable" : <DeltaValue delta={inequalityChange} options={{ decimals: 3, unit: " Gini", epsilon: 0.001 }} />}</div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <h4 className="font-heading text-base font-bold text-slate-950">Planner interpretation</h4>
-                <p className="mt-2 text-sm leading-6 text-slate-700">
-                  {deltaAccessibility > 0.005
-                    ? "This scenario produces a positive accessibility signal. Use the impact map to check whether benefits align with underserved areas before prioritizing investment."
-                    : "This scenario produces limited average change. It may still be useful locally, but it should be compared against alternative locations or intervention types."}
-                </p>
-                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                  Underserved population: {formatCount(baselineUnderservedPopulation)} to {formatCount(simulatedUnderservedPopulation)}.{" "}
-                  <DeltaValue delta={underservedPopulationDelta} options={{ decimals: 0, unit: " residents", epsilon: 1, positiveIsGood: false }} />
-                </div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <h4 className="font-heading text-base font-bold text-slate-950">Most affected origin areas</h4>
-                {districtImpacts.some((row) => Math.abs(row.delta) >= 0.005) ? (
-                  <div className="mt-3 space-y-2">
-                    {districtImpacts.slice(0, 5).map((row) => (
-                      <div key={row.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                        <span className="font-semibold text-slate-900">{row.districtName}</span>
-                        <DeltaValue delta={row.delta} options={{ multiplier: 100, decimals: 2, unit: " pp", epsilon: 0.01 }} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">No origin area crossed the meaningful-change threshold for this scenario.</div>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
-            Scenario impact will appear after evaluation, including accessibility change, travel-time change, affected population, and impacted origin areas.
-          </div>
-        )}
-      </article>
-
-      {simulationResult?.error ? <article className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{simulationResult.error}</article> : null}
     </section>
   );
 }

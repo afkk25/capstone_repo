@@ -29,11 +29,16 @@ export default function FacilityCard({ facility }) {
   const tone = toneFromScore(score);
   const pct = Math.max(0, Math.min(100, score * 100));
   const nearest = Number(facility.nearestStopDistanceMeters);
+  const title = facility.originName || facility.name || facility.districtName || "Analysis location";
+  const district = facility.districtName && facility.districtName !== title ? facility.districtName : "";
 
   return (
     <article className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm rtl-safe-text ${isRtl ? "text-right" : "text-left"}`}>
       <div className="mb-2 flex items-start justify-between gap-2">
-        <h3 className="text-[14px] font-medium text-gray-900">{facility.districtName}</h3>
+        <div>
+          <h3 className="text-[14px] font-medium text-gray-900">{title}</h3>
+          {district ? <p className="mt-0.5 text-[11px] text-gray-500">{district}</p> : null}
+        </div>
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${tone.badge}`}>{t(tone.labelKey)}</span>
       </div>
       <div className="h-[5px] rounded-full bg-gray-200">
@@ -45,7 +50,7 @@ export default function FacilityCard({ facility }) {
         </span>
         <span>
           {t("facility.nearestStop")}{" "}
-          <span className="num-ltr">{Number.isFinite(nearest) ? `${toLocaleNumber(Math.round(nearest), language, { maximumFractionDigits: 0 })}m` : "—"}</span>
+          <span className="num-ltr">{Number.isFinite(nearest) ? `${toLocaleNumber(Math.round(nearest), language, { maximumFractionDigits: 0 })}m` : "N/A"}</span>
         </span>
       </div>
     </article>

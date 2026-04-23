@@ -17,11 +17,12 @@ from core.equity import compute_equity
 from core.features import compute_facility_proxy_features, compute_origin_features
 from core.modeling import load_model, predict, train_model
 from services.cache import clear_city_cache
+from services.districts import DistrictDataUnavailable, assign_districts_to_points, district_geojson_with_metrics
 from services.notebook_bridge.loaders import CityDataNotFoundError, get_city_paths, load_notebook_origin_metrics
 
 router = APIRouter(tags=["cities"], prefix="/api")
 
-BASELINE_VERSION = "origin-first-v2"
+BASELINE_VERSION = "origin-first-districts-v3"
 BASELINE_METADATA_PATH = "baseline_metadata.json"
 
 
@@ -82,6 +83,8 @@ def _origin_source_files(city_id: str) -> list[Path]:
         paths.interim_origin_metrics_csv,
         paths.interim_worldpop_origins_csv,
         paths.interim_worldpop_origin_points_csv,
+        paths.processed_districts_with_worldpop_gpkg,
+        paths.final_district_summary_gpkg,
         paths.final_district_summary_csv,
     ]
 
@@ -146,10 +149,28 @@ def _build_analysis_frame(city_id: str, cfg: dict[str, Any], healthcare_gdf: gpd
     origin_df, warnings = _load_city_origin_metrics(city_id)
     if not origin_df.empty:
         features_df = compute_origin_features(origin_df, healthcare_gdf, stops_gdf, cfg)
+        if (
+            not features_df.empty
+            and (
+                "district_id" not in features_df.columns
+                or "district_name" not in features_df.columns
+                or features_df["district_name"].astype(str).str.startswith("Area ").all()
+            )
+        ):
+            try:
+                features_df, district_warnings = assign_districts_to_points(city_id, features_df)
+                warnings.extend(district_warnings)
+            except DistrictDataUnavailable:
+                warnings.append("District assignment is not available for the current dataset.")
         analysis_unit = "origin"
         source = "origin_metrics"
     else:
         features_df = compute_facility_proxy_features(healthcare_gdf, stops_gdf, cfg)
+        try:
+            features_df, district_warnings = assign_districts_to_points(city_id, features_df)
+            warnings.extend(district_warnings)
+        except DistrictDataUnavailable:
+            pass
         analysis_unit = "facility_proxy"
         source = "facility_fallback"
 
@@ -329,17 +350,37 @@ def _district_summary_from_origins(features_df: pd.DataFrame, scores: np.ndarray
         return []
     work["accessibility_score"] = score_series.loc[work.index].to_numpy(dtype=float)
     work["population"] = pd.to_numeric(work.get("population", 0.0), errors="coerce").fillna(0.0).clip(lower=0.0)
+    work["travel_time_min"] = (1.0 - work["accessibility_score"].clip(lower=0.0, upper=1.0)) * 60.0
+
+    def weighted_mean(values: pd.Series, weights: pd.Series) -> float:
+        v = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+        w = pd.to_numeric(weights, errors="coerce").fillna(0.0).clip(lower=0.0).to_numpy(dtype=float)
+        mask = np.isfinite(v) & np.isfinite(w) & (w > 0)
+        if mask.sum() == 0:
+            return float(np.nanmean(v)) if np.isfinite(v).any() else 0.0
+        return float(np.average(v[mask], weights=w[mask]))
+
+    group_cols = ["district_name"]
+    if "district_id" in work.columns:
+        group_cols = ["district_id", "district_name"]
+
     grouped = (
-        work.groupby("district_name", dropna=False)
+        work.groupby(group_cols, dropna=False)
         .apply(
             lambda g: pd.Series(
                 {
-                    "district_name": str(g.name),
+                    "district_name": str(g["district_name"].iloc[0]),
                     "district_id": g["district_id"].iloc[0] if "district_id" in g.columns else None,
                     "origin_count": int(len(g)),
                     "population": float(g["population"].sum()),
-                    "avg_accessibility_score": float(g["accessibility_score"].mean()),
-                    "underserved_pct": float((g["accessibility_score"] < 0.5).mean() * 100.0),
+                    "avg_accessibility_score": weighted_mean(g["accessibility_score"], g["population"]),
+                    "avg_travel_time_min": weighted_mean(g["travel_time_min"], g["population"]),
+                    "underserved_pct": float(100.0 * g.loc[g["accessibility_score"] < 0.5, "population"].sum() / g["population"].sum())
+                    if float(g["population"].sum()) > 0
+                    else float((g["accessibility_score"] < 0.5).mean() * 100.0),
+                    "pct_pop_score_below_50": float(100.0 * g.loc[g["accessibility_score"] < 0.5, "population"].sum() / g["population"].sum())
+                    if float(g["population"].sum()) > 0
+                    else float((g["accessibility_score"] < 0.5).mean() * 100.0),
                     "centroid_latitude": float(pd.to_numeric(g["latitude"], errors="coerce").mean()),
                     "centroid_longitude": float(pd.to_numeric(g["longitude"], errors="coerce").mean()),
                 }
@@ -354,30 +395,8 @@ def _district_summary_from_origins(features_df: pd.DataFrame, scores: np.ndarray
 
 
 def _district_aggregate_geojson(features_df: pd.DataFrame, scores: np.ndarray) -> dict[str, Any]:
-    summaries = _district_summary_from_origins(features_df, scores)
-    features = []
-    for row in summaries:
-        lat = row.get("centroid_latitude")
-        lon = row.get("centroid_longitude")
-        if not (isinstance(lat, (int, float)) and isinstance(lon, (int, float))):
-            continue
-        features.append(
-            {
-                "type": "Feature",
-                "geometry": {"type": "Point", "coordinates": [float(lon), float(lat)]},
-                "properties": {
-                    "district_name": row.get("district_name"),
-                    "district_id": row.get("district_id"),
-                    "origin_count": row.get("origin_count"),
-                    "population": row.get("population"),
-                    "avg_accessibility_score": row.get("avg_accessibility_score"),
-                    "underserved_pct": row.get("underserved_pct"),
-                    "rank": row.get("rank"),
-                    "representation": "district_centroid_aggregate",
-                },
-            }
-        )
-    return {"type": "FeatureCollection", "features": features}
+    _ = features_df, scores
+    return {"type": "FeatureCollection", "features": []}
 
 
 @router.get("/cities")
@@ -451,9 +470,13 @@ def get_city_district_geojson(city_id: str) -> Any:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    if metadata.get("analysis_unit") != "origin":
-        empty = {"type": "FeatureCollection", "features": [], "warnings": metadata.get("warnings", [])}
-        return Response(content=json.dumps(empty), media_type="application/json")
-
-    geojson = _district_aggregate_geojson(features_df, np.asarray(scores, dtype=float))
+    summaries = _district_summary_from_origins(features_df, np.asarray(scores, dtype=float)) if metadata.get("analysis_unit") == "origin" else []
+    try:
+        geojson, district_warnings = district_geojson_with_metrics(city_id, summaries)
+    except DistrictDataUnavailable:
+        geojson = {"type": "FeatureCollection", "features": []}
+        district_warnings = ["District-level map geometry is not available for the current dataset."]
+    warnings = [*metadata.get("warnings", []), *district_warnings]
+    if warnings:
+        geojson["warnings"] = warnings
     return Response(content=json.dumps(geojson), media_type="application/json")

@@ -35,8 +35,16 @@ export default function MapPage({
   }, [baselineFacilities, simulatedFacilities]);
 
   return (
-    <section className="h-[calc(100vh-56px-32px)] min-h-[620px]">
-      <div className="relative h-full">
+    <section className="mc-map-page">
+      <div className="mc-page-intro">
+        <div>
+          <span>Spatial Access Explorer</span>
+          <h1>Explore current and scenario accessibility across the city</h1>
+          <p>Use the layer selector to compare accessibility, travel time and planning priority. Click an origin area for local context.</p>
+        </div>
+      </div>
+
+      <div className="relative h-full min-h-[620px]">
         <MapView
           city={city}
           baselineFacilities={baselineFacilities}
@@ -66,7 +74,7 @@ export default function MapPage({
                 {t("map.scenario")}: {scenarioName || t("map.selectedScenario")}
               </span>
               <button type="button" className="rounded border border-gray-200 px-2 py-0.5 text-xs hover:bg-gray-50" onClick={onResetSimulation}>
-                {t("map.reset")} ×
+                Reset to baseline
               </button>
             </div>
           </div>
@@ -78,7 +86,7 @@ export default function MapPage({
           }`}
         >
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t("map.howToRead")}</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">How to read the map</span>
             <button
               type="button"
               className="relative inline-flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 text-[10px] text-gray-600"
@@ -92,7 +100,7 @@ export default function MapPage({
                     sideClass(isRtl, "right-0 text-left", "left-0 text-right")
                   }`}
                 >
-                  {t("map.helpText")}
+                  Point colors show the selected map layer. Accessibility uses high, moderate and low score bands; travel time and priority use their own thresholds.
                 </span>
               ) : null}
             </button>
@@ -100,23 +108,23 @@ export default function MapPage({
 
           <div className="space-y-1 text-[12px] text-gray-700">
             <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[#3B6D11]" />
-              <span>{t("map.wellConnected")}</span>
-              <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>&lt; 100m</span>
+              <span className="inline-block h-3 w-3 rounded-full bg-[#2ecc71]" />
+              <span>High accessibility</span>
+              <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>&gt; 66</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[#BA7517]" />
-              <span>{t("map.moderateAccess")}</span>
-              <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>100 – 250m</span>
+              <span className="inline-block h-3 w-3 rounded-full bg-[#f39c12]" />
+              <span>Moderate accessibility</span>
+              <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>33-66</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[#D85A30]" />
-              <span>{t("map.hardToReach")}</span>
-              <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>&gt; 250m</span>
+              <span className="inline-block h-3 w-3 rounded-full bg-[#e74c3c]" />
+              <span>Low accessibility</span>
+              <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>&lt; 33</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-full bg-[#888780]" />
-              <span>{t("map.transportStop")}</span>
+              <span className="inline-block h-3 w-3 rounded-full bg-[#48cae4]" />
+              <span>Public transport stop</span>
             </div>
             {isSimulated ? (
               <>
@@ -133,8 +141,8 @@ export default function MapPage({
           </div>
 
           <div className="mt-2 border-t border-gray-200 pt-2 text-[12px] text-gray-700">
-            <div>{t("map.baselineCircle")}</div>
-            <div>{t("map.simulatedCircle")}</div>
+            <div>Solid circles show baseline origin areas.</div>
+            <div>Dashed circles show scenario results.</div>
           </div>
         </div>
       </div>

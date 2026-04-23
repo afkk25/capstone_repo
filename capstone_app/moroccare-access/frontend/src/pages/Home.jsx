@@ -22,7 +22,7 @@ const SCENARIO_CARDS = [
     icon: "🚌",
     title: "Add bus stops near isolated facilities",
     description:
-      "Place new stops within 200m of the 10 most isolated clinics and hospitals. Targets facilities currently scoring below 0.35.",
+      "Place new stops within 200m of the 10 most isolated healthcare facilities. Targets facilities currently scoring below 0.35.",
     impactHint: "Est. +18% avg. accessibility"
   },
   {
@@ -41,11 +41,11 @@ const SCENARIO_CARDS = [
     impactHint: "Est. −12 min avg. wait time"
   },
   {
-    id: "add_clinics",
+    id: "add_facilities",
     icon: "🏥",
-    title: "Open 2 satellite clinics near transit hubs",
+    title: "Open 2 healthcare facilities near transit hubs",
     description:
-      "Place small clinics at the two highest-traffic stops that have no facility within 600m.",
+      "Place healthcare facilities at the two highest-traffic stops that have no facility within 600m.",
     impactHint: "Est. +24% equity score"
   }
 ];
@@ -54,7 +54,7 @@ const scenarioPayloads = {
   add_stops: { stop_density_multiplier: 1.8, reduce_distance: 0.6, add_facilities: 0 },
   extend_tram: { stop_density_multiplier: 2.2, reduce_distance: 0.5, add_facilities: 0 },
   increase_freq: { stop_density_multiplier: 1.3, reduce_distance: 0.85, add_facilities: 0 },
-  add_clinics: { stop_density_multiplier: 1.0, reduce_distance: 1.0, add_facilities: 2 }
+  add_facilities: { stop_density_multiplier: 1.0, reduce_distance: 1.0, add_facilities: 2 }
 };
 
 const CUSTOM_SCENARIO_DEFAULTS = {

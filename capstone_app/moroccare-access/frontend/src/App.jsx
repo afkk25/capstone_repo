@@ -5,14 +5,15 @@ import { uploadCityDataForCity } from "./api/cities";
 import { normalizeBaselineFacilities, normalizeFacility, normalizeSupplyFacilities } from "./utils/adapters";
 import { useCityData } from "./hooks/useCityData";
 import { useSimulation } from "./hooks/useSimulation";
-import NavBar from "./components/NavBar";
 import CornerLanguageSwitcher from "./components/CornerLanguageSwitcher";
 import UploadModal from "./components/UploadModal";
-import Overview from "./pages/Overview";
+import NavBar from "./components/NavBar";
 import MapPage from "./pages/Map";
 import Simulate from "./pages/Simulate";
-import Analytics from "./pages/Analytics";
 import { useI18n } from "./i18n/I18nProvider";
+import OverviewPage from "./components/moroccare/OverviewPage";
+import AnalysisMethodologyPage from "./components/moroccare/AnalysisMethodologyPage";
+import { stakeholderMessage, stakeholderWarnings } from "./components/moroccare/planningMessages";
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const toRad = (deg) => (deg * Math.PI) / 180;
@@ -54,7 +55,7 @@ function AppFrame() {
   const [activeSimulationLabel, setActiveSimulationLabel] = useState("");
   const [activeLayer, setActiveLayer] = useState("accessibility");
 
-  const { citiesQuery, baselineQuery, explainabilityQuery } = useCityData(selectedCityId);
+  const { citiesQuery, baselineQuery, summaryQuery, rankingQuery, recommendationsQuery } = useCityData(selectedCityId);
   const cities = citiesQuery.data || [];
   const currentCityId = selectedCityId || cities[0]?.id || cities[0]?.city_id || "";
   const currentCity = cities.find((city) => (city.id || city.city_id) === currentCityId) || null;
@@ -72,6 +73,11 @@ function AppFrame() {
   const baselineSupplyFacilities = useMemo(() => normalizeSupplyFacilities(baselineQuery.data), [baselineQuery.data]);
 
   const transportStops = useMemo(() => (Array.isArray(baselineQuery.data?.transport_stops) ? baselineQuery.data.transport_stops : []), [baselineQuery.data]);
+  const districtSummaries = useMemo(
+    () => (Array.isArray(baselineQuery.data?.district_summaries) ? baselineQuery.data.district_summaries : []),
+    [baselineQuery.data]
+  );
+  const analysisUnit = baselineQuery.data?.analysis_unit || "origin";
 
   const originsWithStops = useMemo(
     () =>
@@ -80,6 +86,14 @@ function AppFrame() {
         ...stopMetrics(row, transportStops)
       })),
     [baselineOrigins, transportStops]
+  );
+  const supplyFacilitiesWithStops = useMemo(
+    () =>
+      baselineSupplyFacilities.map((row) => ({
+        ...row,
+        ...stopMetrics(row, transportStops)
+      })),
+    [baselineSupplyFacilities, transportStops]
   );
 
   const simulatedOrigins = useMemo(() => {
@@ -167,21 +181,21 @@ function AppFrame() {
     ? "map"
     : location.pathname.startsWith("/simulate") || location.pathname.startsWith("/simulation")
     ? "simulate"
-    : location.pathname.startsWith("/analytics")
-    ? "analytics"
+    : location.pathname.startsWith("/analysis") || location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/analytics") || location.pathname.startsWith("/data")
+    ? "analysis"
     : "overview";
 
-  const apiErrorMessage = uploadMutation.error?.message || simulationError?.message || "";
+  const apiErrorMessage = stakeholderMessage(uploadMutation.error?.message || simulationError?.message || "", "");
   const errorKey = apiErrorMessage ? `${activeTab}:${apiErrorMessage}` : "";
   const showApiError = Boolean(apiErrorMessage && dismissedErrorKey !== errorKey);
-  const baselineWarnings = Array.isArray(baselineQuery.data?.warnings) ? baselineQuery.data.warnings : [];
+  const baselineWarnings = stakeholderWarnings(baselineQuery.data?.warnings);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className={`mc-app-shell mc-header-shell ${activeTab === "simulate" ? "is-simulate-route" : ""}`}>
       <CornerLanguageSwitcher />
       <NavBar
         activeTab={activeTab}
-        onTabChange={(tabPath) => navigate(tabPath)}
+        onTabChange={(path) => navigate(path)}
         cities={cities}
         selectedCityId={currentCityId}
         onCityChange={(cityId) => {
@@ -198,8 +212,8 @@ function AppFrame() {
           setUploadOpen(true);
         }}
       />
-
-      <main className="mx-auto max-w-[1100px] px-6 py-4">
+      <div className="mc-main-shell">
+      <main className={activeTab === "simulate" ? "mc-route-main mc-route-main-simulate" : "mc-route-main"}>
         {showApiError ? (
           <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {apiErrorMessage}
@@ -208,7 +222,7 @@ function AppFrame() {
               </button>
             </div>
           ) : null}
-        {baselineWarnings.length ? (
+        {baselineWarnings.length && activeTab !== "simulate" ? (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
             {baselineWarnings.join(" ")}
           </div>
@@ -217,11 +231,33 @@ function AppFrame() {
           <Route
             path="/overview"
             element={
-              <Overview
-                cityName={currentCity?.name || currentCity?.display_name || ""}
+              <OverviewPage
+                city={currentCity}
                 facilities={originsWithStops}
                 transportStops={transportStops}
+                baselineSupplyFacilities={supplyFacilitiesWithStops}
+                districtSummaries={districtSummaries}
+                citySummary={summaryQuery.data?.summary || null}
+                planningRanking={Array.isArray(rankingQuery.data?.ranking) ? rankingQuery.data.ranking : []}
+                backendRecommendations={Array.isArray(recommendationsQuery.data?.recommendations) ? recommendationsQuery.data.recommendations : []}
+                analysisUnit={analysisUnit}
+                simulation={simulation}
                 isLoading={baselineQuery.isLoading || citiesQuery.isLoading}
+                cities={cities}
+                selectedCityId={currentCityId}
+                onCityChange={(cityId) => {
+                  setSelectedCityId(cityId);
+                  resetSimulation();
+                  setActiveSimulationLabel("");
+                }}
+                onOpenUpload={() => {
+                  setUploadMode("update");
+                  setUploadOpen(true);
+                }}
+                onAddCity={() => {
+                  setUploadMode("new");
+                  setUploadOpen(true);
+                }}
               />
             }
           />
@@ -233,13 +269,13 @@ function AppFrame() {
                 baselineFacilities={originsWithStops}
                 simulatedFacilities={simulatedOrigins}
                 transportStops={transportStops}
-                baselineSupplyFacilities={baselineSupplyFacilities}
+                baselineSupplyFacilities={supplyFacilitiesWithStops}
                 addedScenarioFacilities={addedScenarioFacilities}
                 addedScenarioStops={addedScenarioStops}
                 isLoading={baselineQuery.isLoading}
                 activeLayer={activeLayer}
                 onLayerChange={setActiveLayer}
-                onWhyScore={() => navigate("/analytics")}
+                onWhyScore={() => navigate("/analysis")}
                 isSimulated={isSimulated}
                 scenarioName={activeSimulationLabel}
                 onResetSimulation={() => {
@@ -252,11 +288,12 @@ function AppFrame() {
           <Route
             path="/simulate"
             element={
-              <Simulate
-                city={currentCity}
-                baselineFacilities={simulationBaselineOrigins.length ? simulationBaselineOrigins : originsWithStops}
+                <Simulate
+                  city={currentCity}
+                  analysisUnit={analysisUnit}
+                  baselineFacilities={simulationBaselineOrigins.length ? simulationBaselineOrigins : originsWithStops}
                 simulatedFacilities={simulatedOrigins}
-                baselineSupplyFacilities={baselineSupplyFacilities}
+                baselineSupplyFacilities={supplyFacilitiesWithStops}
                 transportStops={transportStops}
                 isLoading={baselineQuery.isLoading || citiesQuery.isLoading}
                 onRunSimulation={runScenario}
@@ -273,18 +310,12 @@ function AppFrame() {
             }
           />
           <Route path="/simulation" element={<Navigate to="/simulate" replace />} />
-          <Route
-            path="/analytics"
-            element={
-              <Analytics
-                facilities={originsWithStops}
-                transportStops={transportStops}
-                explainabilityRows={Array.isArray(explainabilityQuery.data?.feature_importance) ? explainabilityQuery.data.feature_importance : []}
-                isLoading={baselineQuery.isLoading || explainabilityQuery.isLoading}
-                equity={baselineQuery.data?.equity || null}
-              />
-            }
-          />
+          <Route path="/analysis" element={<AnalysisMethodologyPage />} />
+          <Route path="/dashboard" element={<Navigate to="/analysis" replace />} />
+          <Route path="/analytics" element={<Navigate to="/analysis" replace />} />
+          <Route path="/data" element={<Navigate to="/analysis" replace />} />
+          <Route path="/reports" element={<Navigate to="/analysis" replace />} />
+          <Route path="/settings" element={<Navigate to="/overview" replace />} />
           <Route path="/" element={<Navigate to="/overview" replace />} />
           <Route path="*" element={<Navigate to="/overview" replace />} />
         </Routes>
@@ -304,6 +335,7 @@ function AppFrame() {
         }}
         isUploading={uploadMutation.isPending}
       />
+      </div>
     </div>
   );
 }

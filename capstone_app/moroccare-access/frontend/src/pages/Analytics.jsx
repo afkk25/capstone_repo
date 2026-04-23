@@ -9,8 +9,8 @@ const ANALYTICS_COPY = {
       stop_density: "Transport stops nearby",
       nearest_stop_dist: "Distance to nearest stop",
       stop_count_500m: "Stops within 500m walk",
-      healthcare_density_1km: "Other clinics within 1km",
-      healthcare_density_500m: "Other clinics within 500m",
+      healthcare_density_1km: "Other healthcare facilities within 1km",
+      healthcare_density_500m: "Other healthcare facilities within 500m",
       interaction_density_stops: "Transit–facility overlap score",
       stop_rank: "Stop network rank",
       distance_rank: "Distance rank among facilities",
@@ -23,7 +23,7 @@ const ANALYTICS_COPY = {
       stop_count_500m: "The number of stops reachable within a typical 6-minute walk.",
       healthcare_density_1km: "Whether other facilities are clustered nearby and if people have alternatives.",
       healthcare_density_500m: "Very close facility clustering that can indicate urban health hubs.",
-      interaction_density_stops: "A combined score: facilities with many stops and nearby clinics rank highest.",
+      interaction_density_stops: "A combined score: facilities with many stops and nearby healthcare facilities rank highest.",
       stop_rank: "Rank against all facilities by stop count — 1 means best connected.",
       distance_rank: "Rank against all facilities by nearest stop distance — 1 means closest stop.",
       nearest_stop_dist_sq: "Penalizes long walking distances more strongly than short distances.",
@@ -38,7 +38,7 @@ const ANALYTICS_COPY = {
         "Reducing walking distance to the nearest stop has major impact. Facilities with no nearby stop underperform.",
       stop_count_500m: "Stops reachable within a short walk drive accessibility more than relying on one stop.",
       healthcare_density_1km:
-        "Facility clustering matters. Isolated clinics can remain less resilient even when they are relatively connected.",
+        "Facility clustering matters. Isolated healthcare facilities can remain less resilient even when they are relatively connected.",
       default:
         "The top driver remains transport coverage around facilities. Improving transit access yields the strongest gains."
     }
@@ -48,8 +48,8 @@ const ANALYTICS_COPY = {
       stop_density: "Arrêts de transport à proximité",
       nearest_stop_dist: "Distance à l’arrêt le plus proche",
       stop_count_500m: "Arrêts à moins de 500 m",
-      healthcare_density_1km: "Autres cliniques dans 1 km",
-      healthcare_density_500m: "Autres cliniques dans 500 m",
+      healthcare_density_1km: "Autres etablissements de sante dans 1 km",
+      healthcare_density_500m: "Autres etablissements de sante dans 500 m",
       interaction_density_stops: "Score de recouvrement transport–soins",
       stop_rank: "Rang de connectivité des arrêts",
       distance_rank: "Rang de distance aux arrêts",
@@ -77,7 +77,7 @@ const ANALYTICS_COPY = {
         "Réduire la distance de marche vers l’arrêt le plus proche a un impact fort sur l’accessibilité.",
       stop_count_500m: "Le nombre d’arrêts accessibles à pied est déterminant pour offrir des options d’itinéraires.",
       healthcare_density_1km:
-        "La concentration des établissements compte : les cliniques isolées restent plus vulnérables.",
+        "La concentration des etablissements compte : les etablissements de sante isoles restent plus vulnerables.",
       default:
         "Le facteur dominant reste la couverture de transport autour des établissements de santé."
     }
@@ -115,7 +115,7 @@ const ANALYTICS_COPY = {
       nearest_stop_dist:
         "تقليل مسافة المشي إلى أقرب محطة له أثر كبير على مستوى الولوجية.",
       stop_count_500m: "عدد المحطات المتاحة على مسافة مشي قصيرة مهم لتوفير بدائل تنقل للمستخدمين.",
-      healthcare_density_1km: "تمركز المرافق مهم؛ العيادات المعزولة تبقى أقل مرونة حتى مع اتصال مقبول.",
+      healthcare_density_1km: "تمركز المرافق مهم؛ المرافق الصحية المعزولة تبقى أقل مرونة حتى مع اتصال مقبول.",
       default: "يبقى العامل الأهم هو تغطية النقل العمومي حول المرافق الصحية."
     }
   }
@@ -214,13 +214,15 @@ export default function Analytics({ facilities, transportStops, explainabilityRo
   return (
     <section className={`space-y-3 rtl-safe-text ${isRtl ? "text-right" : "text-left"}`}>
       <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="font-heading text-[18px] font-bold text-gray-900">{t("analytics.title")}</h2>
-        <p className="mt-1 text-[14px] text-gray-700">{t("analytics.subtitle")}</p>
+        <h2 className="font-heading text-[18px] font-bold text-gray-900">Dashboard</h2>
+        <p className="mt-1 text-[14px] text-gray-700">
+          Quantitative analysis of access distribution, transport coverage, model drivers and equity signals.
+        </p>
       </article>
 
       {populationAvailable ? null : (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-          ℹ️ {t("analytics.populationWarning")}
+          Note: {t("analytics.populationWarning")}
         </div>
       )}
 
@@ -320,7 +322,7 @@ export default function Analytics({ facilities, transportStops, explainabilityRo
             </div>
 
             <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <p className="text-[13px] text-blue-900">💡 {topInsight}</p>
+              <p className="text-[13px] text-blue-900">Planning insight: {topInsight}</p>
               <p className="mt-2 text-[13px] text-blue-800">
                 {t("analytics.topInsight", {
                   label: topFeatures[0]?.label || t("analytics.na"),

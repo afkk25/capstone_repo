@@ -90,7 +90,7 @@ const translations = {
       scenarios: {
         addStopsTitle: "Add bus stops near isolated facilities",
         addStopsDescription:
-          "Place new stops within 200m of the 10 most isolated clinics and hospitals. Targets facilities currently scoring below 0.35.",
+          "Place new stops within 200m of the 10 most isolated healthcare facilities. Targets facilities currently scoring below 0.35.",
         addStopsImpact: "Est. +18% avg. accessibility",
         extendTramTitle: "Extend tram coverage south",
         extendTramDescription:
@@ -99,8 +99,8 @@ const translations = {
         increaseFreqTitle: "Increase frequency on low-access lines",
         increaseFreqDescription: "Double the service frequency on bus lines L072 and L067, which serve the most underserved areas.",
         increaseFreqImpact: "Est. −12 min avg. wait time",
-        addClinicsTitle: "Open 2 satellite clinics near transit hubs",
-        addClinicsDescription: "Place small clinics at the two highest-traffic stops that have no facility within 600m.",
+        addClinicsTitle: "Open 2 healthcare facilities near transit hubs",
+        addClinicsDescription: "Place healthcare facilities at the two highest-traffic stops that have no facility within 600m.",
         addClinicsImpact: "Est. +24% equity score"
       },
       bars: {
@@ -297,7 +297,7 @@ const translations = {
       scenarios: {
         addStopsTitle: "Ajouter des arrêts de bus près des établissements isolés",
         addStopsDescription:
-          "Placer de nouveaux arrêts à moins de 200m des 10 cliniques/hôpitaux les plus isolés. Cible les établissements sous 0,35.",
+          "Placer de nouveaux arrêts à moins de 200m des 10 établissements de santé les plus isolés. Cible les établissements sous 0,35.",
         addStopsImpact: "Est. +18% d’accessibilité moyenne",
         extendTramTitle: "Étendre la couverture tram au sud",
         extendTramDescription:
@@ -306,8 +306,8 @@ const translations = {
         increaseFreqTitle: "Augmenter la fréquence sur les lignes à faible accès",
         increaseFreqDescription: "Doubler la fréquence sur les lignes L072 et L067 desservant les zones les plus défavorisées.",
         increaseFreqImpact: "Est. −12 min de temps d’attente moyen",
-        addClinicsTitle: "Ouvrir 2 cliniques satellites près des hubs",
-        addClinicsDescription: "Installer de petites cliniques aux deux arrêts les plus fréquentés sans structure à moins de 600m.",
+        addClinicsTitle: "Ouvrir 2 établissements de santé près des hubs",
+        addClinicsDescription: "Installer des établissements de santé aux deux arrêts les plus fréquentés sans structure à moins de 600m.",
         addClinicsImpact: "Est. +24% score d’équité"
       },
       bars: {
@@ -504,7 +504,7 @@ const translations = {
       scenarioFallback: "سيناريو",
       scenarios: {
         addStopsTitle: "إضافة محطات حافلات قرب المرافق المعزولة",
-        addStopsDescription: "إضافة محطات ضمن 200م لأكثر 10 عيادات/مستشفيات عزلة، مع استهداف المرافق الأقل من 0.35.",
+        addStopsDescription: "إضافة محطات ضمن 200م لأكثر 10 مرافق صحية عزلة، مع استهداف المرافق الأقل من 0.35.",
         addStopsImpact: "تقديريًا +18% متوسط الوصول",
         extendTramTitle: "توسيع تغطية الترام نحو الجنوب",
         extendTramDescription: "تمديد مسار الترام عبر سيدي عثمان والحي المحمدي، وهما منطقتان بكثافة سكانية عالية ونقل منخفض.",
@@ -512,8 +512,8 @@ const translations = {
         increaseFreqTitle: "زيادة تردد الخطوط ضعيفة الوصول",
         increaseFreqDescription: "مضاعفة التردد على الخطين L072 وL067 اللذين يخدمان أكثر المناطق حرمانًا.",
         increaseFreqImpact: "تقديريًا −12 دقيقة متوسط الانتظار",
-        addClinicsTitle: "فتح عيادتين فرعيتين قرب محاور النقل",
-        addClinicsDescription: "إضافة عيادات صغيرة عند أعلى محطتين حركة بلا مرفق صحي ضمن 600م.",
+        addClinicsTitle: "فتح مرفقين صحيين قرب محاور النقل",
+        addClinicsDescription: "إضافة مرافق صحية عند أعلى محطتين حركة بلا مرفق صحي ضمن 600م.",
         addClinicsImpact: "تقديريًا +24% في مؤشر العدالة"
       },
       bars: {

@@ -39,6 +39,10 @@ class CityPaths:
     interim_origin_metrics_csv: Path
     interim_worldpop_origins_csv: Path
     interim_worldpop_origin_points_csv: Path
+    processed_casablanca_districts_gpkg: Path
+    processed_districts_with_worldpop_gpkg: Path
+    processed_districts_with_worldpop_csv: Path
+    final_district_summary_gpkg: Path
     final_district_summary_csv: Path
     final_modeling_results_dir: Path
     final_cls_test_clean_csv: Path
@@ -85,6 +89,10 @@ def get_city_paths(city_id: str) -> CityPaths:
         interim_origin_metrics_csv=repo_root / "data" / "interim" / "origin_accessibility_metrics.csv",
         interim_worldpop_origins_csv=repo_root / "data" / "interim" / "worldpop_origins.csv",
         interim_worldpop_origin_points_csv=repo_root / "data" / "interim" / "worldpop_origin_points.csv",
+        processed_casablanca_districts_gpkg=repo_root / "data" / "processed" / "Casablanca_Districts.gpkg",
+        processed_districts_with_worldpop_gpkg=repo_root / "data" / "processed" / "districts_with_worldpop.gpkg",
+        processed_districts_with_worldpop_csv=repo_root / "data" / "processed" / "districts_with_worldpop.csv",
+        final_district_summary_gpkg=repo_root / "data" / "final" / "district_accessibility_summary.gpkg",
         final_district_summary_csv=repo_root / "data" / "final" / "district_accessibility_summary.csv",
         final_modeling_results_dir=repo_root / "data" / "final" / "modeling_results",
         final_cls_test_clean_csv=repo_root / "data" / "final" / "modeling_results" / "cls_test_clean.csv",

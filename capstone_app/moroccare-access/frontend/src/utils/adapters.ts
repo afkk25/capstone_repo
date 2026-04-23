@@ -37,14 +37,20 @@ export function normalizeFacility(row: BaselineFacilityDto, index = 0): Frontend
   const travelTimeMin = toSafeNumber(row.travel_time_min, scoreToTravelMinutes(accessibilityScore));
   const latitude = toSafeNumber((row as Record<string, unknown>).lat ?? row.latitude, 0);
   const longitude = toSafeNumber((row as Record<string, unknown>).lon ?? row.longitude, 0);
+  const analysisUnit = String((row as Record<string, unknown>).analysis_unit ?? "");
   const rawDistrictName = (row as Record<string, unknown>).district ?? row.district_name;
-  const rawOriginName = row.name ?? row.origin_id;
-  const districtName = cleanDisplayLabel(rawDistrictName, cleanDisplayLabel(rawOriginName, `Area ${index + 1}`));
+  const rawOriginName = (row as Record<string, unknown>).origin_name ?? row.name ?? row.origin_id;
+  const originName = cleanDisplayLabel(rawOriginName, `Origin ${index + 1}`);
+  let districtName = cleanDisplayLabel(rawDistrictName, analysisUnit === "facility_proxy" ? "Service location" : originName);
+  if (analysisUnit === "facility_proxy" && !row.district_id && districtName === originName) {
+    districtName = "Service location";
+  }
 
   return {
     id: String(row.id ?? row.origin_id ?? row.name ?? row.district_name ?? `origin-${index}`),
     districtName,
-    originName: cleanDisplayLabel(row.name ?? row.origin_id, `Origin ${index + 1}`),
+    originName,
+    analysisUnit,
     districtId: row.district_id ?? null,
     urbanRing: String(row.urban_ring ?? "Unknown"),
     latitude,

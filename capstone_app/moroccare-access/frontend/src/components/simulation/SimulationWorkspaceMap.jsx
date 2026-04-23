@@ -3,49 +3,44 @@ import L from "leaflet";
 import { Circle, CircleMarker, MapContainer, Marker, Pane, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { FALLBACK_CENTER } from "../../utils/adapters";
 
-function accessibilityColor(value) {
-  if (value < 0.35) return "#D85A30";
-  if (value <= 0.65) return "#EF9F27";
-  return "#3B6D11";
-}
-
-function impactColor(delta) {
-  if (delta >= 0.02) return "#1D4ED8";
-  if (delta >= 0.005) return "#60A5FA";
-  if (delta <= -0.02) return "#B91C1C";
-  if (delta <= -0.005) return "#F87171";
-  return "#6B7280";
+function getOriginColor(score, mode) {
+  if (mode === "impact") {
+    if (score > 0.02) return "#3eb489";
+    if (score < -0.02) return "#d45353";
+    return "#4d6678";
+  }
+  if (score >= 0.66) return "#3eb489";
+  if (score >= 0.33) return "#e07d3c";
+  return "#d45353";
 }
 
 function layerLegend(layer) {
   if (layer === "impact") {
     return [
-      { color: "#1D4ED8", label: "Noticeable improvement" },
-      { color: "#60A5FA", label: "Small improvement" },
-      { color: "#6B7280", label: "Little or no change" },
-      { color: "#F87171", label: "Small decline" },
-      { color: "#B91C1C", label: "Noticeable decline" }
+      { color: "var(--accent)", label: "Improved" },
+      { color: "var(--text-dim)", label: "Minimal effect" },
+      { color: "var(--danger)", label: "Declined" }
     ];
   }
   if (layer === "after") {
     return [
-      { color: "#3B6D11", label: "Higher access after scenario" },
-      { color: "#EF9F27", label: "Moderate access after scenario" },
-      { color: "#D85A30", label: "Lower access after scenario" }
+      { color: "var(--accent)", label: "Higher access" },
+      { color: "var(--yellow)", label: "Moderate access" },
+      { color: "var(--danger)", label: "Lower access" }
     ];
   }
   return [
-    { color: "#3B6D11", label: "Higher baseline access" },
-    { color: "#EF9F27", label: "Moderate baseline access" },
-    { color: "#D85A30", label: "Lower baseline access" }
+    { color: "var(--accent)", label: "Higher access" },
+    { color: "var(--yellow)", label: "Moderate access" },
+    { color: "var(--danger)", label: "Lower access" }
   ];
 }
 
 function mapPointForMarker(interventionType) {
-  if (interventionType === "add_transport_stop") return { color: "#2563EB", symbol: "S", radiusM: 500, label: "New transport stop" };
+  if (interventionType === "add_transport_stop") return { color: "#3eb489", symbol: "S", radiusM: 500, label: "New transport stop" };
   if (interventionType === "add_healthcare_facility")
-    return { color: "#7C3AED", symbol: "H", radiusM: 1000, label: "New healthcare facility" };
-  return { color: "#B45309", symbol: "A", radiusM: 800, label: "Access improvement focus area" };
+    return { color: "#e07d3c", symbol: "H", radiusM: 1000, label: "New healthcare facility" };
+  return { color: "#e07d3c", symbol: "A", radiusM: 800, label: "Access improvement focus area" };
 }
 
 function FitToData({ center, rows, placement }) {
@@ -91,6 +86,25 @@ function PlacementSelector({ enabled, onSelect }) {
   return null;
 }
 
+function ResizeMapToContainer() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const invalidate = () => map.invalidateSize({ animate: false });
+    invalidate();
+    const timeout = window.setTimeout(invalidate, 120);
+    const observer = new ResizeObserver(invalidate);
+    observer.observe(container);
+    return () => {
+      window.clearTimeout(timeout);
+      observer.disconnect();
+    };
+  }, [map]);
+
+  return null;
+}
+
 export default function SimulationWorkspaceMap({
   city,
   baselineFacilities = [],
@@ -108,6 +122,8 @@ export default function SimulationWorkspaceMap({
   onMapLayerChange,
   showBaselineStops = false,
   showBaselineFacilities = false,
+  showAccessibilityLayer = true,
+  showMapLegend = true,
   showInfluenceZone = true,
   isLoading = false,
   loadingLabel = "Loading map data...",
@@ -152,7 +168,7 @@ export default function SimulationWorkspaceMap({
     () =>
       L.divIcon({
         className: "simulation-placement-icon",
-        html: `<div style="width:24px;height:24px;border-radius:9999px;background:${markerDesign.color};color:white;border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.25)">${markerDesign.symbol}</div>`,
+        html: `<div style="width:24px;height:24px;border-radius:9999px;background:${markerDesign.color};color:var(--navy);border:2px solid var(--navy-2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${markerDesign.symbol}</div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12]
       }),
@@ -162,26 +178,16 @@ export default function SimulationWorkspaceMap({
   const canPlaceFromMap = Boolean(interventionType);
   const legendItems = layerLegend(activeLayer);
   const markerLegendItems = [
-    { color: "#334155", label: "Baseline origin points" }
+    { color: "var(--text-muted)", label: "Evaluated location" },
+    ...(showBaselineStops ? [{ color: "var(--accent)", label: "Existing stop" }] : []),
+    ...(showBaselineFacilities
+      ? [
+          { color: "#0f9f6e", label: "Facility near transit" },
+          { color: "#dc2626", label: "Facility beyond 500m" }
+        ]
+      : []),
+    ...(interventionType ? [{ color: markerDesign.color, label: "Placed intervention" }] : [])
   ];
-  if (showBaselineStops) {
-    markerLegendItems.push({ color: "#6B7280", label: "Existing transport stops" });
-  }
-  if (showBaselineFacilities) {
-    markerLegendItems.push({ color: "#CBD5E1", label: "Existing healthcare facilities" });
-  }
-  if (hasSimulation && impactedSet.size) {
-    markerLegendItems.push({ color: "#1E3A8A", label: "Impacted origins" });
-  }
-  if (scenarioAddedFacilities.length) {
-    markerLegendItems.push({ color: "#7C3AED", label: "Added scenario facilities" });
-  }
-  if (scenarioAddedStops.length) {
-    markerLegendItems.push({ color: "#2563EB", label: "Added scenario stops" });
-  }
-  if (interventionType) {
-    markerLegendItems.push({ color: markerDesign.color, label: markerDesign.label });
-  }
   const mapCenter = useMemo(() => {
     const lat = Number(city?.center_lat);
     const lon = Number(city?.center_lon);
@@ -191,48 +197,54 @@ export default function SimulationWorkspaceMap({
   }, [baselineFacilities, city?.center_lat, city?.center_lon]);
 
   if (!city) {
-    return <div className="panel-card flex h-full items-center justify-center p-6 text-sm text-gray-500">Select a city to start map-based simulation.</div>;
+    return <div className="simulation-map-empty">Select a city to begin scenario planning.</div>;
   }
 
   return (
-    <div className="panel-card relative h-full overflow-hidden">
+    <div className="simulation-map-shell">
       <MapContainer center={mapCenter} zoom={city?.default_zoom || 11} className="h-full w-full" scrollWheelZoom preferCanvas>
         <FitToData center={mapCenter} rows={rowsForBounds} placement={placement} />
+        <ResizeMapToContainer />
         <PlacementSelector enabled={canPlaceFromMap} onSelect={onPlacementChange} />
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         <Pane name="origins" style={{ zIndex: 430 }}>
-          {mergedRows.map((row) => {
+          {showAccessibilityLayer ? mergedRows.map((row) => {
             const selected = selectedDistrictId === row.id;
             const impacted = impactedSet.has(row.id);
-            const displayScore = activeLayer === "after" ? row.simulatedAccessibility : row.accessibilityScore;
-            const fillColor = activeLayer === "impact" ? impactColor(row.deltaAccessibility) : accessibilityColor(displayScore);
+            const colorScore =
+              activeLayer === "impact"
+                ? row.deltaAccessibility
+                : activeLayer === "after"
+                ? row.simulatedAccessibility
+                : row.accessibilityScore;
             return (
               <CircleMarker
                 key={`origin-${row.id}`}
                 center={[row.latitude, row.longitude]}
-                radius={activeLayer === "impact" && impacted ? 9.5 : 8}
+                radius={5}
                 pathOptions={{
-                  color: selected ? "#0F172A" : impacted ? "#1E3A8A" : fillColor,
-                  fillColor,
-                  fillOpacity: 0.82,
-                  weight: selected ? 2.4 : impacted ? 2 : 1.3,
+                  color: "#0f1923",
+                  fillColor: getOriginColor(colorScore, activeLayer),
+                  opacity: 1,
+                  fillOpacity: 0.85,
+                  weight: selected ? 2.4 : impacted ? 2 : 1,
                   dashArray: activeLayer === "impact" && impacted ? "4 3" : undefined
                 }}
               >
                 <Popup>
-                  <div className="space-y-1 text-xs">
-                    <div className="font-semibold text-gray-900">{row.originName || row.districtName}</div>
+                  <div className="simulation-popup">
+                    <div>{row.originName || row.districtName}</div>
                     <div>Baseline accessibility: {(row.accessibilityScore * 100).toFixed(1)}%</div>
-                    {hasSimulation ? <div>After scenario: {(row.simulatedAccessibility * 100).toFixed(1)}%</div> : null}
-                    {hasSimulation ? <div>Change: {(row.deltaAccessibility * 100).toFixed(2)} percentage points</div> : null}
+                    {hasSimulation ? <div>Scenario accessibility: {(row.simulatedAccessibility * 100).toFixed(1)}%</div> : null}
+                    {hasSimulation ? <div>Planning change: {(row.deltaAccessibility * 100).toFixed(2)} percentage points</div> : null}
                     <div>Baseline travel time: {row.travelTimeMin.toFixed(1)} min</div>
-                    {hasSimulation ? <div>After travel time: {row.simulatedTravelTime.toFixed(1)} min</div> : null}
+                    {hasSimulation ? <div>Scenario travel time: {row.simulatedTravelTime.toFixed(1)} min</div> : null}
                   </div>
                 </Popup>
               </CircleMarker>
             );
-          })}
+          }) : null}
         </Pane>
 
         <Pane name="baseline-stops" style={{ zIndex: 420 }}>
@@ -242,7 +254,7 @@ export default function SimulationWorkspaceMap({
                   key={`stop-${stop.cluster_id ?? idx}`}
                   center={[Number(stop.latitude), Number(stop.longitude)]}
                   radius={2.8}
-                  pathOptions={{ color: "#6B7280", fillColor: "#6B7280", fillOpacity: 0.45, opacity: 0.55, weight: 1 }}
+                  pathOptions={{ color: "#4d6678", fillColor: "#4d6678", fillOpacity: 0.45, opacity: 0.55, weight: 1 }}
                 />
               ))
             : null}
@@ -250,14 +262,25 @@ export default function SimulationWorkspaceMap({
 
         <Pane name="baseline-facilities" style={{ zIndex: 425 }}>
           {showBaselineFacilities
-            ? baselineSupplyFacilities.map((row) => (
-                <CircleMarker
-                  key={`base-facility-${row.id || row.name}`}
-                  center={[row.latitude, row.longitude]}
-                  radius={3.2}
-                  pathOptions={{ color: "#475569", fillColor: "#CBD5E1", fillOpacity: 0.85, weight: 1 }}
-                />
-              ))
+            ? baselineSupplyFacilities.map((row) => {
+                const nearest = Number(row.nearestStopDistanceMeters);
+                const color = Number.isFinite(nearest) && nearest <= 500 ? "#0f9f6e" : "#dc2626";
+                return (
+                  <CircleMarker
+                    key={`base-facility-${row.id || row.name}`}
+                    center={[row.latitude, row.longitude]}
+                    radius={3.2}
+                    pathOptions={{ color, fillColor: color, fillOpacity: 0.85, weight: 1 }}
+                  >
+                    <Popup>
+                      <div className="simulation-popup">
+                        <div>{row.name || "Healthcare facility"}</div>
+                        <div>Nearest stop: {Number.isFinite(nearest) ? `${Math.round(nearest).toLocaleString()}m` : "N/A"}</div>
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                );
+              })
             : null}
         </Pane>
 
@@ -267,12 +290,12 @@ export default function SimulationWorkspaceMap({
               key={`scenario-facility-${idx}`}
               center={[Number(row.latitude), Number(row.longitude)]}
               radius={5}
-              pathOptions={{ color: "#5B21B6", fillColor: "#7C3AED", fillOpacity: 0.85, weight: 1.4 }}
+              pathOptions={{ color: "#e07d3c", fillColor: "#e07d3c", fillOpacity: 0.85, weight: 1.4 }}
             >
               <Popup>
-                <div className="text-xs">
-                  <div className="font-semibold text-gray-900">Scenario facility</div>
-                  <div>{row.source === "auto" ? "Automatically placed" : "User placed"}</div>
+                <div className="simulation-popup">
+                  <div>Scenario healthcare facility</div>
+                  <div>{row.source === "auto" ? "Model-placed option" : "Planner-placed option"}</div>
                 </div>
               </Popup>
             </CircleMarker>
@@ -282,12 +305,12 @@ export default function SimulationWorkspaceMap({
               key={`scenario-stop-${idx}`}
               center={[Number(row.latitude), Number(row.longitude)]}
               radius={4.2}
-              pathOptions={{ color: "#1E40AF", fillColor: "#2563EB", fillOpacity: 0.85, weight: 1.4 }}
+              pathOptions={{ color: "#3eb489", fillColor: "#3eb489", fillOpacity: 0.85, weight: 1.4 }}
             >
               <Popup>
-                <div className="text-xs">
-                  <div className="font-semibold text-gray-900">Scenario transport stop</div>
-                  <div>{row.source === "auto" ? "Automatically placed" : "User placed"}</div>
+                <div className="simulation-popup">
+                  <div>Scenario transport stop</div>
+                  <div>{row.source === "auto" ? "Model-placed option" : "Planner-placed option"}</div>
                 </div>
               </Popup>
             </CircleMarker>
@@ -331,64 +354,54 @@ export default function SimulationWorkspaceMap({
         </Pane>
       </MapContainer>
 
-      <div className="absolute left-3 top-3 z-[900] rounded-xl border border-gray-200 bg-white/95 p-3 text-xs shadow-sm">
-        <div className="font-semibold uppercase tracking-wide text-gray-500">Scenario view</div>
-        <div className="mt-2 space-y-1">
-          <label className="flex items-center gap-2">
-            <input type="radio" name="sim-map-layer" checked={activeLayer === "baseline"} onChange={() => onMapLayerChange?.("baseline")} />
-            Baseline access
-          </label>
-          {hasSimulation ? (
-            <label className="flex items-center gap-2">
-              <input type="radio" name="sim-map-layer" checked={activeLayer === "impact"} onChange={() => onMapLayerChange?.("impact")} />
-              Impact change
-            </label>
-          ) : null}
-          {hasSimulation ? (
-            <label className="flex items-center gap-2">
-              <input type="radio" name="sim-map-layer" checked={activeLayer === "after"} onChange={() => onMapLayerChange?.("after")} />
-              After evaluation
-            </label>
-          ) : null}
+      {hasSimulation ? (
+        <div className="simulation-map-view-toggle" aria-label="Scenario map view">
+          {[
+            { id: "baseline", label: "Baseline" },
+            { id: "impact", label: "Impact" },
+            { id: "after", label: "After" }
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={activeLayer === item.id ? "is-selected" : ""}
+              onClick={() => onMapLayerChange?.(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-      </div>
+      ) : null}
 
-      <div className="absolute right-3 top-3 z-[900] max-w-[260px] rounded-xl border border-gray-200 bg-white/95 p-3 text-xs shadow-sm">
-        <div className="font-semibold uppercase tracking-wide text-gray-500">Map guide</div>
-        <div className="mt-2 space-y-3">
+      {showMapLegend ? <div className="simulation-floating-legend map-legend" aria-label="Map legend">
+        <section>
+          <h4 className="legend-section-title">Access pattern</h4>
           <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Origin area shading</div>
-            <div className="mt-1 space-y-1.5">
               {legendItems.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-gray-700">
-                  <span className="inline-block h-3.5 w-5 rounded-full" style={{ backgroundColor: item.color }} />
+                <div key={item.label} className="simulation-legend-row legend-row">
+                  <span className="legend-dot" style={{ backgroundColor: item.color }} />
                   <span>{item.label}</span>
                 </div>
               ))}
-            </div>
           </div>
+        </section>
+        <section>
+          <div className="legend-divider" />
+          <h4 className="legend-section-title">Planning layers</h4>
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Map markers</div>
-            <div className="mt-1 space-y-1.5">
               {markerLegendItems.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-gray-700">
-                  <span className="inline-block h-3.5 w-5 rounded-full" style={{ backgroundColor: item.color }} />
+                <div key={item.label} className="simulation-legend-row legend-row">
+                  <span className="legend-dot" style={{ backgroundColor: item.color }} />
                   <span>{item.label}</span>
                 </div>
               ))}
-            </div>
           </div>
-        </div>
-      </div>
-
-      <div className="absolute bottom-3 left-3 z-[900] max-w-[420px] rounded-xl border border-gray-200 bg-white/95 px-3 py-2 text-xs text-gray-700 shadow-sm">
-        <div className="font-semibold text-gray-900">{selectedInterventionLabel || "Map-first scenario setup"}</div>
-        <div className="mt-0.5">{interactionHint || (canPlaceFromMap ? "Click the map to place the marker, then drag it to refine the location." : "Select an intervention to enable map placement.")}</div>
-      </div>
+        </section>
+      </div> : null}
 
       {isLoading ? (
-        <div className="absolute inset-0 z-[920] flex items-center justify-center bg-white/75 p-4">
-          <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">{loadingLabel}</div>
+        <div className="simulation-map-loading">
+          <div>{loadingLabel}</div>
         </div>
       ) : null}
     </div>
