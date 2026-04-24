@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import pickle
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 import pandas as pd
@@ -22,6 +23,22 @@ FEATURE_COLS = [
     "interaction_stop_pop_density",
     "interaction_fac_pop",
 ]
+
+
+def _atomic_write_bytes(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
+        tmp.write(payload)
+        tmp.flush()
+        Path(tmp.name).replace(path)
+
+
+def _atomic_write_text(path: Path, payload: str) -> None:
+    _atomic_write_bytes(path, payload.encode("utf-8"))
+
+
+def _atomic_write_csv(path: Path, df: pd.DataFrame) -> None:
+    _atomic_write_text(path, df.to_csv(index=False))
 
 
 def _target_accessibility_score(df: pd.DataFrame) -> pd.Series:
@@ -74,10 +91,9 @@ def train_model(features_df: pd.DataFrame, city_id: str) -> tuple[GradientBoosti
     model_path = city_path / "model.pkl"
     feature_path = city_path / "feature_names.json"
     features_path = city_path / "features.csv"
-    with model_path.open("wb") as f:
-        pickle.dump(model, f)
-    feature_path.write_text(json.dumps(FEATURE_COLS, indent=2), encoding="utf-8")
-    train_df.to_csv(features_path, index=False)
+    _atomic_write_bytes(model_path, pickle.dumps(model))
+    _atomic_write_text(feature_path, json.dumps(FEATURE_COLS, indent=2))
+    _atomic_write_csv(features_path, train_df)
     return model, FEATURE_COLS, train_df
 
 
@@ -89,9 +105,14 @@ def load_model(city_id: str) -> tuple[GradientBoostingRegressor, list[str], pd.D
 
     if not model_path.exists() or not feature_path.exists() or not features_path.exists():
         raise FileNotFoundError(f"Model artifacts are missing for city '{city_id}'")
+    if model_path.stat().st_size == 0:
+        raise EOFError(f"Model artifact is empty for city '{city_id}'")
 
-    with model_path.open("rb") as f:
-        model = pickle.load(f)
+    try:
+        with model_path.open("rb") as f:
+            model = pickle.load(f)
+    except (EOFError, pickle.UnpicklingError) as exc:
+        raise EOFError(f"Model artifact is unreadable for city '{city_id}'") from exc
     feature_names = json.loads(feature_path.read_text(encoding="utf-8"))
     features_df = pd.read_csv(features_path)
     return model, feature_names, features_df

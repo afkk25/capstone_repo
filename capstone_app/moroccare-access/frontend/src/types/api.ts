@@ -64,15 +64,45 @@ export type BaselineFacilityDto = {
   after_score?: number;
   before_travel_time_min?: number;
   delta?: number;
+  feature_changed?: boolean;
 };
 
 export type OriginDto = BaselineFacilityDto;
+
+export type RecommendedPlacementDto = {
+  city_id?: string;
+  intervention_type?: "healthcare_facility" | "transport_stop" | string;
+  latitude?: number;
+  longitude?: number;
+  origin_id?: string | number;
+  origin_name?: string;
+  district_name?: string;
+  baseline_accessibility?: number;
+  local_population?: number;
+  score?: number;
+  avg_accessibility_delta?: number;
+  avg_travel_time_delta?: number;
+  improved_origin_count?: number;
+  improved_population?: number;
+  max_origin_delta?: number;
+  method?: string;
+};
+
+export type RecommendedPlacementsResponse = {
+  city_id?: string;
+  analysis_unit?: string;
+  placements?: RecommendedPlacementDto[];
+  facility_recommendations?: RecommendedPlacementDto[];
+  transport_stop_recommendations?: RecommendedPlacementDto[];
+  methodology_notes?: string[];
+};
 
 export type FacilityPointDto = {
   id?: string | number;
   name?: string;
   latitude?: number;
   longitude?: number;
+  source?: string;
 };
 
 export type TransportStopDto = {
@@ -87,8 +117,21 @@ export type TransportStopDto = {
 export type BaselineResponse = {
   analysis_unit?: string;
   warnings?: string[];
+  methodology?: {
+    analysis_unit?: string;
+    demand_surface?: string;
+    supply_surface?: string;
+    access_infrastructure?: string;
+    district_role?: string;
+    simulation_mode?: string;
+    notes?: string[];
+  };
+  methodology_notes?: string[];
+  baseline_rows?: OriginDto[];
   origins?: OriginDto[];
+  facilities_baseline?: FacilityPointDto[];
   facilities?: FacilityPointDto[] | BaselineFacilityDto[]; // legacy backends may still send origin rows here
+  transport_stops_baseline?: TransportStopDto[];
   transport_stops?: TransportStopDto[];
   district_summaries?: Array<{
     district_name?: string;
@@ -187,6 +230,8 @@ export type SimulationResponse = {
   city_id?: string;
   analysis_unit?: string;
   warnings?: string[];
+  methodology?: BaselineResponse["methodology"];
+  methodology_notes?: string[];
   summary?: {
     city_before_avg_score: number;
     city_after_avg_score: number;
@@ -195,6 +240,14 @@ export type SimulationResponse = {
     total_pop_improved: number;
     total_origins_improved: number;
   };
+  delta_summary?: {
+    avg_accessibility_delta?: number;
+    avg_travel_time_delta?: number;
+    improved_population?: number;
+    improved_origin_count?: number;
+    feature_changed_origin_count?: number;
+  };
+  feature_delta_summary?: Record<string, number>;
   districts?: Array<{
     district_name: string;
     before_avg_score: number;
@@ -205,10 +258,14 @@ export type SimulationResponse = {
     pop_improved: number;
     origins_improved: number;
   }>;
+  baseline_rows?: OriginDto[];
+  simulated_rows?: OriginDto[];
   origins?: OriginDto[];
   facilities?: BaselineFacilityDto[]; // legacy alias
   added_facilities?: Array<{ latitude: number; longitude: number; source?: string }>;
+  facilities_added?: Array<{ latitude: number; longitude: number; source?: string }>;
   added_transport_stops?: Array<{ latitude: number; longitude: number; source?: string }>;
+  transport_stops_added?: Array<{ latitude: number; longitude: number; source?: string }>;
   auto_placed_facilities?: Array<{ latitude: number; longitude: number; source?: string }>;
   impacted_origin_ids?: Array<string>;
   district_summaries_before?: BaselineResponse["district_summaries"];

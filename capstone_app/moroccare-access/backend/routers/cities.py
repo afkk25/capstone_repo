@@ -22,8 +22,49 @@ from services.notebook_bridge.loaders import CityDataNotFoundError, get_city_pat
 
 router = APIRouter(tags=["cities"], prefix="/api")
 
-BASELINE_VERSION = "origin-first-districts-v3"
+BASELINE_VERSION = "origin-first-districts-v5"
 BASELINE_METADATA_PATH = "baseline_metadata.json"
+
+
+def _methodology_notes(analysis_unit: str) -> list[str]:
+    common = [
+        "Healthcare facilities are modeled as supply/destination points, not as the accessibility surface.",
+        "Transport stops are modeled as accessibility-enabling infrastructure through proximity and stop-density features.",
+        "Scenario simulation is a feature-update planning proxy: it updates affected origin features and re-runs the trained accessibility model; it is not a full timetable or network-routing engine.",
+    ]
+    if analysis_unit == "origin":
+        return [
+            "Population or demand origins are the analytical surface for accessibility scores.",
+            "District summaries are derived only from origin rows and are population-weighted where population is available.",
+            *common,
+        ]
+    return [
+        "Origin-level demand data is unavailable for this city, so the app is operating in facility_proxy mode.",
+        "Facility-proxy outputs describe service-location reachability and should not be interpreted as resident/district accessibility.",
+        "District summaries are intentionally withheld in facility_proxy mode to avoid fabricating district accessibility from facility points.",
+        *common,
+    ]
+
+
+def _methodology_metadata(analysis_unit: str) -> dict[str, Any]:
+    return {
+        "analysis_unit": analysis_unit,
+        "demand_surface": "population_origins" if analysis_unit == "origin" else "facility_proxy_locations",
+        "supply_surface": "healthcare_facilities",
+        "access_infrastructure": "transport_stops",
+        "district_role": "aggregation/reporting only",
+        "simulation_mode": "feature_update_predictive_proxy",
+        "notes": _methodology_notes(analysis_unit),
+    }
+
+
+def _response_warnings(metadata: dict[str, Any], analysis_unit: str) -> list[str]:
+    warnings = [str(item) for item in metadata.get("warnings", []) if str(item).strip()]
+    if analysis_unit == "facility_proxy" and not any("facility proxy" in item.lower() or "facility_proxy" in item.lower() for item in warnings):
+        warnings.append(
+            "Origin-level demand data is unavailable for this city. Results are shown in facility_proxy mode and should be interpreted as service-location reachability."
+        )
+    return warnings
 
 
 def _clean_label(value: Any, fallback: str) -> str:
@@ -207,6 +248,8 @@ def _artifacts_stale(city_id: str) -> bool:
         return True
     if metadata.get("source_hash") != _source_hash(city_id):
         return True
+    if metadata.get("source") == "facility_fallback" and any(path.exists() for path in _origin_source_files(city_id)):
+        return True
     return False
 
 
@@ -293,6 +336,7 @@ def _origin_rows(features_df: pd.DataFrame, scores: np.ndarray) -> list[dict[str
                 "name": origin_name,
                 "district_name": str(district_name),
                 "district_id": row.get("district_id"),
+                "analysis_unit": analysis_unit,
                 "urban_ring": str(row.get("urban_ring", "Unknown")),
                 "latitude": float(row["latitude"]),
                 "longitude": float(row["longitude"]),
@@ -439,16 +483,27 @@ def get_city_baseline(city_id: str) -> dict[str, Any]:
     metadata = _read_baseline_metadata(city_id)
     analysis_unit = str(metadata.get("analysis_unit", features_df.get("analysis_unit", pd.Series(["unknown"])).iloc[0]))
     origins = _origin_rows(features_df, scores)
+    facility_rows = _facility_rows(healthcare_gdf)
+    stop_rows = _stop_rows(stops_gdf)
     district_summaries = _district_summary_from_origins(features_df, scores) if analysis_unit == "origin" else []
     equity = compute_equity(features_df, scores)
+    methodology = _methodology_metadata(analysis_unit)
+    warnings = _response_warnings(metadata, analysis_unit)
 
     return {
         "analysis_unit": analysis_unit,
-        "warnings": metadata.get("warnings", []),
+        "warnings": warnings,
+        "methodology": methodology,
+        "methodology_notes": methodology["notes"],
+        "baseline_rows": origins,
         "origins": origins,
-        "facilities": _facility_rows(healthcare_gdf),
-        "transport_stops": _stop_rows(stops_gdf),
+        "facilities_baseline": facility_rows,
+        "facilities": facility_rows,
+        "transport_stops_baseline": stop_rows,
+        "transport_stops": stop_rows,
         "district_summaries": district_summaries,
+        "district_summaries_before": district_summaries,
+        "district_summaries_after": [],
         "equity": equity,
         "scenarios_available": [
             "baseline",
@@ -476,7 +531,8 @@ def get_city_district_geojson(city_id: str) -> Any:
     except DistrictDataUnavailable:
         geojson = {"type": "FeatureCollection", "features": []}
         district_warnings = ["District-level map geometry is not available for the current dataset."]
-    warnings = [*metadata.get("warnings", []), *district_warnings]
+    analysis_unit = str(metadata.get("analysis_unit", features_df.get("analysis_unit", pd.Series(["unknown"])).iloc[0]))
+    warnings = [*_response_warnings(metadata, analysis_unit), *district_warnings]
     if warnings:
         geojson["warnings"] = warnings
     return Response(content=json.dumps(geojson), media_type="application/json")

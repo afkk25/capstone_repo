@@ -3,6 +3,7 @@
   "display_name": "Casablanca",
   "center_lat": 33.57479505565097,
   "center_lon": -7.610909965932247,
+  "default_zoom": 11,
   "crs_metric": "EPSG:32629",
   "urban_ring_radii_km": [
     8,
@@ -10,13 +11,21 @@
     999
   ],
   "datasets": {
-    "district_boundaries": "data/processed/districts_with_worldpop.gpkg",
-    "district_summary": "data/final/district_accessibility_summary.csv"
+    "healthcare": "healthcare.csv",
+    "transport_stops": "transport_stops.csv",
+    "population": "population.csv",
+    "origin_metrics": "origin_accessibility_metrics.csv",
+    "district_summary": "district_accessibility_summary.csv"
   },
-  "feature_flags": {
-    "default_point_simulation_city": true,
-    "allow_unscoped_origin_metrics": true
+  "simulation_capabilities": {
+    "baseline": true,
+    "scenario": true,
+    "point": true
   },
+  "supported_intervention_types": [
+    "healthcare_facility",
+    "transport_stop"
+  ],
   "simulation": {
     "capabilities": {
       "baseline": true,
@@ -33,18 +42,6 @@
     },
     "interventions": [
       {
-        "id": "add_transport_stop",
-        "label": "Add a transport stop",
-        "backend_intervention_type": "transport_stop",
-        "placement_target": "transport_stop_locations",
-        "scenario_patch": {
-          "add_facilities": 0
-        },
-        "aliases": [
-          "transport_stop"
-        ]
-      },
-      {
         "id": "add_healthcare_facility",
         "label": "Add a healthcare facility",
         "backend_intervention_type": "healthcare_facility",
@@ -57,14 +54,34 @@
         ]
       },
       {
-        "id": "improve_service",
-        "label": "Improve stop access",
+        "id": "add_transport_stop",
+        "label": "Add a transport stop",
         "backend_intervention_type": "transport_stop",
         "placement_target": "transport_stop_locations",
         "scenario_patch": {
           "add_facilities": 0
-        }
+        },
+        "aliases": [
+          "transport_stop"
+        ]
       }
+    ],
+    "supported_intervention_types": [
+      "healthcare_facility",
+      "transport_stop"
     ]
+  },
+  "artifact_paths": {
+    "config": "config.json",
+    "healthcare": "healthcare.csv",
+    "transport_stops": "transport_stops.csv",
+    "features": "features.csv",
+    "model": "model.pkl",
+    "feature_names": "feature_names.json",
+    "baseline_metadata": "baseline_metadata.json"
+  },
+  "feature_flags": {
+    "allow_unscoped_origin_metrics": false,
+    "default_point_simulation_city": false
   }
 }

@@ -17,7 +17,7 @@ const methodologySteps = [
   },
   {
     title: "5. Simulate planning interventions",
-    text: "Scenarios adjust stop density, walking distance, service assumptions and added healthcare facilities. The app compares before/after scores without overwriting baseline data."
+    text: "Scenarios update affected origin features, such as nearest-stop distance, stop density and healthcare supply, then re-run the accessibility model. This is a planning proxy, not a timetable-aware routing engine."
   }
 ];
 
@@ -32,6 +32,7 @@ const responsibleUse = [
   "Use results to prioritize field review, not as the only basis for capital investment.",
   "Compare scenarios against the same baseline so improvements remain auditable.",
   "Treat facility-proxy cities as service-location analyses until population origins are added.",
+  "Interpret simulated travel-time changes as model-derived planning estimates, not observed route itineraries.",
   "Validate proposed stops and facilities against land availability, operations and local policy constraints."
 ];
 

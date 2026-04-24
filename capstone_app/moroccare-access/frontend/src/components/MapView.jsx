@@ -159,6 +159,9 @@ export default function MapView({
                 <Popup>
                   <div className={`space-y-1 text-xs rtl-safe-text ${isRtl ? "text-right" : "text-left"}`}>
                     <div className="font-bold text-slate-900">{row.originName || row.districtName}</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      {row.analysisUnit === "facility_proxy" ? "Facility-proxy analysis point" : "Demand origin analysis point"}
+                    </div>
                     {isSimulated ? <div className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{t("map.simulated")}</div> : null}
                     <div>
                       {t("map.accessibilityScore")}: <span className="num-ltr">{toLocaleNumber(Number(row.accessibilityScore).toFixed(2), language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>

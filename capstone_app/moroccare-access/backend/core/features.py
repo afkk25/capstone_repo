@@ -51,11 +51,14 @@ def _origin_points_to_metric_gdf(origins_df: pd.DataFrame, metric_crs: str) -> g
     if {"x", "y"}.issubset(origins_df.columns):
         x = pd.to_numeric(origins_df["x"], errors="coerce")
         y = pd.to_numeric(origins_df["y"], errors="coerce")
+        looks_like_lon_lat = x.between(-180, 180).all() and y.between(-90, 90).all()
         gdf = gpd.GeoDataFrame(
             origins_df.copy(),
             geometry=gpd.points_from_xy(x, y),
-            crs=metric_crs,
+            crs="EPSG:4326" if looks_like_lon_lat else metric_crs,
         )
+        if looks_like_lon_lat:
+            gdf = gdf.to_crs(metric_crs)
     elif {"longitude", "latitude"}.issubset(origins_df.columns):
         lon = pd.to_numeric(origins_df["longitude"], errors="coerce")
         lat = pd.to_numeric(origins_df["latitude"], errors="coerce")

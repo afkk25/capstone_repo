@@ -6,6 +6,7 @@ import {
   fetchCityDistrictGeojson,
   fetchCityExplainability,
   fetchCityRanking,
+  fetchCityRecommendedPlacements,
   fetchCityRecommendations,
   fetchCitySummary
 } from "../api/cities";
@@ -48,6 +49,12 @@ export function useCityData(cityId: string) {
     enabled: Boolean(cityId)
   });
 
+  const recommendedPlacementsQuery = useQuery({
+    queryKey: ["recommended-placements", cityId],
+    queryFn: () => fetchCityRecommendedPlacements(cityId),
+    enabled: Boolean(cityId)
+  });
+
   const explainabilityQuery = useQuery({
     queryKey: ["explainability", cityId],
     queryFn: () => fetchCityExplainability(cityId),
@@ -71,6 +78,7 @@ export function useCityData(cityId: string) {
     summaryQuery,
     rankingQuery,
     recommendationsQuery,
+    recommendedPlacementsQuery,
     explainabilityQuery,
     districtsGeoQuery,
     districts,

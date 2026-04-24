@@ -318,6 +318,14 @@ def apply_intervention(
     scenario: dict,
     baseline_scores: np.ndarray | None = None,
 ) -> tuple[pd.DataFrame, dict[str, list[dict[str, float | str]]]]:
+    """
+    Apply planning interventions by updating model features around affected origins.
+
+    This is intentionally a transparent planning proxy: a new stop changes nearest-stop
+    distance and stop-density features; a new facility changes healthcare-supply
+    features. The trained model is then re-run by the caller. It does not compute a
+    schedule-aware transit route or replace the notebook methodology.
+    """
     df = features_df.copy()
     if df.empty:
         return df, {"added_facilities": [], "added_transport_stops": [], "auto_placed_facilities": []}

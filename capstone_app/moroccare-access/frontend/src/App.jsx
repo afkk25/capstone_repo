@@ -55,7 +55,7 @@ function AppFrame() {
   const [activeSimulationLabel, setActiveSimulationLabel] = useState("");
   const [activeLayer, setActiveLayer] = useState("accessibility");
 
-  const { citiesQuery, baselineQuery, summaryQuery, rankingQuery, recommendationsQuery } = useCityData(selectedCityId);
+  const { citiesQuery, baselineQuery, summaryQuery, rankingQuery, recommendationsQuery, recommendedPlacementsQuery } = useCityData(selectedCityId);
   const cities = citiesQuery.data || [];
   const currentCityId = selectedCityId || cities[0]?.id || cities[0]?.city_id || "";
   const currentCity = cities.find((city) => (city.id || city.city_id) === currentCityId) || null;
@@ -72,7 +72,15 @@ function AppFrame() {
   const baselineOrigins = useMemo(() => normalizeBaselineFacilities(baselineQuery.data), [baselineQuery.data]);
   const baselineSupplyFacilities = useMemo(() => normalizeSupplyFacilities(baselineQuery.data), [baselineQuery.data]);
 
-  const transportStops = useMemo(() => (Array.isArray(baselineQuery.data?.transport_stops) ? baselineQuery.data.transport_stops : []), [baselineQuery.data]);
+  const baselineTransportStops = useMemo(
+    () =>
+      Array.isArray(baselineQuery.data?.transport_stops_baseline)
+        ? baselineQuery.data.transport_stops_baseline
+        : Array.isArray(baselineQuery.data?.transport_stops)
+        ? baselineQuery.data.transport_stops
+        : [],
+    [baselineQuery.data]
+  );
   const districtSummaries = useMemo(
     () => (Array.isArray(baselineQuery.data?.district_summaries) ? baselineQuery.data.district_summaries : []),
     [baselineQuery.data]
@@ -83,27 +91,37 @@ function AppFrame() {
     () =>
       baselineOrigins.map((row) => ({
         ...row,
-        ...stopMetrics(row, transportStops)
+        ...stopMetrics(row, baselineTransportStops)
       })),
-    [baselineOrigins, transportStops]
+    [baselineOrigins, baselineTransportStops]
   );
   const supplyFacilitiesWithStops = useMemo(
     () =>
       baselineSupplyFacilities.map((row) => ({
         ...row,
-        ...stopMetrics(row, transportStops)
+        ...stopMetrics(row, baselineTransportStops)
       })),
-    [baselineSupplyFacilities, transportStops]
+    [baselineSupplyFacilities, baselineTransportStops]
   );
 
   const simulatedOrigins = useMemo(() => {
-    const rows = Array.isArray(simulation?.origins) ? simulation.origins : Array.isArray(simulation?.facilities) ? simulation.facilities : [];
+    const rows = Array.isArray(simulation?.simulated_rows)
+      ? simulation.simulated_rows
+      : Array.isArray(simulation?.origins)
+      ? simulation.origins
+      : Array.isArray(simulation?.facilities)
+      ? simulation.facilities
+      : [];
     return rows
       .map(normalizeFacility)
       .filter((row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude) && row.latitude !== 0 && row.longitude !== 0);
   }, [simulation]);
   const simulationBaselineOrigins = useMemo(() => {
-    const rows = Array.isArray(simulation?.origins) ? simulation.origins : [];
+    const rows = Array.isArray(simulation?.baseline_rows)
+      ? simulation.baseline_rows
+      : Array.isArray(simulation?.origins)
+      ? simulation.origins
+      : [];
     return rows
       .map((row, index) => {
         const beforeScore = Number(row.before_score);
@@ -127,14 +145,24 @@ function AppFrame() {
   }, [simulation]);
   const addedScenarioFacilities = useMemo(
     () =>
-      (Array.isArray(simulation?.added_facilities) ? simulation.added_facilities : []).filter(
+      (Array.isArray(simulation?.facilities_added)
+        ? simulation.facilities_added
+        : Array.isArray(simulation?.added_facilities)
+        ? simulation.added_facilities
+        : []
+      ).filter(
         (row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude))
       ),
     [simulation]
   );
   const addedScenarioStops = useMemo(
     () =>
-      (Array.isArray(simulation?.added_transport_stops) ? simulation.added_transport_stops : []).filter(
+      (Array.isArray(simulation?.transport_stops_added)
+        ? simulation.transport_stops_added
+        : Array.isArray(simulation?.added_transport_stops)
+        ? simulation.added_transport_stops
+        : []
+      ).filter(
         (row) => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude))
       ),
     [simulation]
@@ -234,7 +262,7 @@ function AppFrame() {
               <OverviewPage
                 city={currentCity}
                 facilities={originsWithStops}
-                transportStops={transportStops}
+                transportStops={baselineTransportStops}
                 baselineSupplyFacilities={supplyFacilitiesWithStops}
                 districtSummaries={districtSummaries}
                 citySummary={summaryQuery.data?.summary || null}
@@ -268,7 +296,7 @@ function AppFrame() {
                 city={currentCity}
                 baselineFacilities={originsWithStops}
                 simulatedFacilities={simulatedOrigins}
-                transportStops={transportStops}
+                transportStops={baselineTransportStops}
                 baselineSupplyFacilities={supplyFacilitiesWithStops}
                 addedScenarioFacilities={addedScenarioFacilities}
                 addedScenarioStops={addedScenarioStops}
@@ -276,6 +304,7 @@ function AppFrame() {
                 activeLayer={activeLayer}
                 onLayerChange={setActiveLayer}
                 onWhyScore={() => navigate("/analysis")}
+                analysisUnit={analysisUnit}
                 isSimulated={isSimulated}
                 scenarioName={activeSimulationLabel}
                 onResetSimulation={() => {
@@ -290,18 +319,27 @@ function AppFrame() {
             element={
                 <Simulate
                   city={currentCity}
+                  cities={cities}
+                  selectedCityId={currentCityId}
                   analysisUnit={analysisUnit}
                   baselineFacilities={simulationBaselineOrigins.length ? simulationBaselineOrigins : originsWithStops}
                 simulatedFacilities={simulatedOrigins}
                 baselineSupplyFacilities={supplyFacilitiesWithStops}
-                transportStops={transportStops}
+                transportStops={baselineTransportStops}
                 isLoading={baselineQuery.isLoading || citiesQuery.isLoading}
                 onRunSimulation={runScenario}
                 simulationPending={simulationPending}
                 simulationResult={simulation}
+                recommendedPlacements={recommendedPlacementsQuery.data}
                 comparisonResult={comparisonResult}
                 hasResult={Boolean(simulation)}
                 activeSimulationLabel={activeSimulationLabel}
+                onNavigate={navigate}
+                onCityChange={(cityId) => {
+                  setSelectedCityId(cityId);
+                  resetSimulation();
+                  setActiveSimulationLabel("");
+                }}
                 onResetSimulation={() => {
                   resetSimulation();
                   setActiveSimulationLabel("");

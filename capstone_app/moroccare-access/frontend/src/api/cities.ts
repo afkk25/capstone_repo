@@ -5,6 +5,7 @@ import type {
   DistrictGeoJsonResponse,
   ExplainabilityResponse,
   RankingResponse,
+  RecommendedPlacementsResponse,
   RecommendationResponse,
   SummaryResponse,
   UploadCityResponse
@@ -36,6 +37,10 @@ export function fetchCityRanking(cityId: string) {
 
 export function fetchCityRecommendations(cityId: string) {
   return requestJson<RecommendationResponse>(() => apiClient.get(`/api/cities/${cityId}/recommendations`), 1);
+}
+
+export function fetchCityRecommendedPlacements(cityId: string) {
+  return requestJson<RecommendedPlacementsResponse>(() => apiClient.get(`/api/cities/${cityId}/recommended-placements`), 1);
 }
 
 export function fetchCityExplainability(cityId: string) {

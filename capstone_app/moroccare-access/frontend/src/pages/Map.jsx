@@ -15,6 +15,7 @@ export default function MapPage({
   activeLayer,
   onLayerChange,
   onWhyScore,
+  analysisUnit = "origin",
   isSimulated,
   scenarioName,
   onResetSimulation
@@ -33,6 +34,7 @@ export default function MapPage({
       return acc;
     }, {});
   }, [baselineFacilities, simulatedFacilities]);
+  const isFacilityProxy = analysisUnit === "facility_proxy";
 
   return (
     <section className="mc-map-page">
@@ -40,7 +42,11 @@ export default function MapPage({
         <div>
           <span>Spatial Access Explorer</span>
           <h1>Explore current and scenario accessibility across the city</h1>
-          <p>Use the layer selector to compare accessibility, travel time and planning priority. Click an origin area for local context.</p>
+          <p>
+            {isFacilityProxy
+              ? "This city is using facility-proxy analysis because origin demand data is unavailable. Points describe service-location reachability, while healthcare facilities remain supply assets."
+              : "Accessibility scores live on demand origins and district summaries. Healthcare facilities are supply points; transport stops are access infrastructure."}
+          </p>
         </div>
       </div>
 

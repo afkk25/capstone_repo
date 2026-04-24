@@ -14,6 +14,7 @@ router = APIRouter(tags=["upload"], prefix="/api")
 
 HEALTHCARE_COLUMNS = ["name", "latitude", "longitude", "geometry"]
 STOPS_COLUMNS = ["cluster_id", "stop_name", "Lines", "mode", "longitude", "latitude"]
+ORIGIN_COORDINATE_OPTIONS = ({"x", "y"}, {"latitude", "longitude"})
 
 
 def _validate_columns(file_bytes: bytes, required_cols: list[str], filename: str) -> pd.DataFrame:
@@ -28,6 +29,20 @@ def _validate_columns(file_bytes: bytes, required_cols: list[str], filename: str
         return pd.read_csv(io.StringIO(text))
     except UnicodeDecodeError:
         raise ValueError(f"{filename} must be UTF-8 encoded")
+
+
+def _validate_origin_file(file_bytes: bytes, filename: str) -> pd.DataFrame:
+    try:
+        text = file_bytes.decode("utf-8")
+        df = pd.read_csv(io.StringIO(text))
+    except UnicodeDecodeError:
+        raise ValueError(f"{filename} must be UTF-8 encoded")
+    if df.empty:
+        raise ValueError(f"{filename} has no origin rows")
+    columns = set(df.columns)
+    if not any(option.issubset(columns) for option in ORIGIN_COORDINATE_OPTIONS):
+        raise ValueError(f"{filename} must include either x/y columns or latitude/longitude columns")
+    return df
 
 
 def _normalized_city_id(city_name: str) -> str:
@@ -87,15 +102,19 @@ async def upload_city_for_id(
 
     healthcare_bytes = await healthcare_file.read()
     stops_bytes = await transport_stops_file.read()
+    population_bytes = await population_file.read() if population_file is not None else None
 
     try:
         healthcare_df = _validate_columns(healthcare_bytes, HEALTHCARE_COLUMNS, healthcare_file.filename or "healthcare.csv")
         stops_df = _validate_columns(stops_bytes, STOPS_COLUMNS, transport_stops_file.filename or "transport_stops.csv")
+        origin_df = _validate_origin_file(population_bytes, population_file.filename or "origin_accessibility_metrics.csv") if population_bytes else None
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
     healthcare_df.to_csv(city_folder / "healthcare.csv", index=False)
     stops_df.to_csv(city_folder / "transport_stops.csv", index=False)
+    if origin_df is not None:
+        origin_df.to_csv(city_folder / "origin_accessibility_metrics.csv", index=False)
 
     center_lat = float(pd.to_numeric(healthcare_df.get("latitude"), errors="coerce").dropna().mean())
     center_lon = float(pd.to_numeric(healthcare_df.get("longitude"), errors="coerce").dropna().mean())
@@ -127,6 +146,8 @@ async def upload_city_for_id(
             "center_lon": center_lon,
             "facilities_count": int(len(trained_df)),
             "analysis_rows_count": int(len(trained_df)),
+            "analysis_unit": str(trained_df.get("analysis_unit", pd.Series(["unknown"])).iloc[0]) if len(trained_df) else "unknown",
+            "origin_file_uploaded": origin_df is not None,
         },
     }
 

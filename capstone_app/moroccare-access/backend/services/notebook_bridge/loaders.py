@@ -77,6 +77,7 @@ def get_city_paths(city_id: str) -> CityPaths:
     folder = get_city_dir(city_id)
     backend_root = Path(__file__).resolve().parents[2]
     repo_root = _resolve_repo_root(backend_root)
+    backend_data = backend_root / "data"
     return CityPaths(
         city_id=city_id,
         root=folder,
@@ -86,9 +87,27 @@ def get_city_paths(city_id: str) -> CityPaths:
         features_csv=folder / "features.csv",
         model_pkl=folder / "model.pkl",
         feature_names_json=folder / "feature_names.json",
-        interim_origin_metrics_csv=repo_root / "data" / "interim" / "origin_accessibility_metrics.csv",
-        interim_worldpop_origins_csv=repo_root / "data" / "interim" / "worldpop_origins.csv",
-        interim_worldpop_origin_points_csv=repo_root / "data" / "interim" / "worldpop_origin_points.csv",
+        interim_origin_metrics_csv=_first_existing_path(
+            [
+                folder / "origin_accessibility_metrics.csv",
+                backend_data / "origin_accessibility_metrics.csv",
+                repo_root / "data" / "interim" / "origin_accessibility_metrics.csv",
+            ]
+        ),
+        interim_worldpop_origins_csv=_first_existing_path(
+            [
+                folder / "worldpop_origins.csv",
+                backend_data / "worldpop_origins.csv",
+                repo_root / "data" / "interim" / "worldpop_origins.csv",
+            ]
+        ),
+        interim_worldpop_origin_points_csv=_first_existing_path(
+            [
+                folder / "worldpop_origin_points.csv",
+                backend_data / "worldpop_origin_points.csv",
+                repo_root / "data" / "interim" / "worldpop_origin_points.csv",
+            ]
+        ),
         processed_casablanca_districts_gpkg=repo_root / "data" / "processed" / "Casablanca_Districts.gpkg",
         processed_districts_with_worldpop_gpkg=repo_root / "data" / "processed" / "districts_with_worldpop.gpkg",
         processed_districts_with_worldpop_csv=repo_root / "data" / "processed" / "districts_with_worldpop.csv",
@@ -102,6 +121,13 @@ def get_city_paths(city_id: str) -> CityPaths:
         processed_cls_cv_clean_csv=repo_root / "data" / "processed" / "cls_cv_clean.csv",
         processed_feature_importance_csv=repo_root / "data" / "processed" / "classification_clean_feature_importance.csv",
     )
+
+
+def _first_existing_path(paths: list[Path]) -> Path:
+    for path in paths:
+        if path.exists():
+            return path
+    return paths[0]
 
 
 def _resolve_repo_root(backend_root: Path) -> Path:

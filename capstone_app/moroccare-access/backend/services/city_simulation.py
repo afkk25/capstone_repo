@@ -9,10 +9,27 @@ from core.config import get_default_point_simulation_city_id, load_city_config
 from core.equity import compute_equity
 from core.modeling import load_model, predict
 from core.simulation import apply_intervention
-from routers.cities import _district_summary_from_origins, _load_city_geo, _read_baseline_metadata, derive_2sfca_scores, ensure_baseline_data
+from routers.cities import (
+    _district_summary_from_origins,
+    _load_city_geo,
+    _methodology_metadata,
+    _origin_rows,
+    _response_warnings,
+    _read_baseline_metadata,
+    derive_2sfca_scores,
+    ensure_baseline_data,
+)
 from routers.cities import _clean_label
 from services.cache import clear_city_cache, city_freshness_token, get_cached_city_rows
 from services.analytics import compute_summary_metrics
+
+
+def _min_max(values: pd.Series) -> pd.Series:
+    numeric = pd.to_numeric(values, errors="coerce").fillna(0.0).astype(float)
+    span = float(numeric.max() - numeric.min())
+    if span < 1e-9:
+        return pd.Series(0.0, index=numeric.index, dtype=float)
+    return (numeric - float(numeric.min())) / span
 
 
 def _city_simulation_defaults(city_cfg: dict[str, Any]) -> dict[str, Any]:
@@ -81,6 +98,176 @@ def _point_payload(city_cfg: dict[str, Any], intervention_type: str, latitude: f
     return payload
 
 
+def _candidate_origins(features_df: pd.DataFrame, baseline_scores: np.ndarray, limit: int = 35) -> pd.DataFrame:
+    candidates = features_df.copy().reset_index(drop=True)
+    if candidates.empty or "latitude" not in candidates.columns or "longitude" not in candidates.columns:
+        return candidates.head(0)
+
+    candidates["latitude"] = pd.to_numeric(candidates["latitude"], errors="coerce")
+    candidates["longitude"] = pd.to_numeric(candidates["longitude"], errors="coerce")
+    candidates = candidates[candidates["latitude"].notna() & candidates["longitude"].notna()].copy()
+    if candidates.empty:
+        return candidates
+
+    base_scores = pd.Series(np.asarray(baseline_scores, dtype=float), index=features_df.reset_index(drop=True).index)
+    candidates["_baseline_score"] = base_scores.reindex(candidates.index).fillna(float(np.nanmean(baseline_scores) if len(baseline_scores) else 0.0))
+    candidates["_access_gap"] = 1.0 - candidates["_baseline_score"].clip(lower=0.0, upper=1.0)
+    population_source = candidates["population"] if "population" in candidates.columns else candidates.get("population_density", 0.0)
+    stop_distance = candidates["distance_to_nearest_stop_m"] if "distance_to_nearest_stop_m" in candidates.columns else 0.0
+    candidates["_candidate_priority"] = (
+        0.6 * candidates["_access_gap"]
+        + 0.25 * _min_max(pd.Series(population_source, index=candidates.index))
+        + 0.15 * _min_max(pd.Series(stop_distance, index=candidates.index))
+    )
+
+    low_access_cutoff = float(np.nanpercentile(candidates["_baseline_score"], 45)) if len(candidates) else 1.0
+    underserved = candidates[candidates["_baseline_score"] <= low_access_cutoff].copy()
+    if underserved.empty:
+        underserved = candidates.copy()
+    return underserved.sort_values("_candidate_priority", ascending=False).head(limit)
+
+
+def _recommendation_metrics(
+    baseline_summary: dict[str, float],
+    baseline_scores: np.ndarray,
+    simulated_df: pd.DataFrame,
+    simulated_scores: np.ndarray,
+) -> dict[str, float | int]:
+    simulated_rows = simulated_df.copy().reset_index(drop=True)
+    simulated_rows["accessibility_score"] = np.asarray(simulated_scores, dtype=float)
+    simulated_summary = compute_summary_metrics(simulated_rows)
+    deltas = np.asarray(simulated_scores, dtype=float) - np.asarray(baseline_scores, dtype=float)
+    improved_mask = deltas > 0.005
+    if "population" in simulated_df.columns:
+        populations = pd.to_numeric(simulated_df["population"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+    else:
+        populations = np.zeros(len(simulated_df), dtype=float)
+    return {
+        "avg_accessibility_delta": float(simulated_summary["avg_accessibility_score"] - baseline_summary["avg_accessibility_score"]),
+        "avg_travel_time_delta": float(simulated_summary["avg_travel_time"] - baseline_summary["avg_travel_time"]),
+        "improved_origin_count": int(improved_mask.sum()),
+        "improved_population": float(populations[improved_mask].sum()) if populations.size else 0.0,
+        "max_origin_delta": float(np.nanmax(deltas)) if deltas.size else 0.0,
+    }
+
+
+def _ranked_candidate_payload(
+    *,
+    city_id: str,
+    features_df: pd.DataFrame,
+    baseline_scores: np.ndarray,
+    model: Any,
+    feature_names: list[str],
+    existing_facility_locations: list[dict[str, float]],
+    intervention_type: str,
+    candidates: pd.DataFrame,
+    baseline_summary: dict[str, float],
+    simulation_defaults: dict[str, Any],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    scenario_key = "facility_locations" if intervention_type == "healthcare_facility" else "transport_stop_locations"
+    if "population" in features_df.columns:
+        total_population = float(pd.to_numeric(features_df["population"], errors="coerce").fillna(0.0).sum())
+    else:
+        total_population = 0.0
+    for _, candidate in candidates.iterrows():
+        lat = float(candidate["latitude"])
+        lon = float(candidate["longitude"])
+        scenario = {
+            **simulation_defaults,
+            "facility_locations": [],
+            "transport_stop_locations": [],
+            "existing_facility_locations": existing_facility_locations,
+        }
+        scenario[scenario_key] = [{"latitude": lat, "longitude": lon}]
+        try:
+            simulated_df, _ = apply_intervention(features_df, scenario, baseline_scores)
+            simulated_scores = predict(model, simulated_df, feature_names)
+        except ValueError:
+            continue
+
+        metrics = _recommendation_metrics(baseline_summary, baseline_scores, simulated_df, simulated_scores)
+        population_weight = float(candidate.get("population", 0.0) or 0.0)
+        score = (
+            float(metrics["avg_accessibility_delta"]) * 100.0
+            + float(metrics["improved_origin_count"]) / max(1, len(features_df)) * 2.0
+            + float(metrics["improved_population"]) / max(1.0, total_population) * 2.0
+            + float(metrics["max_origin_delta"]) * 10.0
+        )
+        rows.append(
+            {
+                "city_id": city_id,
+                "intervention_type": intervention_type,
+                "latitude": lat,
+                "longitude": lon,
+                "origin_id": str(candidate.get("origin_id", candidate.name)),
+                "origin_name": _clean_label(candidate.get("origin_name"), "Recommended origin"),
+                "district_name": _clean_label(candidate.get("district_name"), "Unassigned area"),
+                "baseline_accessibility": float(candidate.get("_baseline_score", 0.0)),
+                "local_population": population_weight,
+                "score": float(score),
+                **metrics,
+                "method": "candidate origins are ranked by re-running the current feature-update simulation and accessibility model",
+            }
+        )
+
+    return sorted(rows, key=lambda item: item["score"], reverse=True)[:3]
+
+
+def recommend_city_placements(city_id: str) -> dict[str, Any]:
+    city_cfg = load_city_config(city_id)
+    features_df, baseline_scores = ensure_baseline_data(city_id)
+    _, healthcare_gdf, _ = _load_city_geo(city_id)
+    model, feature_names, _ = load_model(city_id)
+
+    baseline_rows = features_df.copy().reset_index(drop=True)
+    baseline_rows["accessibility_score"] = np.asarray(baseline_scores, dtype=float)
+    baseline_summary = compute_summary_metrics(baseline_rows)
+    candidates = _candidate_origins(features_df, np.asarray(baseline_scores, dtype=float))
+    existing_facility_locations = [
+        {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
+        for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
+    ]
+    simulation_defaults = _city_simulation_defaults(city_cfg)
+
+    facility_rows = _ranked_candidate_payload(
+        city_id=city_id,
+        features_df=features_df,
+        baseline_scores=np.asarray(baseline_scores, dtype=float),
+        model=model,
+        feature_names=feature_names,
+        existing_facility_locations=existing_facility_locations,
+        intervention_type="healthcare_facility",
+        candidates=candidates,
+        baseline_summary=baseline_summary,
+        simulation_defaults=simulation_defaults,
+    )
+    stop_rows = _ranked_candidate_payload(
+        city_id=city_id,
+        features_df=features_df,
+        baseline_scores=np.asarray(baseline_scores, dtype=float),
+        model=model,
+        feature_names=feature_names,
+        existing_facility_locations=existing_facility_locations,
+        intervention_type="transport_stop",
+        candidates=candidates,
+        baseline_summary=baseline_summary,
+        simulation_defaults=simulation_defaults,
+    )
+    return {
+        "city_id": city_id,
+        "analysis_unit": str(features_df.get("analysis_unit", pd.Series(["unknown"])).iloc[0]),
+        "placements": facility_rows + stop_rows,
+        "facility_recommendations": facility_rows,
+        "transport_stop_recommendations": stop_rows,
+        "methodology_notes": [
+            "Recommended placements are computed from candidate demand origins, not manually selected.",
+            "Each candidate is evaluated by applying the same feature-update simulation used for map placement and re-running the trained accessibility model.",
+            "Ranking combines average accessibility gain, improved origins, improved population, and the strongest local origin-level gain.",
+        ],
+    }
+
+
 def _build_response(
     city_id: str,
     features_df: pd.DataFrame,
@@ -104,6 +291,27 @@ def _build_response(
     simulated_rows_for_summary["accessibility_score"] = np.asarray(simulated_scores, dtype=float)
     baseline_summary = compute_summary_metrics(baseline_rows_for_summary)
     simulated_summary = compute_summary_metrics(simulated_rows_for_summary)
+    feature_delta_cols = [
+        "distance_to_nearest_stop_m",
+        "stop_density",
+        "stop_density_1km",
+        "num_healthcare_facilities",
+        "healthcare_density_1km",
+        "interaction_stop_pop_density",
+        "interaction_fac_pop",
+    ]
+    feature_delta_summary: dict[str, float | int] = {}
+    feature_changed_mask = np.zeros(len(simulated_df), dtype=bool)
+    for col in feature_delta_cols:
+        if col not in features_df.columns or col not in simulated_df.columns:
+            continue
+        before_values = pd.to_numeric(features_df[col], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+        after_values = pd.to_numeric(simulated_df[col], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+        delta_values = after_values - before_values
+        changed = np.abs(delta_values) > 1e-9
+        feature_changed_mask = feature_changed_mask | changed
+        feature_delta_summary[f"{col}_changed_origin_count"] = int(changed.sum())
+        feature_delta_summary[f"{col}_mean_delta"] = float(delta_values.mean()) if delta_values.size else 0.0
 
     origins: list[dict[str, Any]] = []
     impacted_origin_ids: list[str] = []
@@ -116,7 +324,8 @@ def _build_response(
         district_fallback = origin_name if analysis_unit == "facility_proxy" else "Unassigned area"
         district_name = _clean_label(row.get("district_name"), district_fallback)
         delta = float(sim_score - base_score)
-        if abs(delta) >= 0.005:
+        feature_changed = bool(feature_changed_mask[i]) if i < len(feature_changed_mask) else False
+        if abs(delta) >= 0.005 or feature_changed:
             impacted_origin_ids.append(origin_id)
         origins.append(
             {
@@ -125,6 +334,7 @@ def _build_response(
                 "name": origin_name,
                 "district_name": district_name,
                 "district_id": row.get("district_id"),
+                "analysis_unit": analysis_unit,
                 "urban_ring": str(row.get("urban_ring", "Unknown")),
                 "latitude": float(row["latitude"]),
                 "longitude": float(row["longitude"]),
@@ -139,12 +349,15 @@ def _build_response(
                 "population": float(row.get("population", 0.0)),
                 "underserved": 1 if sim_score < 0.5 else 0,
                 "delta": delta,
+                "feature_changed": feature_changed,
             }
         )
 
     avg_delta = float((simulated_scores - baseline_scores).mean()) if len(simulated_scores) else 0.0
     analysis_unit = str(simulated_df.get("analysis_unit", pd.Series(["unknown"])).iloc[0])
     metadata = _read_baseline_metadata(city_id)
+    methodology = _methodology_metadata(analysis_unit)
+    warnings = _response_warnings(metadata, analysis_unit)
     district_before = _district_summary_from_origins(features_df, np.asarray(baseline_scores, dtype=float)) if analysis_unit == "origin" else []
     district_after = _district_summary_from_origins(simulated_df, np.asarray(simulated_scores, dtype=float)) if analysis_unit == "origin" else []
     before_by_district = {str(row["district_name"]): row for row in district_before}
@@ -174,7 +387,9 @@ def _build_response(
     return {
         "city_id": city_id,
         "analysis_unit": analysis_unit,
-        "warnings": metadata.get("warnings", []),
+        "warnings": warnings,
+        "methodology": methodology,
+        "methodology_notes": methodology["notes"],
         "summary": {
             "avg_score_before": float(baseline_summary["avg_accessibility_score"]),
             "avg_score_after": float(simulated_summary["avg_accessibility_score"]),
@@ -189,7 +404,17 @@ def _build_response(
             "total_pop_improved": float(populations[total_improved_mask].sum()) if populations.size else 0.0,
             "total_origins_improved": int(total_improved_mask.sum()),
         },
+        "delta_summary": {
+            "avg_accessibility_delta": float(simulated_summary["avg_accessibility_score"] - baseline_summary["avg_accessibility_score"]),
+            "avg_travel_time_delta": float(simulated_summary["avg_travel_time"] - baseline_summary["avg_travel_time"]),
+            "improved_population": float(populations[total_improved_mask].sum()) if populations.size else 0.0,
+            "improved_origin_count": int(total_improved_mask.sum()),
+            "feature_changed_origin_count": int(feature_changed_mask.sum()),
+        },
+        "feature_delta_summary": feature_delta_summary,
         "districts": district_rows,
+        "baseline_rows": _origin_rows(features_df, np.asarray(baseline_scores, dtype=float)),
+        "simulated_rows": origins,
         "origins": origins,
         "avg_delta": avg_delta,
         "equity": equity,
@@ -199,7 +424,9 @@ def _build_response(
             "add_facilities": scenario["add_facilities"],
         },
         "added_facilities": scenario_entities["added_facilities"],
+        "facilities_added": scenario_entities["added_facilities"],
         "added_transport_stops": scenario_entities["added_transport_stops"],
+        "transport_stops_added": scenario_entities["added_transport_stops"],
         "auto_placed_facilities": scenario_entities["auto_placed_facilities"],
         "impacted_origin_ids": impacted_origin_ids,
         "district_summaries_before": district_before,

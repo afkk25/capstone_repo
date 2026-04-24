@@ -74,7 +74,9 @@ function cleanDisplayLabel(value: unknown, fallback: string): string {
 }
 
 export function normalizeBaselineFacilities(payload: BaselineResponse | null | undefined): FrontendDistrict[] {
-  const rows = Array.isArray(payload?.origins)
+  const rows = Array.isArray(payload?.baseline_rows)
+    ? payload.baseline_rows
+    : Array.isArray(payload?.origins)
     ? payload.origins
     : Array.isArray(payload?.facilities)
     ? (payload.facilities as BaselineFacilityDto[])
@@ -85,7 +87,11 @@ export function normalizeBaselineFacilities(payload: BaselineResponse | null | u
 }
 
 export function normalizeSupplyFacilities(payload: BaselineResponse | null | undefined): FacilityPointDto[] {
-  const rows = Array.isArray(payload?.facilities) ? payload.facilities : [];
+  const rows = Array.isArray(payload?.facilities_baseline)
+    ? payload.facilities_baseline
+    : Array.isArray(payload?.facilities)
+    ? payload.facilities
+    : [];
   return rows
     .map((row, index) => ({
       id: row.id ?? `facility-${index}`,

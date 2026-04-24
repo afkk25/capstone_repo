@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from core.config import get_default_point_simulation_city_id
-from services.city_simulation import run_city_scenario, run_point_simulation
+from services.city_simulation import recommend_city_placements, run_city_scenario, run_point_simulation
 
 router = APIRouter(tags=["simulate"], prefix="/api")
 
@@ -51,6 +51,16 @@ def simulate_point_intervention(payload: PointSimulationPayload) -> dict[str, An
 def simulate_city(city_id: str, payload: ScenarioPayload) -> dict[str, Any]:
     try:
         return run_city_scenario(city_id, payload.model_dump())
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"City '{city_id}' not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/cities/{city_id}/recommended-placements")
+def recommended_placements(city_id: str) -> dict[str, Any]:
+    try:
+        return recommend_city_placements(city_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"City '{city_id}' not found")
     except ValueError as exc:
