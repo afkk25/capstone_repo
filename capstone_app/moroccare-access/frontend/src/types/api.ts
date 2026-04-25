@@ -117,6 +117,27 @@ export type TransportStopDto = {
 export type BaselineResponse = {
   analysis_unit?: string;
   warnings?: string[];
+  kpis?: {
+    population?: number;
+    facility_count?: number;
+    transport_stop_count?: number;
+    average_access_time_min?: number;
+    avg_total_travel_time_min_pw?: number;
+    average_accessibility_score?: number;
+    pop_weighted_accessibility_score?: number;
+    pct_population_within_30_min?: number;
+    pct_population_within_60_min?: number;
+    pct_pop_access_60min?: number;
+    coverage_gap_pct?: number;
+    pct_pop_score_below_50?: number;
+    facilities_near_transit?: number;
+    avg_accessibility_score?: number;
+    avg_total_travel_time_min?: number;
+    population_covered_45min_pct?: number;
+    underserved_population?: number;
+  };
+  population?: number;
+  facility_count?: number;
   methodology?: {
     analysis_unit?: string;
     demand_surface?: string;
@@ -136,9 +157,14 @@ export type BaselineResponse = {
   district_summaries?: Array<{
     district_name?: string;
     district_id?: string | number | null;
+    population_raster?: number;
     origin_count?: number;
     population?: number;
     avg_accessibility_score?: number;
+    pop_weighted_accessibility_score?: number;
+    avg_total_travel_time_min_pw?: number;
+    pct_pop_access_threshold?: number;
+    pct_pop_score_below_50?: number;
     underserved_pct?: number;
     rank?: number;
     centroid_latitude?: number;
@@ -160,6 +186,21 @@ export type DistrictGeoJsonResponse = {
 export type SummaryResponse = {
   city_id: string;
   summary: {
+    population?: number;
+    population_raster?: number;
+    facility_count?: number;
+    healthcare_facilities?: number;
+    transport_stop_count?: number;
+    stop_count?: number;
+    average_access_time_min?: number;
+    avg_total_travel_time_min_pw?: number;
+    average_accessibility_score?: number;
+    pop_weighted_accessibility_score?: number;
+    pct_population_within_60_min?: number;
+    pct_pop_access_60min?: number;
+    pct_pop_access_threshold?: number;
+    coverage_gap_pct?: number;
+    pct_pop_score_below_50?: number;
     avg_travel_time?: number;
     pct_above_45min?: number;
     underserved_population?: number;
@@ -177,7 +218,10 @@ export type RankingRowDto = {
 
 export type RankingResponse = {
   city_id: string;
-  ranking: RankingRowDto[];
+  ranking?: RankingRowDto[];
+  rows?: RankingRowDto[];
+  data?: RankingRowDto[];
+  districts?: RankingRowDto[];
 };
 
 export type RecommendationDto = {
@@ -317,6 +361,32 @@ export type UploadCityResponse = {
     center_lon: number;
     facilities_count: number;
   };
+  detected_files?: Array<{
+    filename?: string;
+    detected_type?: string;
+    required_columns_found?: string[];
+    required_columns?: string[];
+    missing_columns?: string[];
+    warnings?: string[];
+  }>;
+  dataset_readiness?: {
+    baseline_ready?: boolean;
+    simulation_ready?: boolean;
+    missing_files?: string[];
+    missing_required_files?: string[];
+    missing_baseline_files?: string[];
+    missing_simulation_files?: string[];
+    warnings?: string[];
+  };
+  file_requirements?: Record<
+    string,
+    {
+      required_columns?: string[];
+      normalized_filename?: string;
+      required_for_baseline?: boolean;
+      required_for_simulation?: boolean;
+    }
+  >;
 };
 
 export type FrontendDistrict = {

@@ -3977,7 +3977,7 @@ body {
 .mc-header-inner {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   max-width: 1440px;
   min-height: 64px;
   margin: 0 auto;
@@ -4014,29 +4014,130 @@ body {
 .mc-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 290px;
+  gap: 8px;
+  min-width: 0;
+  margin-inline-start: auto;
+  flex-shrink: 0;
 }
 
 .mc-header-button,
 .mc-header-select {
-  height: 38px;
+  height: 40px;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 14px;
   background: #ffffff;
   color: var(--text-primary);
   font-size: 13px;
+  box-shadow: 0 4px 12px rgba(16, 35, 27, 0.05);
 }
 
 .mc-header-button {
-  padding: 0 13px;
+  padding: 0 16px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mc-header-select {
+  width: 196px;
+  padding: 0 14px;
+}
+
+.mc-header-language {
+  flex: 0 0 auto;
+  margin-inline-start: 2px;
+}
+
+.mc-language-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 88px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(216, 224, 231, 0.95);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 6px 16px rgba(16, 35, 27, 0.08);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.mc-language-trigger:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.22);
+  box-shadow: 0 10px 20px rgba(16, 35, 27, 0.1);
+}
+
+.mc-language-trigger__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+}
+
+.mc-language-trigger__icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.mc-language-trigger__code {
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.mc-language-trigger__caret {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
+
+.mc-language-trigger__caret svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+.mc-language-menu {
+  min-width: 88px;
+  margin-top: 8px;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 32px rgba(16, 35, 27, 0.12);
+  backdrop-filter: blur(12px);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.mc-language-menu__item {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  padding: 7px 8px;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
 }
 
-.mc-header-select {
-  width: 190px;
-  padding: 0 10px;
+.mc-language-menu__item:hover,
+.mc-language-menu__item.is-active {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
 }
 
 /* Simulation cleanup: map-first, all interventions stay visible, clearer results */
@@ -4140,6 +4241,13 @@ body {
 
   .mc-header-actions {
     min-width: 0;
+    margin-inline-start: 0;
+    justify-content: flex-end;
+  }
+
+  .mc-header-select {
+    width: min(100%, 220px);
+    flex: 1 1 180px;
   }
 
   .mc-header-shell .mc-route-main {
@@ -6004,6 +6112,22 @@ body {
   border-radius: 18px;
 }
 
+.simulation-marker--scenario-facility,
+.simulation-marker--scenario-stop {
+  width: 20px;
+  height: 20px;
+  border-width: 1.5px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--marker-color) 82%, white 18%);
+  box-shadow: 0 8px 14px rgba(15, 23, 42, 0.14);
+  opacity: 0.88;
+}
+
+.simulation-marker--scenario-facility span,
+.simulation-marker--scenario-stop span {
+  font-size: 8px;
+}
+
 .simulation-map-shell .leaflet-popup-content {
   margin: 10px 12px;
 }
@@ -6997,6 +7121,10 @@ body {
   gap: 8px;
 }
 
+.simflow-progress.is-condensed {
+  gap: 6px;
+}
+
 .simflow-progress-step,
 .simflow-panel {
   border: 1px solid rgba(19, 32, 43, 0.08);
@@ -7013,6 +7141,13 @@ body {
   background: rgba(255, 255, 255, 0.92);
 }
 
+.simflow-progress.is-condensed .simflow-progress-step {
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 12px;
+}
+
 .simflow-progress-step strong,
 .simflow-metric strong,
 .simflow-context-row strong {
@@ -7024,6 +7159,10 @@ body {
   font-size: 12px;
 }
 
+.simflow-progress.is-condensed .simflow-progress-step strong {
+  font-size: 11px;
+}
+
 .simflow-progress-step span,
 .simflow-note,
 .simflow-context-row span,
@@ -7031,6 +7170,11 @@ body {
   color: var(--text-muted);
   font-size: 11px;
   line-height: 1.4;
+}
+
+.simflow-progress.is-condensed .simflow-progress-step span {
+  font-size: 10px;
+  line-height: 1.25;
 }
 
 .simflow-progress-index {
@@ -7045,6 +7189,12 @@ body {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
+}
+
+.simflow-progress.is-condensed .simflow-progress-index {
+  width: 22px;
+  height: 22px;
+  font-size: 9px;
 }
 
 .simflow-progress-step.is-current {

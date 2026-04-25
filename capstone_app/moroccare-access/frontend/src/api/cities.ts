@@ -19,12 +19,38 @@ export function fetchApiHealth() {
   return requestJson<{ status: string }>(() => apiClient.get("/api/health"), 0);
 }
 
-export function fetchCityBaseline(cityId: string) {
-  return requestJson<BaselineResponse>(() => apiClient.get(`/api/cities/${cityId}/baseline`), 1);
+export function fetchCityBaseline(
+  cityId: string,
+  options: {
+    includeRows?: boolean;
+    includeFacilities?: boolean;
+    includeTransportStops?: boolean;
+    includeMapLayers?: boolean;
+  } = {}
+) {
+  const {
+    includeRows = false,
+    includeFacilities = false,
+    includeTransportStops = false,
+    includeMapLayers = false
+  } = options;
+  return requestJson<BaselineResponse>(
+    () =>
+      apiClient.get(`/api/cities/${cityId}/baseline`, {
+        timeout: 60000,
+        params: {
+          include_rows: includeRows,
+          include_facilities: includeFacilities,
+          include_transport_stops: includeTransportStops,
+          include_map_layers: includeMapLayers
+        }
+      }),
+    1
+  );
 }
 
 export function fetchCitySummary(cityId: string) {
-  return requestJson<SummaryResponse>(() => apiClient.get(`/api/cities/${cityId}/summary`), 1);
+  return requestJson<SummaryResponse>(() => apiClient.get(`/api/cities/${cityId}/summary`, { timeout: 60000 }), 1);
 }
 
 export function fetchCityDistrictGeojson(cityId: string) {
@@ -32,7 +58,7 @@ export function fetchCityDistrictGeojson(cityId: string) {
 }
 
 export function fetchCityRanking(cityId: string) {
-  return requestJson<RankingResponse>(() => apiClient.get(`/api/cities/${cityId}/ranking`), 1);
+  return requestJson<RankingResponse>(() => apiClient.get(`/api/cities/${cityId}/ranking`, { timeout: 60000 }), 1);
 }
 
 export function fetchCityRecommendations(cityId: string) {
@@ -41,6 +67,14 @@ export function fetchCityRecommendations(cityId: string) {
 
 export function fetchCityRecommendedPlacements(cityId: string) {
   return requestJson<RecommendedPlacementsResponse>(() => apiClient.get(`/api/cities/${cityId}/recommended-placements`), 1);
+}
+
+export function fetchCityFacilities(cityId: string) {
+  return requestJson<Record<string, unknown>>(() => apiClient.get(`/api/cities/${cityId}/facilities`), 1);
+}
+
+export function fetchCityStops(cityId: string) {
+  return requestJson<Record<string, unknown>>(() => apiClient.get(`/api/cities/${cityId}/stops`), 1);
 }
 
 export function fetchCityExplainability(cityId: string) {

@@ -15,22 +15,28 @@ from shapely.geometry import Point
 from core.config import city_dir, list_city_ids, load_cities_registry, load_city_config
 from core.equity import compute_equity
 from core.features import compute_facility_proxy_features, compute_origin_features
-from core.modeling import load_model, predict, train_model
 from services.cache import clear_city_cache
 from services.districts import DistrictDataUnavailable, assign_districts_to_points, district_geojson_with_metrics
 from services.notebook_bridge.loaders import CityDataNotFoundError, get_city_paths, load_notebook_origin_metrics
+from services.origin_accessibility import (
+    accessibility_score_from_travel_time,
+    load_city_facilities,
+    load_city_origin_baseline,
+    load_route_geometries_geojson,
+)
 
 router = APIRouter(tags=["cities"], prefix="/api")
 
 BASELINE_VERSION = "origin-first-districts-v5"
 BASELINE_METADATA_PATH = "baseline_metadata.json"
+DEFAULT_ACCESS_MAX_MIN = 60.0
 
 
 def _methodology_notes(analysis_unit: str) -> list[str]:
     common = [
         "Healthcare facilities are modeled as supply/destination points, not as the accessibility surface.",
-        "Transport stops are modeled as accessibility-enabling infrastructure through proximity and stop-density features.",
-        "Scenario simulation is a feature-update planning proxy: it updates affected origin features and re-runs the trained accessibility model; it is not a full timetable or network-routing engine.",
+        "Transport stops are modeled as access nodes in the transport network and are linked to demand origins and healthcare destinations through walking access connectors.",
+        "Scenario simulation recomputes origin-to-facility travel time from population origins through the stop network; it is not a timetable-aware transit assignment model.",
     ]
     if analysis_unit == "origin":
         return [
@@ -53,7 +59,7 @@ def _methodology_metadata(analysis_unit: str) -> dict[str, Any]:
         "supply_surface": "healthcare_facilities",
         "access_infrastructure": "transport_stops",
         "district_role": "aggregation/reporting only",
-        "simulation_mode": "feature_update_predictive_proxy",
+        "simulation_mode": "origin_to_facility_network_routing",
         "notes": _methodology_notes(analysis_unit),
     }
 
@@ -65,6 +71,19 @@ def _response_warnings(metadata: dict[str, Any], analysis_unit: str) -> list[str
             "Origin-level demand data is unavailable for this city. Results are shown in facility_proxy mode and should be interpreted as service-location reachability."
         )
     return warnings
+
+
+def _baseline_scores_from_features(features_df: pd.DataFrame) -> np.ndarray:
+    if features_df.empty:
+        return np.array([], dtype=float)
+    if "accessibility_score" in features_df.columns:
+        scores = pd.to_numeric(features_df["accessibility_score"], errors="coerce")
+        if scores.notna().any():
+            return scores.fillna(0.0).clip(lower=0.0, upper=1.0).to_numpy(dtype=float)
+    if "travel_time_min" in features_df.columns:
+        scores = accessibility_score_from_travel_time(pd.to_numeric(features_df["travel_time_min"], errors="coerce").fillna(DEFAULT_ACCESS_MAX_MIN))
+        return scores.to_numpy(dtype=float)
+    return np.zeros(len(features_df), dtype=float)
 
 
 def _clean_label(value: Any, fallback: str) -> str:
@@ -189,7 +208,7 @@ def _load_city_origin_metrics(city_id: str) -> tuple[pd.DataFrame, list[str]]:
 def _build_analysis_frame(city_id: str, cfg: dict[str, Any], healthcare_gdf: gpd.GeoDataFrame, stops_gdf: gpd.GeoDataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
     origin_df, warnings = _load_city_origin_metrics(city_id)
     if not origin_df.empty:
-        features_df = compute_origin_features(origin_df, healthcare_gdf, stops_gdf, cfg)
+        features_df = load_city_origin_baseline(city_id)
         if (
             not features_df.empty
             and (
@@ -237,13 +256,7 @@ def _build_analysis_frame(city_id: str, cfg: dict[str, Any], healthcare_gdf: gpd
 
 
 def _artifacts_stale(city_id: str) -> bool:
-    folder = city_dir(city_id)
-    model_path = folder / "model.pkl"
-    feature_path = folder / "feature_names.json"
-    features_path = folder / "features.csv"
     metadata = _read_baseline_metadata(city_id)
-    if not model_path.exists() or not feature_path.exists() or not features_path.exists():
-        return True
     if metadata.get("version") != BASELINE_VERSION:
         return True
     if metadata.get("source_hash") != _source_hash(city_id):
@@ -294,27 +307,16 @@ def ensure_baseline_data(city_id: str) -> tuple[pd.DataFrame, Any]:
     if city_id not in list_city_ids():
         raise FileNotFoundError(f"City '{city_id}' is not registered")
 
-    try:
-        if _artifacts_stale(city_id):
-            raise FileNotFoundError("Model artifacts are stale and need retraining")
-        model, feature_names, features_df = load_model(city_id)
-        scores = predict(model, features_df, feature_names)
-    except (FileNotFoundError, AttributeError, EOFError, KeyError, ValueError):
+    if _artifacts_stale(city_id):
         cfg, healthcare_gdf, stops_gdf = _load_city_geo(city_id)
         features_df, metadata = _build_analysis_frame(city_id, cfg, healthcare_gdf, stops_gdf)
-        model, feature_names, features_df = train_model(features_df, city_id)
         _write_baseline_metadata(city_id, metadata)
-        scores = predict(model, features_df, feature_names)
     else:
         metadata = _read_baseline_metadata(city_id)
-        if metadata.get("source_hash") != _source_hash(city_id):
-            cfg, healthcare_gdf, stops_gdf = _load_city_geo(city_id)
-            features_df, metadata = _build_analysis_frame(city_id, cfg, healthcare_gdf, stops_gdf)
-            model, feature_names, features_df = train_model(features_df, city_id)
-            _write_baseline_metadata(city_id, metadata)
-            scores = predict(model, features_df, feature_names)
+        cfg, healthcare_gdf, stops_gdf = _load_city_geo(city_id)
+        features_df, metadata = _build_analysis_frame(city_id, cfg, healthcare_gdf, stops_gdf)
 
-    scores = _resolve_accessibility_scores(features_df, scores)
+    scores = _baseline_scores_from_features(features_df)
     return features_df, scores
 
 
@@ -329,6 +331,9 @@ def _origin_rows(features_df: pd.DataFrame, scores: np.ndarray) -> list[dict[str
         district_fallback = origin_name if analysis_unit == "facility_proxy" else "Unassigned area"
         district_name = _clean_label(row.get("district_name"), district_fallback)
         pop_value = pd.to_numeric(pd.Series([row.get("population")]), errors="coerce").fillna(0.0).iloc[0]
+        travel_time_min = pd.to_numeric(pd.Series([row.get("travel_time_min")]), errors="coerce").iloc[0]
+        if not np.isfinite(travel_time_min):
+            travel_time_min = float((1.0 - max(0.0, min(1.0, score))) * 60.0)
         rows.append(
             {
                 "id": origin_id,
@@ -342,10 +347,12 @@ def _origin_rows(features_df: pd.DataFrame, scores: np.ndarray) -> list[dict[str
                 "longitude": float(row["longitude"]),
                 "accessibility_score": score,
                 "baseline_score": score,
-                "travel_time_min": float((1.0 - max(0.0, min(1.0, score))) * 60.0),
+                "travel_time_min": float(travel_time_min),
                 "score_2sfca": float(score_2sfca[i]),
                 "population": float(pop_value),
                 "underserved": 1 if score < 0.5 else 0,
+                "nearest_stop_id": row.get("nearest_stop_id"),
+                "nearest_facility_id": row.get("nearest_facility_id"),
             }
         )
     return rows
@@ -394,7 +401,10 @@ def _district_summary_from_origins(features_df: pd.DataFrame, scores: np.ndarray
         return []
     work["accessibility_score"] = score_series.loc[work.index].to_numpy(dtype=float)
     work["population"] = pd.to_numeric(work.get("population", 0.0), errors="coerce").fillna(0.0).clip(lower=0.0)
-    work["travel_time_min"] = (1.0 - work["accessibility_score"].clip(lower=0.0, upper=1.0)) * 60.0
+    if "travel_time_min" in work.columns:
+        work["travel_time_min"] = pd.to_numeric(work["travel_time_min"], errors="coerce")
+    else:
+        work["travel_time_min"] = (1.0 - work["accessibility_score"].clip(lower=0.0, upper=1.0)) * 60.0
 
     def weighted_mean(values: pd.Series, weights: pd.Series) -> float:
         v = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
@@ -489,6 +499,7 @@ def get_city_baseline(city_id: str) -> dict[str, Any]:
     equity = compute_equity(features_df, scores)
     methodology = _methodology_metadata(analysis_unit)
     warnings = _response_warnings(metadata, analysis_unit)
+    routes_geojson = load_route_geometries_geojson(city_id)
 
     return {
         "analysis_unit": analysis_unit,
@@ -501,6 +512,7 @@ def get_city_baseline(city_id: str) -> dict[str, Any]:
         "facilities": facility_rows,
         "transport_stops_baseline": stop_rows,
         "transport_stops": stop_rows,
+        "route_geometries": routes_geojson,
         "district_summaries": district_summaries,
         "district_summaries_before": district_summaries,
         "district_summaries_after": [],

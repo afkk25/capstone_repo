@@ -34,8 +34,8 @@ export default function RankingTable({ rows = [], isLoading = false, onSelectDis
 
   return (
     <SectionCard
-      title="District ranking"
-      subtitle="Sort, filter, and search underserved districts for targeted intervention planning."
+      title="Commune ranking"
+      subtitle="Sort, filter, and search underserved communes for targeted intervention planning."
       headerRight={
         <div className="flex items-center gap-1">
           {["rank", "underserved_pct", "avg_accessibility_score"].map((key) => (
@@ -57,7 +57,7 @@ export default function RankingTable({ rows = [], isLoading = false, onSelectDis
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          placeholder="Search district..."
+          placeholder="Search commune..."
         />
         <select
           value={filter}
@@ -85,7 +85,7 @@ export default function RankingTable({ rows = [], isLoading = false, onSelectDis
             <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2">Rank</th>
-                <th className="px-3 py-2">District</th>
+                <th className="px-3 py-2">Commune</th>
                 <th className="px-3 py-2">Avg score</th>
                 <th className="px-3 py-2">Underserved</th>
               </tr>

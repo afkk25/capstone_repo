@@ -1,12 +1,13 @@
 import { useI18n } from "../i18n/I18nProvider";
+import CornerLanguageSwitcher from "./CornerLanguageSwitcher";
 
 export default function NavBar({ activeTab, onTabChange, cities, selectedCityId, onCityChange, onUploadClick, onAddNewCity }) {
   const { t, isRtl } = useI18n();
   const tabs = [
     { id: "overview", label: t("nav.overview"), path: "/overview" },
     { id: "map", label: t("nav.map"), path: "/map" },
-    { id: "simulate", label: "Simulation", path: "/simulate" },
-    { id: "analysis", label: "Analysis", path: "/analysis" }
+    { id: "simulate", label: t("nav.simulate"), path: "/simulate" },
+    { id: "analysis", label: t("nav.analytics"), path: "/analysis" }
   ];
 
   return (
@@ -55,6 +56,7 @@ export default function NavBar({ activeTab, onTabChange, cities, selectedCityId,
             ))}
             <option value="__new__">{t("nav.addNewCity")}</option>
           </select>
+          <CornerLanguageSwitcher inline className="mc-header-language" />
         </div>
       </div>
     </header>

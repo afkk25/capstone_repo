@@ -20,3 +20,7 @@ notebooks/03_data_analysis_first.ipynb
 
 # Ignore config files with sensitive info
 config.py
+
+
+node_modules/
+**/node_modules/

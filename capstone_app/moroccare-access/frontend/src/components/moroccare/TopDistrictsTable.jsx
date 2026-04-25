@@ -1,9 +1,13 @@
-export default function TopDistrictsTable({ districts, title = "Priority Districts", subtitle = "lowest accessibility first" }) {
+import { useI18n } from "../../i18n/I18nProvider";
+
+export default function TopDistrictsTable({ districts, title, subtitle }) {
+  const { t } = useI18n();
+
   return (
     <section className="mc-card mc-districts">
       <div className="mc-section-head">
-        <h2>{title}</h2>
-        <span>{subtitle}</span>
+        <h2>{title || t("overviewPage.originRankingTitle")}</h2>
+        <span>{subtitle || t("overviewPage.originRankingIntro")}</span>
       </div>
       {districts.length ? (
         <div className="mc-district-list">
@@ -20,7 +24,7 @@ export default function TopDistrictsTable({ districts, title = "Priority Distric
           ))}
         </div>
       ) : (
-        <div className="mc-empty-note">District ranking is available when origin rows include district names and accessibility scores.</div>
+        <div className="mc-empty-note">{t("overviewPage.noBaselineRows")}</div>
       )}
     </section>
   );

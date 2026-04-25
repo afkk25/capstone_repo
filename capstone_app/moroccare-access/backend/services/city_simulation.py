@@ -7,8 +7,6 @@ import pandas as pd
 
 from core.config import get_default_point_simulation_city_id, load_city_config
 from core.equity import compute_equity
-from core.modeling import load_model, predict
-from core.simulation import apply_intervention
 from routers.cities import (
     _district_summary_from_origins,
     _load_city_geo,
@@ -22,6 +20,11 @@ from routers.cities import (
 from routers.cities import _clean_label
 from services.cache import clear_city_cache, city_freshness_token, get_cached_city_rows
 from services.analytics import compute_summary_metrics
+from services.origin_accessibility import (
+    accessibility_score_from_travel_time,
+    load_city_facilities,
+    simulate_origin_accessibility,
+)
 
 
 def _min_max(values: pd.Series) -> pd.Series:
@@ -156,9 +159,6 @@ def _ranked_candidate_payload(
     city_id: str,
     features_df: pd.DataFrame,
     baseline_scores: np.ndarray,
-    model: Any,
-    feature_names: list[str],
-    existing_facility_locations: list[dict[str, float]],
     intervention_type: str,
     candidates: pd.DataFrame,
     baseline_summary: dict[str, float],
@@ -177,12 +177,11 @@ def _ranked_candidate_payload(
             **simulation_defaults,
             "facility_locations": [],
             "transport_stop_locations": [],
-            "existing_facility_locations": existing_facility_locations,
         }
         scenario[scenario_key] = [{"latitude": lat, "longitude": lon}]
         try:
-            simulated_df, _ = apply_intervention(features_df, scenario, baseline_scores)
-            simulated_scores = predict(model, simulated_df, feature_names)
+            simulated_df, _scenario_entities, _context = simulate_origin_accessibility(city_id, scenario, baseline_df=features_df)
+            simulated_scores = pd.to_numeric(simulated_df["accessibility_score"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
         except ValueError:
             continue
 
@@ -207,7 +206,7 @@ def _ranked_candidate_payload(
                 "local_population": population_weight,
                 "score": float(score),
                 **metrics,
-                "method": "candidate origins are ranked by re-running the current feature-update simulation and accessibility model",
+                "method": "candidate origins are ranked by recomputing origin-to-facility travel time through the stop network",
             }
         )
 
@@ -217,26 +216,17 @@ def _ranked_candidate_payload(
 def recommend_city_placements(city_id: str) -> dict[str, Any]:
     city_cfg = load_city_config(city_id)
     features_df, baseline_scores = ensure_baseline_data(city_id)
-    _, healthcare_gdf, _ = _load_city_geo(city_id)
-    model, feature_names, _ = load_model(city_id)
 
     baseline_rows = features_df.copy().reset_index(drop=True)
     baseline_rows["accessibility_score"] = np.asarray(baseline_scores, dtype=float)
     baseline_summary = compute_summary_metrics(baseline_rows)
     candidates = _candidate_origins(features_df, np.asarray(baseline_scores, dtype=float))
-    existing_facility_locations = [
-        {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
-        for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
-    ]
     simulation_defaults = _city_simulation_defaults(city_cfg)
 
     facility_rows = _ranked_candidate_payload(
         city_id=city_id,
         features_df=features_df,
         baseline_scores=np.asarray(baseline_scores, dtype=float),
-        model=model,
-        feature_names=feature_names,
-        existing_facility_locations=existing_facility_locations,
         intervention_type="healthcare_facility",
         candidates=candidates,
         baseline_summary=baseline_summary,
@@ -246,9 +236,6 @@ def recommend_city_placements(city_id: str) -> dict[str, Any]:
         city_id=city_id,
         features_df=features_df,
         baseline_scores=np.asarray(baseline_scores, dtype=float),
-        model=model,
-        feature_names=feature_names,
-        existing_facility_locations=existing_facility_locations,
         intervention_type="transport_stop",
         candidates=candidates,
         baseline_summary=baseline_summary,
@@ -262,7 +249,7 @@ def recommend_city_placements(city_id: str) -> dict[str, Any]:
         "transport_stop_recommendations": stop_rows,
         "methodology_notes": [
             "Recommended placements are computed from candidate demand origins, not manually selected.",
-            "Each candidate is evaluated by applying the same feature-update simulation used for map placement and re-running the trained accessibility model.",
+            "Each candidate is evaluated by recomputing origin-to-facility travel time over the transport-stop network.",
             "Ranking combines average accessibility gain, improved origins, improved population, and the strongest local origin-level gain.",
         ],
     }
@@ -276,6 +263,7 @@ def _build_response(
     simulated_scores: np.ndarray,
     scenario: dict[str, Any],
     scenario_entities: dict[str, list[dict[str, float | str]]],
+    context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     baseline_equity = compute_equity(features_df, baseline_scores)
     simulated_equity = compute_equity(simulated_df, simulated_scores)
@@ -284,22 +272,15 @@ def _build_response(
         "gini_before": float(baseline_equity.get("gini_coefficient", 0.0)),
         "gini_after": float(simulated_equity.get("gini_coefficient", 0.0)),
     }
-    score_2sfca = derive_2sfca_scores(simulated_df).to_numpy(dtype=float)
+    facility_lookup = context.get("facility_lookup", {}) if isinstance(context, dict) else {}
+    score_2sfca = pd.to_numeric(simulated_df.get("score_2sfca", derive_2sfca_scores(simulated_df)), errors="coerce").fillna(0.0).to_numpy(dtype=float)
     baseline_rows_for_summary = features_df.copy().reset_index(drop=True)
     simulated_rows_for_summary = simulated_df.copy().reset_index(drop=True)
     baseline_rows_for_summary["accessibility_score"] = np.asarray(baseline_scores, dtype=float)
     simulated_rows_for_summary["accessibility_score"] = np.asarray(simulated_scores, dtype=float)
     baseline_summary = compute_summary_metrics(baseline_rows_for_summary)
     simulated_summary = compute_summary_metrics(simulated_rows_for_summary)
-    feature_delta_cols = [
-        "distance_to_nearest_stop_m",
-        "stop_density",
-        "stop_density_1km",
-        "num_healthcare_facilities",
-        "healthcare_density_1km",
-        "interaction_stop_pop_density",
-        "interaction_fac_pop",
-    ]
+    feature_delta_cols = ["distance_to_nearest_stop_m", "walk_time_to_stop_min", "travel_time_min", "accessibility_score"]
     feature_delta_summary: dict[str, float | int] = {}
     feature_changed_mask = np.zeros(len(simulated_df), dtype=bool)
     for col in feature_delta_cols:
@@ -343,13 +324,17 @@ def _build_response(
                 "baseline_score": base_score,
                 "simulated_score": sim_score,
                 "accessibility_score": sim_score,
-                "before_travel_time_min": float((1.0 - max(0.0, min(1.0, base_score))) * 60.0),
-                "travel_time_min": float((1.0 - max(0.0, min(1.0, sim_score))) * 60.0),
+                "before_travel_time_min": float(pd.to_numeric(pd.Series([features_df.iloc[i].get("travel_time_min")]), errors="coerce").fillna((1.0 - max(0.0, min(1.0, base_score))) * 60.0).iloc[0]),
+                "travel_time_min": float(pd.to_numeric(pd.Series([row.get("travel_time_min")]), errors="coerce").fillna((1.0 - max(0.0, min(1.0, sim_score))) * 60.0).iloc[0]),
                 "score_2sfca": float(score_2sfca[i]),
                 "population": float(row.get("population", 0.0)),
                 "underserved": 1 if sim_score < 0.5 else 0,
                 "delta": delta,
                 "feature_changed": feature_changed,
+                "nearest_stop_id": row.get("nearest_stop_id"),
+                "nearest_facility_id": row.get("nearest_facility_id"),
+                "nearest_facility_name": row.get("nearest_facility_name")
+                or facility_lookup.get(str(row.get("nearest_facility_id")), {}).get("name"),
             }
         )
 
@@ -367,8 +352,8 @@ def _build_response(
         before = before_by_district.get(district_name, {})
         before_score = float(before.get("avg_accessibility_score", after.get("avg_accessibility_score", 0.0)))
         after_score = float(after.get("avg_accessibility_score", 0.0))
-        before_tt = float((1.0 - max(0.0, min(1.0, before_score))) * 60.0)
-        after_tt = float((1.0 - max(0.0, min(1.0, after_score))) * 60.0)
+        before_tt = float(before.get("avg_travel_time_min", 0.0))
+        after_tt = float(after.get("avg_travel_time_min", 0.0))
         district_rows.append(
             {
                 "district_name": district_name,
@@ -431,7 +416,8 @@ def _build_response(
         "impacted_origin_ids": impacted_origin_ids,
         "district_summaries_before": district_before,
         "district_summaries_after": district_after,
-        "facilities": origins,
+        "facilities": load_city_facilities(city_id).rename(columns={"facility_id": "id"}).to_dict(orient="records"),
+        "route_geometries": context.get("routes", {"type": "FeatureCollection", "features": []}) if isinstance(context, dict) else {"type": "FeatureCollection", "features": []},
     }
 
 
@@ -439,8 +425,6 @@ def run_city_scenario(city_id: str, scenario_payload: dict[str, Any]) -> dict[st
     clear_city_cache(city_id)
     city_cfg = load_city_config(city_id)
     features_df, baseline_scores = ensure_baseline_data(city_id)
-    _, healthcare_gdf, _ = _load_city_geo(city_id)
-    model, feature_names, _ = load_model(city_id)
     simulation_defaults = _city_simulation_defaults(city_cfg)
 
     scenario = {
@@ -453,18 +437,24 @@ def run_city_scenario(city_id: str, scenario_payload: dict[str, Any]) -> dict[st
         "add_facilities": _value_or_default(scenario_payload, "add_facilities", simulation_defaults["add_facilities"]),
         "facility_locations": _value_or_default(scenario_payload, "facility_locations", []),
         "transport_stop_locations": _value_or_default(scenario_payload, "transport_stop_locations", []),
-        "existing_facility_locations": [
-            {"latitude": float(row["latitude"]), "longitude": float(row["longitude"])}
-            for _, row in healthcare_gdf.reset_index(drop=True).iterrows()
-        ],
         "walking_speed_mps": _value_or_default(scenario_payload, "walking_speed_mps", simulation_defaults["walking_speed_mps"]),
         "waiting_time_min": _value_or_default(scenario_payload, "waiting_time_min", simulation_defaults["waiting_time_min"]),
         "transport_speed_kmh": _value_or_default(scenario_payload, "transport_speed_kmh", simulation_defaults["transport_speed_kmh"]),
+        "max_travel_time_min": _value_or_default(scenario_payload, "max_travel_time_min", 60.0),
     }
 
-    simulated_df, scenario_entities = apply_intervention(features_df, scenario, baseline_scores)
-    simulated_scores = predict(model, simulated_df, feature_names)
-    return _build_response(city_id, features_df, np.asarray(baseline_scores, dtype=float), simulated_df, simulated_scores, scenario, scenario_entities)
+    simulated_df, scenario_entities, context = simulate_origin_accessibility(city_id, scenario, baseline_df=features_df)
+    simulated_scores = pd.to_numeric(simulated_df["accessibility_score"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+    return _build_response(
+        city_id,
+        features_df,
+        np.asarray(baseline_scores, dtype=float),
+        simulated_df,
+        simulated_scores,
+        scenario,
+        scenario_entities,
+        context,
+    )
 
 
 def run_point_simulation(city_id: str | None, intervention_type: str, latitude: float, longitude: float) -> dict[str, Any]:

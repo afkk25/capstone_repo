@@ -7,6 +7,7 @@ export default function MapPage({
   city,
   baselineFacilities,
   simulatedFacilities,
+  communeGeojson,
   transportStops,
   baselineSupplyFacilities = [],
   addedScenarioFacilities = [],
@@ -40,12 +41,12 @@ export default function MapPage({
     <section className="mc-map-page">
       <div className="mc-page-intro">
         <div>
-          <span>Spatial Access Explorer</span>
-          <h1>Explore current and scenario accessibility across the city</h1>
+          <span>{t("mapPage.eyebrow")}</span>
+          <h1>{t("mapPage.title")}</h1>
           <p>
             {isFacilityProxy
-              ? "This city is using facility-proxy analysis because origin demand data is unavailable. Points describe service-location reachability, while healthcare facilities remain supply assets."
-              : "Accessibility scores live on demand origins and district summaries. Healthcare facilities are supply points; transport stops are access infrastructure."}
+              ? t("mapPage.facilityProxyBody")
+              : t("mapPage.originBody")}
           </p>
         </div>
       </div>
@@ -55,6 +56,7 @@ export default function MapPage({
           city={city}
           baselineFacilities={baselineFacilities}
           simulatedFacilities={isSimulated ? simulatedFacilities : null}
+          communeGeojson={communeGeojson}
           transportStops={transportStops}
           baselineSupplyFacilities={baselineSupplyFacilities}
           addedScenarioFacilities={addedScenarioFacilities}
@@ -80,7 +82,7 @@ export default function MapPage({
                 {t("map.scenario")}: {scenarioName || t("map.selectedScenario")}
               </span>
               <button type="button" className="rounded border border-gray-200 px-2 py-0.5 text-xs hover:bg-gray-50" onClick={onResetSimulation}>
-                Reset to baseline
+                {t("mapPage.resetBaseline")}
               </button>
             </div>
           </div>
@@ -92,7 +94,7 @@ export default function MapPage({
           }`}
         >
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">How to read the map</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t("mapPage.howToRead")}</span>
             <button
               type="button"
               className="relative inline-flex h-4 w-4 items-center justify-center rounded-full border border-gray-300 text-[10px] text-gray-600"
@@ -106,7 +108,7 @@ export default function MapPage({
                     sideClass(isRtl, "right-0 text-left", "left-0 text-right")
                   }`}
                 >
-                  Point colors show the selected map layer. Accessibility uses high, moderate and low score bands; travel time and priority use their own thresholds.
+                  {t("mapPage.helpTooltip")}
                 </span>
               ) : null}
             </button>
@@ -115,40 +117,40 @@ export default function MapPage({
           <div className="space-y-1 text-[12px] text-gray-700">
             <div className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded-full bg-[#2ecc71]" />
-              <span>High accessibility</span>
+              <span>{t("mapPage.highAccessibility")}</span>
               <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>&gt; 66</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded-full bg-[#f39c12]" />
-              <span>Moderate accessibility</span>
+              <span>{t("mapPage.moderateAccessibility")}</span>
               <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>33-66</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded-full bg-[#e74c3c]" />
-              <span>Low accessibility</span>
+              <span>{t("mapPage.lowAccessibility")}</span>
               <span className={sideClass(isRtl, "ml-auto num-ltr", "mr-auto num-ltr")}>&lt; 33</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded-full bg-[#48cae4]" />
-              <span>Public transport stop</span>
+              <span>{t("mapPage.publicTransportStop")}</span>
             </div>
             {isSimulated ? (
               <>
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-3 w-3 rounded-full bg-[#7C3AED]" />
-                  <span>Added scenario facilities</span>
+                  <span>{t("mapPage.addedScenarioFacilities")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-3 w-3 rounded-full bg-[#2563EB]" />
-                  <span>Added scenario stops</span>
+                  <span>{t("mapPage.addedScenarioStops")}</span>
                 </div>
               </>
             ) : null}
           </div>
 
           <div className="mt-2 border-t border-gray-200 pt-2 text-[12px] text-gray-700">
-            <div>Solid circles show baseline origin areas.</div>
-            <div>Dashed circles show scenario results.</div>
+            <div>{t("mapPage.solidBaseline")}</div>
+            <div>{t("mapPage.dashedScenario")}</div>
           </div>
         </div>
       </div>

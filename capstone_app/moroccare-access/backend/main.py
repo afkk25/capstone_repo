@@ -4,14 +4,15 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from core.config import city_dir, list_city_ids
-from routers.cities import ensure_baseline_data
-from routers.cities import router as cities_router
-from routers.analytics import router as analytics_router
-from routers.simulate import router as simulate_router
-from routers.upload import router as upload_router
-from routers.export import router as export_router
-from services.city_simulation import preload_simulation_data
+from app.api.analytics import router as analytics_router
+from app.api.baseline import router as baseline_router
+from app.api.cities import router as cities_router
+from app.api.health import router as health_router
+from app.api.layers import router as layers_router
+from app.api.simulation import router as simulation_router
+from app.api.upload import router as upload_router
+from app.core.config import get_data_root
+from app.services.city_registry import clear_city_bundle_cache, list_city_statuses
 
 logger = logging.getLogger("moroccare")
 logging.basicConfig(level=logging.INFO)
@@ -19,32 +20,14 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    loaded = 0
-    try:
-        preload_simulation_data()
-    except Exception:
-        logger.exception("Point simulation preload failed")
-    for city_id in list_city_ids():
-        try:
-            folder = city_dir(city_id)
-            model_path = folder / "model.pkl"
-            healthcare_path = folder / "healthcare.csv"
-            stops_path = folder / "transport_stops.csv"
-            if not model_path.exists() and (not healthcare_path.exists() or not stops_path.exists()):
-                logger.warning("Skipping '%s': missing healthcare.csv or transport_stops.csv", city_id)
-                continue
-            ensure_baseline_data(city_id)
-            loaded += 1
-        except FileNotFoundError:
-            continue
-        except Exception:
-            logger.exception("Skipping '%s': baseline preload failed", city_id)
-            continue
-    logger.info("Ready: %s cities loaded", loaded)
+    clear_city_bundle_cache()
+    logger.info("Using data root: %s", get_data_root())
+    rows = list_city_statuses()
+    logger.info("Ready: %s cities discovered", len(rows))
     yield
 
 
-app = FastAPI(title="MorocCare Access API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="MorocCare Access API", version="2.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,18 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(health_router)
 app.include_router(cities_router)
-app.include_router(simulate_router)
+app.include_router(baseline_router)
+app.include_router(layers_router)
+app.include_router(simulation_router)
 app.include_router(upload_router)
-app.include_router(export_router)
 app.include_router(analytics_router)
-
-
-@app.get("/health")
-def health() -> dict:
-    return {"status": "ok"}
-
-
-@app.get("/api/health")
-def api_health() -> dict:
-    return {"status": "ok"}

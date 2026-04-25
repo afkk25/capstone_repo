@@ -103,13 +103,28 @@ def rank_underserved_districts(data: pd.DataFrame | list[dict[str, Any]]) -> lis
         return rows
 
     threshold = _score_threshold(df[score_col])
+
+    def _weighted_mean(values: pd.Series, weights: pd.Series) -> float:
+        numeric_values = pd.to_numeric(values, errors="coerce").to_numpy(dtype=float)
+        numeric_weights = pd.to_numeric(weights, errors="coerce").fillna(0.0).clip(lower=0.0).to_numpy(dtype=float)
+        mask = np.isfinite(numeric_values) & np.isfinite(numeric_weights) & (numeric_weights > 0)
+        if mask.sum() == 0:
+            return safe_mean(pd.Series(numeric_values))
+        return float(np.average(numeric_values[mask], weights=numeric_weights[mask]))
+
     grouped = (
         df.groupby(district_col, dropna=False)
         .apply(
             lambda g: pd.Series(
                 {
-                    "avg_accessibility_score": safe_mean(g[score_col]),
-                    "underserved_pct": float((g[score_col] < threshold).mean() * 100.0),
+                    "avg_accessibility_score": _weighted_mean(g[score_col], g[pop_col]),
+                    "underserved_pct": float(
+                        (
+                            pd.to_numeric(g.loc[g[score_col] < threshold, pop_col], errors="coerce").fillna(0.0).sum()
+                            / max(pd.to_numeric(g[pop_col], errors="coerce").fillna(0.0).sum(), 1e-9)
+                        )
+                        * 100.0
+                    ),
                     "population": float(g[pop_col].sum()),
                 }
             )
@@ -138,8 +153,14 @@ def compare_scenarios(baseline: pd.DataFrame, simulated: pd.DataFrame) -> dict[s
     base_scores = pd.to_numeric(base[base_score_col], errors="coerce").fillna(0.0)
     sim_scores = pd.to_numeric(sim[sim_score_col], errors="coerce").fillna(0.0)
 
-    base_travel = _score_to_minutes(base_scores)
-    sim_travel = _score_to_minutes(sim_scores)
+    if "travel_time_min" in base.columns:
+        base_travel = pd.to_numeric(base["travel_time_min"], errors="coerce").fillna(_score_to_minutes(base_scores))
+    else:
+        base_travel = _score_to_minutes(base_scores)
+    if "travel_time_min" in sim.columns:
+        sim_travel = pd.to_numeric(sim["travel_time_min"], errors="coerce").fillna(_score_to_minutes(sim_scores))
+    else:
+        sim_travel = _score_to_minutes(sim_scores)
 
     base_mean_score = safe_mean(base_scores)
     sim_mean_score = safe_mean(sim_scores)

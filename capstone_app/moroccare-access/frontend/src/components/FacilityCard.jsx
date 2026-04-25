@@ -29,7 +29,7 @@ export default function FacilityCard({ facility }) {
   const tone = toneFromScore(score);
   const pct = Math.max(0, Math.min(100, score * 100));
   const nearest = Number(facility.nearestStopDistanceMeters);
-  const title = facility.originName || facility.name || facility.districtName || "Analysis location";
+  const title = facility.originName || facility.name || facility.districtName || t("facility.analysisLocation");
   const district = facility.districtName && facility.districtName !== title ? facility.districtName : "";
 
   return (
@@ -50,7 +50,7 @@ export default function FacilityCard({ facility }) {
         </span>
         <span>
           {t("facility.nearestStop")}{" "}
-          <span className="num-ltr">{Number.isFinite(nearest) ? `${toLocaleNumber(Math.round(nearest), language, { maximumFractionDigits: 0 })}m` : "N/A"}</span>
+          <span className="num-ltr">{Number.isFinite(nearest) ? `${toLocaleNumber(Math.round(nearest), language, { maximumFractionDigits: 0 })}m` : t("analytics.na")}</span>
         </span>
       </div>
     </article>

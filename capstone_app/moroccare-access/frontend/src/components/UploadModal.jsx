@@ -52,6 +52,11 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
   const [healthcareFile, setHealthcareFile] = useState(null);
   const [transportStopsFile, setTransportStopsFile] = useState(null);
   const [populationFile, setPopulationFile] = useState(null);
+  const [originsFile, setOriginsFile] = useState(null);
+  const [districtsFile, setDistrictsFile] = useState(null);
+  const [routeStopsFile, setRouteStopsFile] = useState(null);
+  const [routeVerticesFile, setRouteVerticesFile] = useState(null);
+  const [districtSummaryFile, setDistrictSummaryFile] = useState(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
@@ -61,6 +66,11 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
     setHealthcareFile(null);
     setTransportStopsFile(null);
     setPopulationFile(null);
+    setOriginsFile(null);
+    setDistrictsFile(null);
+    setRouteStopsFile(null);
+    setRouteVerticesFile(null);
+    setDistrictSummaryFile(null);
     setMode("new");
     setProgress(0);
     setError("");
@@ -84,9 +94,11 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
 
   const selectedUpdateCity = cities.find((city) => (city.id || city.city_id) === cityToUpdate);
   const targetCityLabel = mode === "new" ? cityName.trim() || t("upload.newCity") : selectedUpdateCity?.name || selectedUpdateCity?.display_name || t("upload.selectedCity");
+  const baselineFilesReady = Boolean(originsFile && healthcareFile && transportStopsFile && districtsFile);
+  const simulationFilesReady = Boolean(routeStopsFile && routeVerticesFile);
   const canSubmit = mode === "new"
-    ? Boolean(cityName.trim() && healthcareFile && transportStopsFile)
-    : Boolean(cityToUpdate && healthcareFile && transportStopsFile);
+    ? Boolean(cityName.trim() && baselineFilesReady)
+    : Boolean(cityToUpdate && baselineFilesReady);
 
   const submit = async () => {
     const submitMode = mode;
@@ -95,6 +107,11 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
     const submitHealthcare = healthcareFile;
     const submitTransport = transportStopsFile;
     const submitPopulation = populationFile;
+    const submitOrigins = originsFile;
+    const submitDistricts = districtsFile;
+    const submitRouteStops = routeStopsFile;
+    const submitRouteVertices = routeVerticesFile;
+    const submitDistrictSummary = districtSummaryFile;
     resetForm();
     setMode(submitMode);
     setCityName(submitCityName);
@@ -102,6 +119,11 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
     setHealthcareFile(submitHealthcare);
     setTransportStopsFile(submitTransport);
     setPopulationFile(submitPopulation);
+    setOriginsFile(submitOrigins);
+    setDistrictsFile(submitDistricts);
+    setRouteStopsFile(submitRouteStops);
+    setRouteVerticesFile(submitRouteVertices);
+    setDistrictSummaryFile(submitDistrictSummary);
     if (!canSubmit) return;
     try {
       const result = await onUpload({
@@ -111,12 +133,22 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
         healthcareFile: submitHealthcare,
         transportStopsFile: submitTransport,
         populationFile: submitPopulation,
+        originsFile: submitOrigins,
+        districtsFile: submitDistricts,
+        routeStopsFile: submitRouteStops,
+        routeVerticesFile: submitRouteVertices,
+        districtSummaryFile: submitDistrictSummary,
         onProgress: setProgress
       });
       const summary = result?.city_summary || {};
       const readyCityId = summary.city_id || cityToUpdate;
       const readyCityName = summary.display_name || cityName.trim() || targetCityLabel;
-      setSuccess({ cityId: readyCityId, cityName: readyCityName });
+      setSuccess({
+        cityId: readyCityId,
+        cityName: readyCityName,
+        readiness: result?.dataset_readiness || null,
+        detectedFiles: Array.isArray(result?.detected_files) ? result.detected_files : []
+      });
     } catch (uploadError) {
       setError(uploadError?.message || t("upload.uploadFailed"));
     }
@@ -179,6 +211,19 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
         )}
 
         <div className="space-y-2">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[12px] text-emerald-900">
+            <div className="font-semibold">Required for baseline readiness</div>
+            <div className="mt-1">`origins.csv` (origin_id, population, x, y), `healthcare.csv` (name, latitude, longitude), `transport_stops.csv` (cluster_id, stop_name, latitude, longitude), `districts.csv` (geometry + district/commune metadata).</div>
+            <div className="mt-2 font-semibold">Required for simulation readiness</div>
+            <div className="mt-1">`route_stops.csv` (stop_key, x, y) and `route_vertices.csv` (route_id, vertex_order, x, y).</div>
+            <div className="mt-2">Optional: `district_accessibility_summary.csv` (precomputed district metrics), legacy population points CSV.</div>
+          </div>
+          <FileDropSlot
+            label="Origins CSV (required)"
+            helper="Columns: origin_id, population, x, y. Optional: district_id, district_name, total_travel_time_min, accessibility_score."
+            file={originsFile}
+            onFileSelected={setOriginsFile}
+          />
           <FileDropSlot
             label={t("upload.healthcareCsv")}
             helper={t("upload.healthcareCols")}
@@ -192,11 +237,38 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
             onFileSelected={setTransportStopsFile}
           />
           <FileDropSlot
+            label="Districts CSV (required)"
+            helper="Columns: geometry (WKT polygons), and district/district_name + commune."
+            file={districtsFile}
+            onFileSelected={setDistrictsFile}
+          />
+          <FileDropSlot
+            label="Route Stops CSV (required for simulation)"
+            helper="Columns: stop_key, x, y. Optional: cluster_id, stop_name, Lines, mode."
+            file={routeStopsFile}
+            onFileSelected={setRouteStopsFile}
+          />
+          <FileDropSlot
+            label="Route Vertices CSV (required for simulation)"
+            helper="Columns: route_id, vertex_order, x, y."
+            file={routeVerticesFile}
+            onFileSelected={setRouteVerticesFile}
+          />
+          <FileDropSlot
+            label="District Summary CSV (optional)"
+            helper="Columns: district_id, district_name, population_raster, origin_count, avg_total_travel_time_min_pw, pop_weighted_accessibility_score."
+            file={districtSummaryFile}
+            onFileSelected={setDistrictSummaryFile}
+          />
+          <FileDropSlot
             label={t("upload.popCsv")}
             helper={t("upload.popCols")}
             file={populationFile}
             onFileSelected={setPopulationFile}
           />
+        </div>
+        <div className="mt-2 text-[12px] text-gray-700">
+          Baseline package: <strong>{baselineFilesReady ? "ready" : "missing required files"}</strong>. Simulation package: <strong>{simulationFilesReady ? "ready" : "optional files missing"}</strong>.
         </div>
 
         {isUploading ? (
@@ -223,6 +295,19 @@ export default function UploadModal({ open, cities, defaultCityId, mode: forcedM
         {success ? (
           <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
             <div className="font-semibold">{t("upload.done", { city: success.cityName })}</div>
+            {success.readiness ? (
+              <div className="mt-2 text-xs">
+                baseline_ready={String(Boolean(success.readiness.baseline_ready))}, simulation_ready={String(Boolean(success.readiness.simulation_ready))}
+                {Array.isArray(success.readiness.missing_files) && success.readiness.missing_files.length ? (
+                  <div className="mt-1">Missing: {success.readiness.missing_files.join(", ")}</div>
+                ) : null}
+              </div>
+            ) : null}
+            {Array.isArray(success.detectedFiles) && success.detectedFiles.length ? (
+              <div className="mt-2 text-xs">
+                Detected files: {success.detectedFiles.map((row) => `${row.filename} -> ${row.detected_type}`).join(" | ")}
+              </div>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"

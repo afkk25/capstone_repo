@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import SimulationWorkspaceMap from "../components/simulation/SimulationWorkspaceMap";
+import { useI18n } from "../i18n/I18nProvider";
 
 const NEUTRAL_ADVANCED = {
   stop_density_multiplier: 1.0,
@@ -52,23 +53,23 @@ function scorePercentToRatio(value) {
   return Math.max(0, Math.min(1, Number(value) / 100));
 }
 
-function formatPercent(value, digits = 1) {
-  if (!Number.isFinite(value)) return "Not available yet";
+function formatPercent(value, digits = 1, fallbackLabel = "Not available yet") {
+  if (!Number.isFinite(value)) return fallbackLabel;
   return `${(value * 100).toFixed(digits)}%`;
 }
 
-function formatMinutes(value) {
-  if (!Number.isFinite(value)) return "Not available yet";
+function formatMinutes(value, fallbackLabel = "Not available yet") {
+  if (!Number.isFinite(value)) return fallbackLabel;
   return `${value.toFixed(1)} min`;
 }
 
-function formatCount(value) {
-  if (!Number.isFinite(value)) return "Not available yet";
+function formatCount(value, fallbackLabel = "Not available yet") {
+  if (!Number.isFinite(value)) return fallbackLabel;
   return Math.round(value).toLocaleString();
 }
 
-function formatDistance(value) {
-  if (!Number.isFinite(value)) return "Awaiting placement";
+function formatDistance(value, fallbackLabel = "Awaiting placement") {
+  if (!Number.isFinite(value)) return fallbackLabel;
   if (value < 1000) return `${Math.round(value)} m`;
   return `${(value / 1000).toFixed(value < 5000 ? 1 : 0)} km`;
 }
@@ -148,11 +149,11 @@ function interventionLabel(interventionType, interventionIndex) {
   return interventionIndex.get(interventionType)?.label || interventionType;
 }
 
-function interventionMeta(option) {
+function interventionMeta(option, t) {
   const id = option?.id || "";
-  if (id === "add_transport_stop") return { icon: "S", description: "Improve public transport reach near underserved origins." };
-  if (id === "add_healthcare_facility") return { icon: "H", description: "Test a new healthcare access point at a candidate location." };
-  return { icon: "A", description: "Improve access conditions around an existing stop area." };
+  if (id === "add_transport_stop") return { icon: "S", description: t("simflow.chooseInterventionHint") };
+  if (id === "add_healthcare_facility") return { icon: "H", description: t("simflow.choosePlacementHint") };
+  return { icon: "A", description: t("simflow.chooseInterventionHint") };
 }
 
 function getSimulationDefaults(city) {
@@ -195,11 +196,11 @@ function getAvailableInterventions(city) {
   return FALLBACK_INTERVENTIONS.filter((item) => supportedTypes.has(item.backendInterventionType));
 }
 
-function friendlyStopLabel(stop) {
-  if (!stop) return "No stop context";
+function friendlyStopLabel(stop, t) {
+  if (!stop) return t("simflow.nearestStopContextMissing");
   if (stop.stop_name) return stop.stop_name;
   if (Number.isFinite(stop.cluster_id)) return `Stop cluster ${stop.cluster_id}`;
-  return "Nearby transport stop";
+  return t("simflow.nearbyTransportStop");
 }
 
 function hasUsableDistrict(row) {
@@ -210,29 +211,29 @@ function hasUsableDistrict(row) {
   return district !== origin;
 }
 
-function serviceContextFor(row, datasetAnalysisUnit = "") {
+function serviceContextFor(row, datasetAnalysisUnit = "", t) {
   const isFacilityProxy = row?.analysisUnit === "facility_proxy" || datasetAnalysisUnit === "facility_proxy";
   if (!row) {
     return {
-      locationLabel: "Selected location",
-      locationValue: "Map location",
+      locationLabel: t("simflow.selectedLocation"),
+      locationValue: t("simflow.mapLocation"),
       locationSubLabel: "",
       showDistrict: false,
       districtValue: "",
-      analysisUnitLabel: "Location-based model"
+      analysisUnitLabel: t("simflow.locationBasedModel")
     };
   }
   return {
-    locationLabel: isFacilityProxy ? "Nearest evaluated facility" : "Nearest origin area",
-    locationValue: row.originName || row.districtName || "Map location",
-    locationSubLabel: Number.isFinite(row.markerDistanceM) ? `${formatDistance(row.markerDistanceM)} from placement` : "",
+    locationLabel: isFacilityProxy ? t("simflow.nearestEvaluatedFacility") : t("simflow.nearestOriginArea"),
+    locationValue: row.originName || row.districtName || t("simflow.mapLocation"),
+    locationSubLabel: Number.isFinite(row.markerDistanceM) ? t("simflow.distanceFromNearestStop", { distance: formatDistance(row.markerDistanceM, t("simflow.pendingPlacement")) }) : "",
     showDistrict: hasUsableDistrict(row),
     districtValue: row.districtName,
-    analysisUnitLabel: isFacilityProxy ? "Facility-level context" : "Area-level context"
+    analysisUnitLabel: t("simflow.context")
   };
 }
 
-function populationContextFor(rows, placement) {
+function populationContextFor(rows, placement, t) {
   const rowsWithPopulation = (Array.isArray(rows) ? rows : []).filter((row) => {
     const population = Number(row.population);
     return (
@@ -246,16 +247,16 @@ function populationContextFor(rows, placement) {
   if (!rowsWithPopulation.length) {
     return {
       supported: false,
-      value: "Population context is not included in this city package.",
-      subLabel: "Scenario impact remains based on the accessibility model."
+      value: t("simflow.populationContextMissing"),
+      subLabel: t("simflow.scenarioImpactModelOnly")
     };
   }
 
   if (!placement) {
     return {
       supported: true,
-      value: "Awaiting placement",
-      subLabel: "within 10 km"
+      value: t("simflow.pendingPlacement"),
+      subLabel: t("simflow.withinRadius", { distance: "10 km" })
     };
   }
 
@@ -270,8 +271,8 @@ function populationContextFor(rows, placement) {
   if (nearbyPopulation <= 0) {
     return {
       supported: true,
-      value: "No nearby population",
-      subLabel: "within 10 km"
+      value: t("simflow.noNearbyPopulation"),
+      subLabel: t("simflow.withinRadius", { distance: "10 km" })
     };
   }
 
@@ -283,7 +284,7 @@ function populationContextFor(rows, placement) {
         : nearbyPopulation >= 1000
         ? `${Math.round(nearbyPopulation / 1000)}k`
         : Math.round(nearbyPopulation).toLocaleString(),
-    subLabel: "within 10 km"
+    subLabel: t("simflow.withinRadius", { distance: "10 km" })
   };
 }
 
@@ -293,6 +294,7 @@ function buildPayload({ selectedIntervention, placement, mode, advancedSettings,
     ...cityDefaults,
     ...selectedIntervention.scenarioPatch,
     transport_speed_kmh: Number(advancedSettings.transport_speed_kmh || cityDefaults.transport_speed_kmh || 18),
+    max_travel_time_min: Number(advancedSettings.max_travel_time_min || cityDefaults.max_travel_time_min || 60),
     facility_locations: [],
     transport_stop_locations: []
   };
@@ -309,12 +311,12 @@ function buildPayload({ selectedIntervention, placement, mode, advancedSettings,
   return payload;
 }
 
-function KpiSkeleton() {
+function KpiSkeleton({ t }) {
   return (
     <div className="simulate-kpi-card is-neutral">
-      <div className="simulate-kpi-label">Loading</div>
+      <div className="simulate-kpi-label">{t("simflow.loadingOutput")}</div>
       <div className="simulate-skeleton" />
-      <div className="simulate-kpi-before">computing model output</div>
+      <div className="simulate-kpi-before">{t("simflow.computingModelOutput")}</div>
     </div>
   );
 }
@@ -341,13 +343,13 @@ function summaryScore(value, fallback = NaN) {
   return numeric > 1.5 ? numeric / 100 : numeric;
 }
 
-function stakeholderWarningText(simulationResult, scenarioWarnings) {
+function stakeholderWarningText(simulationResult, scenarioWarnings, t) {
   if (!simulationResult) return "";
   if (simulationResult.analysis_unit === "facility_proxy") {
-    return "District-level comparison is not available for the current dataset. This city currently supports impact analysis at representative service locations.";
+    return t("simflow.districtComparisonUnavailable");
   }
   if (scenarioWarnings.length) {
-    return "Some comparison views are limited by the available city dataset. The scenario summary remains based on supported model outputs.";
+    return t("simflow.comparisonViewsLimited");
   }
   return "";
 }
@@ -373,12 +375,13 @@ export default function Simulate({
   onCityChange,
   onResetSimulation
 }) {
+  const { t } = useI18n();
   const [mode, setMode] = useState("basic");
   const [interventionType, setInterventionType] = useState("");
   const [placement, setPlacement] = useState(null);
   const [showInfluenceZone, setShowInfluenceZone] = useState(true);
   const [showBaselineStops, setShowBaselineStops] = useState(false);
-  const [showBaselineFacilities, setShowBaselineFacilities] = useState(false);
+  const [showBaselineFacilities, setShowBaselineFacilities] = useState(true);
   const [showAccessibilityLayer, setShowAccessibilityLayer] = useState(true);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [mapLayer, setMapLayer] = useState("baseline");
@@ -392,6 +395,7 @@ export default function Simulate({
   const interventionIndex = useMemo(() => new Map(interventionOptions.map((option) => [option.id, option])), [interventionOptions]);
   const selectedIntervention = interventionIndex.get(interventionType) || null;
   const citySimulationDefaults = useMemo(() => getSimulationDefaults(city), [city]);
+  const unavailableText = t("simflow.notAvailableYet");
 
   useEffect(() => {
     setMode("basic");
@@ -399,7 +403,7 @@ export default function Simulate({
     setPlacement(null);
     setShowInfluenceZone(true);
     setShowBaselineStops(false);
-    setShowBaselineFacilities(false);
+    setShowBaselineFacilities(true);
     setShowAccessibilityLayer(true);
     setAdvancedOpen(false);
     setMapLayer("baseline");
@@ -465,8 +469,8 @@ export default function Simulate({
     return nearest ? { ...nearest, distanceM: nearestDistance } : null;
   }, [placement, transportStops]);
 
-  const selectedContext = useMemo(() => serviceContextFor(selectedDistrict, analysisUnit), [selectedDistrict, analysisUnit]);
-  const populationContext = useMemo(() => populationContextFor(baselineFacilities, placement), [baselineFacilities, placement]);
+  const selectedContext = useMemo(() => serviceContextFor(selectedDistrict, analysisUnit, t), [selectedDistrict, analysisUnit, t]);
+  const populationContext = useMemo(() => populationContextFor(baselineFacilities, placement, t), [baselineFacilities, placement, t]);
   const recommendationRows = useMemo(() => {
     const rows = Array.isArray(recommendedPlacements?.placements) ? recommendedPlacements.placements : [];
     const expectedType =
@@ -490,10 +494,10 @@ export default function Simulate({
         latitude: Number(row.latitude),
         longitude: Number(row.longitude),
         interventionType: row.intervention_type,
-        label: row.intervention_type === "healthcare_facility" ? "Recommended facility site" : "Recommended stop site",
+        label: row.intervention_type === "healthcare_facility" ? t("simflow.recommendedFacilitySite") : t("simflow.recommendedStopSite"),
         score: Number(row.score || 0)
       })),
-    [recommendationRows]
+    [recommendationRows, t]
   );
 
   const simulationOrigins = Array.isArray(simulationResult?.origins) ? simulationResult.origins : [];
@@ -531,7 +535,7 @@ export default function Simulate({
   const improvedOriginCount = simulationOrigins.filter((origin) => Number(origin.delta ?? 0) > MEANINGFUL_DELTA).length;
   const impactedDistrictCount = districtRows.filter((row) => Math.abs(Number(row.delta ?? 0)) >= MEANINGFUL_DELTA).length;
   const isFacilityLevelModel = analysisUnit === "facility_proxy" || simulationResult?.analysis_unit === "facility_proxy";
-  const impactLocationTerm = isFacilityLevelModel ? "evaluated locations" : "areas";
+  const impactLocationTerm = isFacilityLevelModel ? t("simflow.evaluatedLocationsImproved") : t("simflow.areasImproved");
   const baselineLocationRows = simulationOrigins.length ? simulationOrigins : baselineFacilities;
   const scenarioLocationRows = hasResult && simulationOrigins.length ? simulationOrigins : simulatedFacilities.length ? simulatedFacilities : baselineFacilities;
   const maxTravelTime = Number(advancedSettings.max_travel_time_min || 30);
@@ -542,14 +546,13 @@ export default function Simulate({
   const fmtPct = (value) => `${(value * 100).toFixed(1)}%`;
   const fmtPp = (value) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)} pp`;
   const fmtTime = (value) => `${value.toFixed(1)} min`;
-  const fmtGini = (value) => (value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "N/A");
+  const fmtGini = (value) => (value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(3) : t("analytics.na"));
   const fmtGiniDelta = (value) => {
-    if (value == null || !Number.isFinite(Number(value))) return "N/A";
+    if (value == null || !Number.isFinite(Number(value))) return t("analytics.na");
     const numeric = Number(value);
     if (numeric === 0) return "0.000";
-    const direction = numeric < 0 ? "reduced" : "increased";
     const sign = numeric >= 0 ? "+" : "-";
-    return `${direction} ${sign}${Math.abs(numeric).toFixed(3)}`;
+    return `${sign}${Math.abs(numeric).toFixed(3)}`;
   };
   const fmtUnd = (value) => {
     if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
@@ -558,40 +561,40 @@ export default function Simulate({
   const selectedInterventionLabel = interventionLabel(interventionType, interventionIndex);
   const scenarioStatus =
     accessDelta > 0.02
-      ? { label: "Meaningful estimated improvement", tone: "positive" }
+      ? { label: t("simflow.meaningfullyImproved"), tone: "positive" }
       : accessDelta < -0.02
-      ? { label: "Potential negative impact", tone: "negative" }
-      : { label: "Small estimated impact", tone: "neutral" };
-  const runTimeLabel = hasResult ? lastRunTimeLabel || activeSimulationLabel || "latest run" : "";
-  const summaryHeading = selectedInterventionLabel || "Scenario outcome";
-  const summaryStatusLabel = hasResult ? "Evaluated" : simulationPending ? "Running" : placement ? "Ready" : "Setup required";
+      ? { label: t("simflow.potentialNegativeImpact"), tone: "negative" }
+      : { label: t("simflow.smallEstimatedImpact"), tone: "neutral" };
+  const runTimeLabel = hasResult ? lastRunTimeLabel || activeSimulationLabel || t("simflow.latestRun") : "";
+  const summaryHeading = selectedInterventionLabel || t("simflow.scenarioOutcome");
+  const summaryStatusLabel = hasResult ? t("simflow.evaluated") : simulationPending ? t("simflow.running") : placement ? t("simflow.ready") : t("simflow.setupRequired");
   const summaryHelperText = hasResult
     ? scenarioStatus.label
     : simulationPending
-    ? "Evaluating the placed scenario."
+    ? t("simflow.evaluatingPlacedScenario")
     : placement
-    ? "Run the scenario to compare against baseline."
-    : "Select an intervention and place it on the map.";
-  const summaryMetaText = [selectedInterventionLabel || "No intervention selected", placement ? "Marker placed" : "No placement", runTimeLabel || null]
+    ? t("simflow.runToCompare")
+    : t("simflow.selectAndPlace");
+  const summaryMetaText = [selectedInterventionLabel || t("simflow.noInterventionSelected"), placement ? t("simflow.markerPlaced") : t("simflow.noPlacement"), runTimeLabel || null]
     .filter(Boolean)
     .join(" | ");
-  const metricSectionLabel = hasResult ? "Scenario impact" : "Baseline metrics";
+  const metricSectionLabel = hasResult ? t("simflow.scenarioImpact") : t("simflow.baselineMetrics");
   const scenarioWarnings = Array.isArray(simulationResult?.warnings) ? simulationResult.warnings : [];
   const fallbackWarning = hasResult && (simulationResult?.analysis_unit === "facility_proxy" || scenarioWarnings.some((warning) => /origin|fallback|facility proxy/i.test(String(warning))));
-  const warningMessage = stakeholderWarningText(simulationResult, scenarioWarnings);
+  const warningMessage = stakeholderWarningText(simulationResult, scenarioWarnings, t);
   const showWarningToast = hasResult && Boolean(warningMessage) && !fallbackWarning;
   const mapInteractionHint = !interventionType
-    ? "Choose an intervention in the left panel to activate map placement."
+    ? t("simflow.chooseInterventionHint")
     : placement
-    ? "Drag the highlighted intervention marker to refine the tested location."
-    : `Click on the map to place the ${selectedInterventionLabel?.toLowerCase() || "intervention"}.`;
+    ? t("simflow.dragMarkerHint")
+    : t("simflow.clickMapPlaceIntervention", { intervention: selectedInterventionLabel?.toLowerCase() || t("simflow.selectIntervention").toLowerCase() });
   const unsupportedPopulationMessage = !populationContext.supported ? populationContext.value : "";
   const settingsSummary = [
-    `Threshold ${advancedSettings.max_travel_time_min} min`,
-    `Walk ${advancedSettings.walking_distance_m} m`,
-    `Speed ${advancedSettings.transport_speed_kmh} km/h`,
-    showAccessibilityLayer ? "Surface on" : "Surface off",
-    showInfluenceZone ? "Influence on" : "Influence off"
+    t("simflow.settingsThreshold", { value: advancedSettings.max_travel_time_min }),
+    t("simflow.settingsWalk", { value: advancedSettings.walking_distance_m }),
+    t("simflow.settingsSpeed", { value: advancedSettings.transport_speed_kmh }),
+    showAccessibilityLayer ? t("simflow.settingsSurfaceOn") : t("simflow.settingsSurfaceOff"),
+    showInfluenceZone ? t("simflow.settingsInfluenceOn") : t("simflow.settingsInfluenceOff")
   ];
   const contextRows = [
     placement
@@ -603,31 +606,31 @@ export default function Simulate({
         }
       : null,
     {
-      label: "Nearest stop",
-      value: nearestTransportStop ? friendlyStopLabel(nearestTransportStop) : placement ? "Calculating" : "Pending placement",
-      detail: nearestTransportStop ? formatDistance(nearestTransportStop.distanceM) : null,
+      label: t("simflow.nearestStop"),
+      value: nearestTransportStop ? friendlyStopLabel(nearestTransportStop, t) : placement ? t("simflow.calculating") : t("simflow.pendingPlacement"),
+      detail: nearestTransportStop ? formatDistance(nearestTransportStop.distanceM, t("simflow.pendingPlacement")) : null,
       variant: "stacked"
     },
     hasResult
       ? {
-          label: isFacilityLevelModel ? "Evaluated locations improved" : "Areas improved",
-          value: formatCount(improvedOriginCount),
+          label: isFacilityLevelModel ? t("simflow.evaluatedLocationsImproved") : t("simflow.areasImproved"),
+          value: formatCount(improvedOriginCount, unavailableText),
           detail: null,
           variant: "compact"
         }
       : null,
     hasResult
       ? {
-          label: isFacilityLevelModel ? "Contexts affected" : "Districts affected",
-          value: formatCount(Math.max(0, impactedDistrictCount)),
+          label: isFacilityLevelModel ? t("simflow.contextsAffected") : t("simflow.districtsAffected"),
+          value: formatCount(Math.max(0, impactedDistrictCount), unavailableText),
           detail: null,
           variant: "compact"
         }
       : null,
     hasResult && featureChangedOriginCount > 0
       ? {
-          label: "Feature-updated origins",
-          value: formatCount(Math.max(0, featureChangedOriginCount)),
+          label: t("simflow.featureUpdatedOrigins"),
+          value: formatCount(Math.max(0, featureChangedOriginCount), unavailableText),
           detail: null,
           variant: "compact"
         }
@@ -653,7 +656,7 @@ export default function Simulate({
     const timeout = window.setTimeout(() => {
       onRunSimulation({
         customPayload: payload,
-        customLabel: selectedInterventionLabel || "Custom scenario"
+        customLabel: selectedInterventionLabel || t("simulate.scenarioFallback")
       });
       setLastRunSignature(payloadSignature);
       setLastRunTimeLabel(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
@@ -688,25 +691,28 @@ export default function Simulate({
   const insightMetrics = [
     {
       emphasis: "primary",
-      label: "Average accessibility",
+      label: t("simflow.averageAccessibility"),
       value: hasResult ? fmtPct(accessAfter) : fmtPct(accessBefore),
       delta: hasResult ? fmtPp(accessDelta) : null
     },
     {
       emphasis: "primary",
-      label: "Average travel time",
+      label: t("simflow.averageTravelTime"),
       value: hasResult ? fmtTime(timeAfter) : fmtTime(timeBefore),
       delta: hasResult ? timeDeltaText : null
     },
     {
       emphasis: "secondary",
-      label: `Within ${maxTravelTime} min`,
+      label: `${t("simflow.threshold")} ${maxTravelTime} min`,
       value: hasResult ? scenarioAccessibleCount.toLocaleString() : baselineAccessibleCount.toLocaleString(),
       delta: hasResult ? `${accessibleDelta >= 0 ? "+" : ""}${accessibleDelta.toLocaleString()}` : null
     },
     {
       emphasis: "secondary",
-      label: Number.isFinite(baselineUnderservedPopulation) && Number.isFinite(simulatedUnderservedPopulation) && (baselineUnderservedPopulation > 0 || simulatedUnderservedPopulation > 0) ? "Underserved population" : "Equity (Gini)",
+      label:
+        Number.isFinite(baselineUnderservedPopulation) && Number.isFinite(simulatedUnderservedPopulation) && (baselineUnderservedPopulation > 0 || simulatedUnderservedPopulation > 0)
+          ? t("simflow.underservedPopulation")
+          : t("simflow.equityGini"),
       value:
         Number.isFinite(baselineUnderservedPopulation) && Number.isFinite(simulatedUnderservedPopulation) && (baselineUnderservedPopulation > 0 || simulatedUnderservedPopulation > 0)
           ? hasResult
@@ -735,17 +741,17 @@ export default function Simulate({
         <div className="simulate-warning-toast simdash-warning-toast">
           <div>{warningMessage}</div>
           <button type="button" onClick={() => setWarningVisible(false)}>
-            Dismiss
+            {t("simflow.dismissed")}
           </button>
         </div>
       ) : null}
 
       <div className="simflow-shell">
-        <div className="simflow-progress" aria-label="Simulation progress">
+        <div className={`simflow-progress ${hasResult ? "is-condensed" : ""}`} aria-label={t("simflow.simulationProgress")}>
           {[
-            { step: 1, title: "Select intervention", meta: selectedInterventionLabel || "Choose a scenario" },
-            { step: 2, title: "Place on map", meta: placement ? "Marker placed" : "Choose a location" },
-            { step: 3, title: "Results", meta: hasResult ? scenarioStatus.label : placement ? "Ready to review" : "Waiting for placement" }
+            { step: 1, title: t("simflow.selectIntervention"), meta: selectedInterventionLabel || t("simflow.chooseScenarioType") },
+            { step: 2, title: t("simflow.placeOnMap"), meta: placement ? t("simflow.markerPlaced") : t("simflow.chooseLocation") },
+            { step: 3, title: t("simflow.results"), meta: hasResult ? scenarioStatus.label : placement ? t("simflow.readyToReview") : t("simflow.waitingForPlacement") }
           ].map((item) => {
             const isComplete = item.step < workspaceStep || (item.step === 3 && hasResult);
             const isCurrent = item.step === workspaceStep && !(item.step === 3 && hasResult);
@@ -765,18 +771,18 @@ export default function Simulate({
           <div className="simflow-selector-block">
             {!interventionType ? (
               <div className="simflow-selector-head">
-                <strong>Select intervention</strong>
+                <strong>{t("simflow.selectIntervention")}</strong>
                 <span className="simflow-selector-head-dot" aria-hidden="true" />
-                <span>Choose a scenario type</span>
+                <span>{t("simflow.chooseScenarioType")}</span>
               </div>
             ) : null}
 
             <div className={`simflow-selector-strip ${!interventionType ? "simflow-selector-strip--selection" : ""}`}>
               {!interventionType ? (
-                <div className="simflow-selector-list simflow-selector-list--strip" role="tablist" aria-label="Intervention selector">
+                <div className="simflow-selector-list simflow-selector-list--strip" role="tablist" aria-label={t("simflow.interventionSelector")}>
                   {visibleInterventions.map((option) => {
                     const selected = interventionType === option.id;
-                    const meta = interventionMeta(option);
+                    const meta = interventionMeta(option, t);
                     return (
                       <button
                         key={option.id}
@@ -793,20 +799,20 @@ export default function Simulate({
                 </div>
               ) : (
                 <div className="simflow-selected-focus" aria-live="polite">
-                  <span className="simflow-selected-focus__icon">{interventionMeta(selectedIntervention).icon}</span>
+                  <span className="simflow-selected-focus__icon">{interventionMeta(selectedIntervention, t).icon}</span>
                   <strong>{selectedInterventionLabel}</strong>
                 </div>
               )}
 
               {interventionType ? (
                 <div className="simflow-selector-inline-status" aria-live="polite">
-                <span>{placement ? "Location selected" : "Click on the map to choose a location"}</span>
+                <span>{placement ? t("simflow.locationSelected") : t("simflow.clickMapChooseLocation")}</span>
                 {placement && nearestTransportStop ? (
                   <>
                     <span className="simflow-inline-dot" aria-hidden="true">
                       •
                     </span>
-                    <span>{`${formatDistance(nearestTransportStop.distanceM)} from nearest stop`}</span>
+                    <span>{t("simflow.distanceFromNearestStop", { distance: formatDistance(nearestTransportStop.distanceM, t("simflow.pendingPlacement")) })}</span>
                   </>
                 ) : null}
                 </div>
@@ -815,7 +821,7 @@ export default function Simulate({
               <div className={`simflow-utility-actions ${interventionType ? "simflow-utility-actions--strip" : "simflow-utility-actions--selection"}`}>
                 {interventionType ? (
                   <button type="button" className="simflow-text-action" onClick={() => setInterventionType("")}>
-                    Change
+                    {t("simflow.change")}
                   </button>
                 ) : null}
                 {interventionType ? (
@@ -831,7 +837,7 @@ export default function Simulate({
                         if (hasResult) onResetSimulation();
                       }}
                     >
-                      Clear placement
+                      {t("simflow.clearPlacement")}
                     </button>
                     <button
                       type="button"
@@ -844,12 +850,12 @@ export default function Simulate({
                         setLastRunTimeLabel("");
                       }}
                     >
-                      Reset
+                      {t("simflow.reset")}
                     </button>
                   </>
                 ) : null}
                 <button type="button" className="simflow-text-action is-subtle" onClick={() => setAdvancedOpen((prev) => !prev)}>
-                  {advancedOpen ? "Close settings" : "Advanced settings"}
+                  {advancedOpen ? t("simflow.closeSettings") : t("simflow.advancedSettings")}
                 </button>
               </div>
             </div>
@@ -859,9 +865,9 @@ export default function Simulate({
                 <div className="simdash-advanced-area">
                   <label className="simdash-range">
                     <span>
-                      Threshold <b>{advancedSettings.max_travel_time_min} min</b>
+                      {t("simflow.threshold")} <b>{advancedSettings.max_travel_time_min} min</b>
                     </span>
-                    <input
+                      <input
                       type="range"
                       min="10"
                       max="60"
@@ -870,10 +876,10 @@ export default function Simulate({
                       onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, max_travel_time_min: Number(event.target.value) }))}
                     />
                   </label>
-                  <label className="simdash-range">
-                    <span>
-                      Walking distance <b>{advancedSettings.walking_distance_m} m</b>
-                    </span>
+                    <label className="simdash-range">
+                      <span>
+                        {t("simflow.walkingDistance")} <b>{advancedSettings.walking_distance_m} m</b>
+                      </span>
                     <input
                       type="range"
                       min="200"
@@ -883,10 +889,10 @@ export default function Simulate({
                       onChange={(event) => setAdvancedSettings((prev) => ({ ...prev, walking_distance_m: Number(event.target.value) }))}
                     />
                   </label>
-                  <label className="simdash-range">
-                    <span>
-                      Transport speed <b>{advancedSettings.transport_speed_kmh} km/h</b>
-                    </span>
+                    <label className="simdash-range">
+                      <span>
+                        {t("simflow.transportSpeed")} <b>{advancedSettings.transport_speed_kmh} km/h</b>
+                      </span>
                     <input
                       type="range"
                       min="8"
@@ -899,21 +905,21 @@ export default function Simulate({
                   <div className="simdash-display-options">
                     <label className="simdash-check">
                       <input type="checkbox" checked={showAccessibilityLayer} onChange={(event) => setShowAccessibilityLayer(event.target.checked)} />
-                      Show accessibility surface
+                      {t("simflow.showAccessibilitySurface")}
                     </label>
                     <label className="simdash-check">
                       <input type="checkbox" checked={showBaselineFacilities} onChange={(event) => setShowBaselineFacilities(event.target.checked)} />
-                      Show healthcare supply
+                      {t("simflow.showHealthcareSupply")}
                     </label>
                     <label className="simdash-check">
                       <input type="checkbox" checked={showInfluenceZone} onChange={(event) => setShowInfluenceZone(event.target.checked)} />
-                      Show influence zone
+                      {t("simflow.showInfluenceZone")}
                     </label>
                   </div>
                 </div>
               </div>
             ) : interventionType ? (
-              <div className="simflow-settings-summary" aria-label="Selected advanced settings">
+              <div className="simflow-settings-summary" aria-label={t("simflow.selectedAdvancedSettings")}>
                 {settingsSummary.map((item) => (
                   <span key={item}>{item}</span>
                 ))}
@@ -948,7 +954,7 @@ export default function Simulate({
                 showMapLegend={false}
                 showInfluenceZone={showInfluenceZone}
                 isLoading={isLoading || simulationPending}
-                loadingLabel={simulationPending ? "Evaluating scenario..." : "Loading map data..."}
+                loadingLabel={simulationPending ? t("simflow.evaluatingScenario") : t("map.loadingMap")}
                 interactionHint={mapInteractionHint}
                 selectedInterventionLabel={selectedInterventionLabel}
                 onRecommendedPlacementSelect={(marker) =>
@@ -966,7 +972,7 @@ export default function Simulate({
           <aside className="simflow-insights">
             <section className={`simflow-panel simflow-panel--status simflow-panel--summary is-${scenarioStatus.tone}`}>
               <div className="simflow-panel-head">
-                <p>Scenario summary</p>
+                <p>{t("simflow.scenarioSummary")}</p>
                 <h2>{summaryHeading}</h2>
               </div>
               <div className={`simflow-summary-status simflow-summary-status--${hasResult ? scenarioStatus.tone : simulationPending ? "running" : placement ? "ready" : "setup"}`}>
@@ -976,8 +982,8 @@ export default function Simulate({
               <p className="simflow-note">{summaryMetaText}</p>
               {workspaceStep === 3 ? (
                 <div className="simflow-actions">
-                  <button type="button" className="simflow-text-action" disabled title="Scenario saving is not configured for this dataset.">
-                    Save
+                  <button type="button" className="simflow-text-action" disabled title={t("simflow.saveUnavailable")}>
+                    {t("simflow.save")}
                   </button>
                 </div>
               ) : null}
@@ -987,8 +993,8 @@ export default function Simulate({
               </div>
               {simulationPending ? (
                 <div className="simdash-kpi-grid simdash-kpi-grid--compact">
-                  <KpiSkeleton />
-                  <KpiSkeleton />
+                  <KpiSkeleton t={t} />
+                  <KpiSkeleton t={t} />
                 </div>
               ) : (
                 <div className="simflow-metric-list simflow-metric-list--compact">
@@ -1005,7 +1011,7 @@ export default function Simulate({
                 <>
                   <div className="simflow-summary-divider" />
                   <div className="simflow-panel-head simflow-panel-head--compact">
-                    <p>Context</p>
+                    <p>{t("simflow.context")}</p>
                   </div>
                   <div className="simflow-context-list">
                     {contextRows.map((item) => (

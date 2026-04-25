@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import FacilityCard from "../FacilityCard";
 import KeyIndicators from "./KeyIndicators";
 import TopFilterBar from "./TopFilterBar";
+import { useI18n } from "../../i18n/I18nProvider";
+import { normalizeOverviewData } from "../../utils/adapters";
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -12,11 +14,31 @@ function pct(value) {
   return Math.round(Math.max(0, Math.min(100, value)));
 }
 
-function formatPopulation(value) {
-  if (!Number.isFinite(value) || value <= 0) return "Not available";
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 2)}M`;
-  if (value >= 1_000) return `${Math.round(value / 1000)}K`;
-  return Math.round(value).toLocaleString();
+function isMissing(value) {
+  return value === null || value === undefined || (typeof value === "number" && Number.isNaN(value));
+}
+
+function formatPopulation(value, fallbackLabel = "Not available") {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return fallbackLabel;
+  if (numericValue >= 1_000_000) return `${(numericValue / 1_000_000).toFixed(numericValue >= 10_000_000 ? 0 : 2)}M`;
+  if (numericValue >= 1_000) return `${Math.round(numericValue / 1000)}K`;
+  return Math.round(numericValue).toLocaleString();
+}
+
+function formatCount(value, fallbackLabel = "Not available") {
+  if (isMissing(value)) return fallbackLabel;
+  return Number(value).toLocaleString();
+}
+
+function formatMinutes(value, fallbackLabel = "Not available") {
+  if (isMissing(value)) return fallbackLabel;
+  return `${Math.round(Number(value))} min`;
+}
+
+function formatPercent(value, fallbackLabel = "Not available") {
+  if (isMissing(value)) return fallbackLabel;
+  return `${pct(Number(value))}%`;
 }
 
 function summarizeDistricts(rows) {
@@ -70,6 +92,10 @@ export default function OverviewPage({
   facilities,
   transportStops,
   baselineSupplyFacilities,
+  baselineResponse,
+  summaryResponse,
+  rankingResponse,
+  overviewData,
   simulation,
   isLoading,
   cities = [],
@@ -81,22 +107,51 @@ export default function OverviewPage({
   citySummary = null,
   analysisUnit = "origin"
 }) {
+  const { t } = useI18n();
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [bestFirst, setBestFirst] = useState(false);
+  const resolvedOverviewData = useMemo(
+    () =>
+      overviewData ??
+      normalizeOverviewData({
+        baseline: baselineResponse,
+        summary: summaryResponse,
+        ranking: rankingResponse
+      }),
+    [baselineResponse, overviewData, rankingResponse, summaryResponse]
+  );
 
   const filteredFacilities = useMemo(
     () => (selectedDistrict ? facilities.filter((row) => row.districtName === selectedDistrict) : facilities),
     [facilities, selectedDistrict]
   );
-  const sortedFacilities = useMemo(() => {
-    const rows = [...filteredFacilities];
-    rows.sort((a, b) => (bestFirst ? b.accessibilityScore - a.accessibilityScore : a.accessibilityScore - b.accessibilityScore));
-    return rows;
-  }, [filteredFacilities, bestFirst]);
   const districtSummaries = useMemo(() => {
     const backendRows = backendDistrictSummaries.map(normalizeDistrictSummary).filter((row) => row.name && row.name !== "Unknown");
     return backendRows.length ? backendRows : summarizeDistricts(facilities);
   }, [backendDistrictSummaries, facilities]);
+  const rankingRows = useMemo(() => {
+    const sortRows = (rows) => [...rows].sort((a, b) => (bestFirst ? b.accessibilityScore - a.accessibilityScore : a.accessibilityScore - b.accessibilityScore));
+    if (Array.isArray(resolvedOverviewData?.rankingRows) && resolvedOverviewData.rankingRows.length) {
+      return sortRows(resolvedOverviewData.rankingRows.map((row, index) => ({
+        id: row.district_id ?? row.district ?? row.district_name ?? `ranking-${index}`,
+        districtName: row.district ?? row.district_name ?? row.name ?? `District ${index + 1}`,
+        originName: row.district ?? row.district_name ?? row.name ?? `District ${index + 1}`,
+        accessibilityScore: toNumber(
+          row.avg_accessibility_score ?? row.pop_weighted_accessibility_score ?? row.accessibility_score,
+          0
+        ),
+        nearestStopDistanceMeters: NaN
+      })));
+    }
+    const fallbackRows = sortRows(districtSummaries.map((row) => ({ accessibilityScore: toNumber(row.avgScore, 0), ...row })));
+    return fallbackRows.map((row, index) => ({
+      id: row.name || `district-${index}`,
+      districtName: row.name,
+      originName: row.name,
+      accessibilityScore: toNumber(row.avgScore, 0),
+      nearestStopDistanceMeters: NaN
+    }));
+  }, [resolvedOverviewData?.rankingRows, districtSummaries, bestFirst]);
   const districtOptions = useMemo(() => {
     const fromDistricts = districtSummaries.map((row) => row.name);
     const fromFacilities = facilities.map((row) => row.districtName).filter(Boolean);
@@ -105,26 +160,32 @@ export default function OverviewPage({
 
   const facilityTransit = useMemo(() => summarizeFacilityTransit(baselineSupplyFacilities), [baselineSupplyFacilities]);
   const baseline = useMemo(() => {
-    const population = facilities.reduce((sum, row) => sum + toNumber(row.population, 0), 0);
-    const avgTravelTime = Number.isFinite(Number(citySummary?.avg_travel_time))
+    const fallbackPopulation = facilities.reduce((sum, row) => sum + toNumber(row.population, 0), 0);
+    const fallbackAvgTravelTime = Number.isFinite(Number(citySummary?.avg_travel_time))
       ? Number(citySummary.avg_travel_time)
       : facilities.length
       ? facilities.reduce((sum, row) => sum + toNumber(row.travelTimeMin, 0), 0) / facilities.length
-      : 32;
-    const avgScore = Number.isFinite(Number(citySummary?.avg_accessibility_score))
-      ? Number(citySummary.avg_accessibility_score)
-      : facilities.length
-      ? facilities.reduce((sum, row) => sum + toNumber(row.accessibilityScore, 0), 0) / facilities.length
-      : 0.68;
-    const within60Pct = facilities.length ? pct((facilities.filter((row) => toNumber(row.travelTimeMin, 99) <= 60).length / facilities.length) * 100) : 68;
+      : null;
+    const fallbackWithin60Pct = facilities.length ? pct((facilities.filter((row) => toNumber(row.travelTimeMin, 99) <= 60).length / facilities.length) * 100) : null;
+    const hasBaselinePayload = Boolean(baselineResponse);
     return {
-      population,
-      avgTravelTime,
-      avgScore,
-      within60Pct,
-      coverageGap: 100 - within60Pct
+      population:
+        resolvedOverviewData?.population ??
+        (hasBaselinePayload ? (fallbackPopulation > 0 ? fallbackPopulation : null) : null),
+      facilityCount:
+        resolvedOverviewData?.facilityCount ??
+        (hasBaselinePayload ? (baselineSupplyFacilities.length > 0 ? baselineSupplyFacilities.length : null) : null),
+      transportStopCount:
+        resolvedOverviewData?.transportStopCount ??
+        (hasBaselinePayload ? (transportStops.length > 0 ? transportStops.length : null) : null),
+      facilitiesNearTransit: resolvedOverviewData?.facilitiesNearTransit,
+      avgTravelTime: resolvedOverviewData?.averageAccessTimeMin ?? fallbackAvgTravelTime,
+      avgScore: resolvedOverviewData?.averageAccessibilityScore,
+      within60Pct: resolvedOverviewData?.pctPopulationWithin60Min ?? fallbackWithin60Pct,
+      coverageGap: resolvedOverviewData?.coverageGapPct ?? (fallbackWithin60Pct !== null ? 100 - fallbackWithin60Pct : null),
+      mappingIssue: resolvedOverviewData?.mappingIssue ?? null
     };
-  }, [citySummary, facilities]);
+  }, [baselineResponse, baselineSupplyFacilities.length, citySummary, facilities, resolvedOverviewData, transportStops.length]);
   const lowAccess = filteredFacilities.filter((item) => Number(item.nearestStopDistanceMeters) > 250 || Number(item.accessibilityScore) < 0.35);
   const avgStopDistance = filteredFacilities.length
     ? filteredFacilities.reduce((sum, item) => sum + (Number.isFinite(Number(item.nearestStopDistanceMeters)) ? Number(item.nearestStopDistanceMeters) : 0), 0) / filteredFacilities.length
@@ -134,19 +195,50 @@ export default function OverviewPage({
     .sort((a, b) => Number(b.nearestStopDistanceMeters) - Number(a.nearestStopDistanceMeters))[0];
 
   const indicators = [
-    { label: "Population", value: formatPopulation(baseline.population), helper: baseline.population ? "Population represented by origin areas." : "Upload population inputs to unlock population-weighted metrics." },
-    { label: "Healthcare Facilities", value: facilityTransit.total ? facilityTransit.total.toLocaleString() : "Not available", helper: "All healthcare supply points are treated as one facility layer." },
-    { label: "Facilities near Transit", value: facilityTransit.hasDistance ? `${facilityTransit.reachable}/${facilityTransit.total}` : "Not available", helper: "Healthcare facilities within 500m of at least one transport stop." },
-    { label: "Avg. Access Time", value: facilities.length ? `${Math.round(baseline.avgTravelTime)} min` : "Not available", basis: "baseline", helper: "Estimated average travel time derived from accessibility score or backend travel time." },
-    { label: "Areas within 60 min", value: facilities.length ? `${baseline.within60Pct}%` : "Not available", basis: "baseline", helper: "Share of origin areas with estimated access at or below 60 minutes." },
-    { label: "Coverage Gap", value: facilities.length ? `${baseline.coverageGap}%` : "Not available", basis: "baseline", helper: "Origin areas above the 60-minute threshold." }
+    {
+      label: t("overviewPage.population"),
+      value: formatPopulation(baseline.population, t("common.notAvailable")),
+      helper: !isMissing(baseline.population) ? t("overviewPage.populationHelper") : t("overviewPage.populationMissingHelper")
+    },
+    {
+      label: t("overviewPage.healthcareFacilities"),
+      value: formatCount(baseline.facilityCount, t("common.notAvailable")),
+      helper: t("overviewPage.healthcareFacilitiesHelper")
+    },
+    {
+      label: t("overviewPage.facilitiesNearTransit"),
+      value: !isMissing(baseline.facilitiesNearTransit)
+        ? formatCount(baseline.facilitiesNearTransit, t("common.notAvailable"))
+        : facilityTransit.hasDistance
+        ? `${facilityTransit.reachable}/${facilityTransit.total}`
+        : t("common.notAvailable"),
+      helper: t("overviewPage.facilitiesNearTransitHelper")
+    },
+    {
+      label: t("overviewPage.avgAccessTime"),
+      value: formatMinutes(baseline.avgTravelTime, t("common.notAvailable")),
+      basis: t("overviewPage.baseline"),
+      helper: t("overviewPage.avgAccessTimeHelper")
+    },
+    {
+      label: t("overviewPage.areasWithin60"),
+      value: formatPercent(baseline.within60Pct, t("common.notAvailable")),
+      basis: t("overviewPage.baseline"),
+      helper: t("overviewPage.areasWithin60Helper")
+    },
+    {
+      label: t("overviewPage.coverageGap"),
+      value: formatPercent(baseline.coverageGap, t("common.notAvailable")),
+      basis: t("overviewPage.baseline"),
+      helper: t("overviewPage.coverageGapHelper")
+    }
   ];
 
   const isFacilityProxy = analysisUnit === "facility_proxy";
-  const rankingTitle = isFacilityProxy ? "Healthcare Facility Reachability Ranking" : "Origin Area Accessibility Ranking";
+  const rankingTitle = isFacilityProxy ? t("overviewPage.facilityRankingTitle") : t("overviewPage.originRankingTitle");
   const rankingIntro = isFacilityProxy
-    ? "The current dataset uses healthcare facilities as proxy analysis locations. Use this list to identify facilities with weaker transit access."
-    : "Sorted by accessibility score. Origins represent demand or population analysis locations, while healthcare facilities are shown separately on the map.";
+    ? t("overviewPage.facilityRankingIntro")
+    : t("overviewPage.originRankingIntro");
 
   return (
     <div className="mc-overview-page">
@@ -163,12 +255,23 @@ export default function OverviewPage({
 
       <section className="mc-overview-hero-card">
         <div>
-          <span>Baseline Overview</span>
-          <h1>{city?.name || city?.display_name || "Selected city"} healthcare access baseline</h1>
+          <span>{t("overviewPage.baselineOverview")}</span>
+          <h1>{t("overviewPage.heroTitle", { city: city?.name || city?.display_name || t("overview.selectedCity") })}</h1>
           <p>
-            {lowAccess.length.toLocaleString()} {isFacilityProxy ? "healthcare facilities" : "origin areas"} show lower access in the current baseline.
-            {mostIsolated ? ` The most isolated listed location is ${mostIsolated.originName || mostIsolated.districtName}, about ${Math.round(Number(mostIsolated.nearestStopDistanceMeters)).toLocaleString()}m from the nearest stop.` : ""}
+            {t("overviewPage.heroBody", {
+              count: lowAccess.length.toLocaleString(),
+              subject: isFacilityProxy ? t("overviewPage.healthcareFacilitiesLower") : t("overviewPage.originAreasLower")
+            })}
+            {mostIsolated
+              ? ` ${t("overviewPage.heroIsolated", {
+                  name: mostIsolated.originName || mostIsolated.districtName,
+                  distance: Math.round(Number(mostIsolated.nearestStopDistanceMeters)).toLocaleString()
+                })}`
+              : ""}
           </p>
+          {baseline.mappingIssue ? (
+            <p className="mc-empty-note">{baseline.mappingIssue}</p>
+          ) : null}
         </div>
       </section>
 
@@ -184,25 +287,29 @@ export default function OverviewPage({
           </div>
           <div className="mc-ranking-actions">
             <div className="mc-ranking-stat">
-              <span>Average stop distance</span>
-              <strong>{filteredFacilities.length ? `${Math.round(avgStopDistance).toLocaleString()}m` : "Not available"}</strong>
+              <span>{t("overviewPage.averageStopDistance")}</span>
+              <strong>{filteredFacilities.length ? `${Math.round(avgStopDistance).toLocaleString()}m` : t("common.notAvailable")}</strong>
             </div>
             <button type="button" className="mc-secondary-button" onClick={() => setBestFirst((prev) => !prev)}>
-              {bestFirst ? "Show weakest first" : "Show strongest first"}
+              {bestFirst ? t("overviewPage.showWeakestFirst") : t("overviewPage.showStrongestFirst")}
             </button>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="mc-empty-note">Loading baseline ranking...</div>
-        ) : sortedFacilities.length ? (
+          <div className="mc-empty-note">{t("overviewPage.loadingBaselineRanking")}</div>
+        ) : rankingRows.length ? (
           <div className="mc-facility-ranking-grid">
-            {sortedFacilities.map((facility) => (
+            {rankingRows.map((facility) => (
               <FacilityCard key={facility.id} facility={facility} />
             ))}
           </div>
         ) : (
-          <div className="mc-empty-note">No baseline analysis rows are available for the selected city.</div>
+          <div className="mc-empty-note">
+            {baselineResponse || summaryResponse || rankingResponse
+              ? "Baseline ranking loaded, but no ranking rows were available."
+              : t("overviewPage.noBaselineRows")}
+          </div>
         )}
       </section>
     </div>

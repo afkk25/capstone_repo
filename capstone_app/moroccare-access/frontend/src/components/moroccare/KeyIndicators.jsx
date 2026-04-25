@@ -1,3 +1,5 @@
+import { useI18n } from "../../i18n/I18nProvider";
+
 function IndicatorCard({ label, value, delta, tone = "neutral", helper, basis }) {
   return (
     <article className="mc-kpi-card">
@@ -11,11 +13,13 @@ function IndicatorCard({ label, value, delta, tone = "neutral", helper, basis })
 }
 
 export default function KeyIndicators({ indicators }) {
+  const { t } = useI18n();
+
   return (
     <section className="mc-card mc-indicators">
       <div className="mc-section-head">
-        <h2>Baseline Indicators</h2>
-        <span>current city data</span>
+        <h2>{t("overviewPage.baselineIndicators")}</h2>
+        <span>{t("overviewPage.currentCityData")}</span>
       </div>
       <div className="mc-kpi-grid">
         {indicators.map((indicator) => (

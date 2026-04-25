@@ -141,6 +141,17 @@ def compute_origin_features(
         id_col="origin_id",
     )
 
+    original_travel_time = _series_from_candidates(
+        origins_metric,
+        ["travel_time_min", "total_travel_time_min", "nearest_healthcare_travel_time_min"],
+        default=np.nan,
+    )
+    original_walk_time = _series_from_candidates(origins_metric, ["walk_time_to_stop_min"], default=np.nan)
+    original_wait_time = _series_from_candidates(origins_metric, ["wait_time_min"], default=np.nan)
+    original_in_vehicle_time = _series_from_candidates(origins_metric, ["in_vehicle_time_min"], default=np.nan)
+    original_nearest_stop_id = _text_series_from_candidates(origins_metric, ["nearest_stop_id", "chosen_stop_key"], default_prefix="stop")
+    original_nearest_facility_id = _text_series_from_candidates(origins_metric, ["nearest_facility_id"], default_prefix="facility")
+
     origins_metric["population"] = _series_from_candidates(
         origins_metric,
         ["population", "population_worldpop", "pop_mean_pixel"],
@@ -176,6 +187,12 @@ def compute_origin_features(
         origins_metric["score_2sfca"] = pd.to_numeric(origins_metric["score_2sfca"], errors="coerce")
     else:
         origins_metric["score_2sfca"] = np.nan
+    origins_metric["travel_time_min"] = pd.to_numeric(original_travel_time, errors="coerce")
+    origins_metric["walk_time_to_stop_min"] = pd.to_numeric(original_walk_time, errors="coerce")
+    origins_metric["wait_time_min"] = pd.to_numeric(original_wait_time, errors="coerce")
+    origins_metric["in_vehicle_time_min"] = pd.to_numeric(original_in_vehicle_time, errors="coerce")
+    origins_metric["nearest_stop_id"] = original_nearest_stop_id
+    origins_metric["nearest_facility_id"] = original_nearest_facility_id
 
     origin_ll = origins_metric.to_crs("EPSG:4326")
     origins_metric["latitude"] = origin_ll.geometry.y
@@ -197,6 +214,12 @@ def compute_origin_features(
             "population_density",
             "num_healthcare_facilities",
             "healthcare_density_1km",
+            "nearest_stop_id",
+            "walk_time_to_stop_min",
+            "nearest_facility_id",
+            "in_vehicle_time_min",
+            "wait_time_min",
+            "travel_time_min",
             "distance_to_city_center_km",
             "urban_ring",
             "interaction_stop_pop_density",

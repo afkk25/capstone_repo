@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
-import { CircleMarker, MapContainer, Pane, Popup, TileLayer, useMap } from "react-leaflet";
+import { CircleMarker, GeoJSON, MapContainer, Pane, Popup, TileLayer, useMap } from "react-leaflet";
 import { mapLayerValue } from "../utils/dashboard";
 import { useI18n } from "../i18n/I18nProvider";
 import { sideClass, toLocaleNumber } from "../utils/rtl";
 import { FALLBACK_CENTER } from "../utils/adapters";
+import { getLatLngFromFeature } from "../utils/mapCoordinates";
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
   const toRad = (deg) => (deg * Math.PI) / 180;
@@ -58,8 +59,10 @@ function FitBounds({ city, facilitiesForBounds }) {
   const map = useMap();
 
   useEffect(() => {
+    const fallbackLat = Number.isFinite(Number(city?.center_lat)) ? Number(city.center_lat) : FALLBACK_CENTER.center_lat;
+    const fallbackLon = Number.isFinite(Number(city?.center_lon)) ? Number(city.center_lon) : FALLBACK_CENTER.center_lon;
     if (!facilitiesForBounds.length) {
-      map.setView([city.center_lat, city.center_lon], 11);
+      map.setView([fallbackLat, fallbackLon], 11);
       return;
     }
     if (facilitiesForBounds.length === 1) {
@@ -68,7 +71,7 @@ function FitBounds({ city, facilitiesForBounds }) {
     }
     const bounds = L.latLngBounds(facilitiesForBounds.map((row) => [row.latitude, row.longitude]));
     map.fitBounds(bounds.pad(0.15), { animate: false, maxZoom: 13 });
-  }, [city.center_lat, city.center_lon, facilitiesForBounds, map]);
+  }, [city?.center_lat, city?.center_lon, facilitiesForBounds, map]);
 
   return null;
 }
@@ -77,6 +80,7 @@ export default function MapView({
   city,
   baselineFacilities = [],
   simulatedFacilities = null,
+  communeGeojson = null,
   transportStops = [],
   baselineSupplyFacilities = [],
   addedScenarioFacilities = [],
@@ -92,6 +96,8 @@ export default function MapView({
 }) {
   const { t, language, isRtl } = useI18n();
   const [showTransportStops, setShowTransportStops] = useState(true);
+  const [showHealthcareFacilities, setShowHealthcareFacilities] = useState(true);
+  const [showCommunes, setShowCommunes] = useState(true);
 
   if (!city) {
     return <div className="panel-card flex h-full items-center justify-center p-6 text-sm text-slate-500">{t("map.selectCity")}</div>;
@@ -119,12 +125,49 @@ export default function MapView({
 
   const isSimulated = simulatedRows.length > 0;
   const activeRows = isSimulated ? simulatedRows : baselineRows;
-  const facilitiesForBounds = activeRows;
+  const activeOriginPoints = useMemo(
+    () =>
+      activeRows
+        .map((row) => ({ row, latLng: getLatLngFromFeature(row) }))
+        .filter((item) => Array.isArray(item.latLng)),
+    [activeRows]
+  );
+  const facilitiesForBounds = activeOriginPoints.map(({ row, latLng }) => ({ ...row, latitude: latLng[0], longitude: latLng[1] }));
+  const invalidOriginCount = activeRows.length - activeOriginPoints.length;
+
+  const stopPoints = useMemo(
+    () =>
+      transportStops
+        .map((stop) => ({ stop, latLng: getLatLngFromFeature(stop) }))
+        .filter((item) => Array.isArray(item.latLng)),
+    [transportStops]
+  );
+  const invalidStopCount = transportStops.length - stopPoints.length;
+
+  const facilityPoints = useMemo(
+    () =>
+      baselineSupplyFacilities
+        .map((facility) => ({ facility, latLng: getLatLngFromFeature(facility) }))
+        .filter((item) => Array.isArray(item.latLng)),
+    [baselineSupplyFacilities]
+  );
+  const invalidFacilityCount = baselineSupplyFacilities.length - facilityPoints.length;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.log("Facility feature count", baselineSupplyFacilities.length);
+    console.log("Invalid facility coordinate count", invalidFacilityCount);
+  }, [baselineSupplyFacilities.length, invalidFacilityCount]);
   const mapCenter = useMemo(() => {
     const lat = Number(city?.center_lat);
     const lon = Number(city?.center_lon);
     if (Number.isFinite(lat) && Number.isFinite(lon)) return [lat, lon];
-    if (baselineFacilities.length) return [baselineFacilities[0].latitude, baselineFacilities[0].longitude];
+    const firstValid = baselineFacilities.find((row) => {
+      const rlat = Number(row?.latitude);
+      const rlon = Number(row?.longitude);
+      return Number.isFinite(rlat) && Number.isFinite(rlon);
+    });
+    if (firstValid) return [Number(firstValid.latitude), Number(firstValid.longitude)];
     return [FALLBACK_CENTER.center_lat, FALLBACK_CENTER.center_lon];
   }, [baselineFacilities, city?.center_lat, city?.center_lon]);
 
@@ -137,15 +180,30 @@ export default function MapView({
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
+        <Pane name="communes" style={{ zIndex: 430 }}>
+          {showCommunes && communeGeojson?.type === "FeatureCollection" ? (
+            <GeoJSON
+              data={communeGeojson}
+              style={{
+                color: "#64748b",
+                weight: 1,
+                opacity: 0.6,
+                fillColor: "#94a3b8",
+                fillOpacity: 0.08
+              }}
+            />
+          ) : null}
+        </Pane>
+
         <Pane name="origins" style={{ zIndex: 450 }}>
-          {activeRows.map((row) => {
+          {activeOriginPoints.map(({ row, latLng }) => {
             const value = mapLayerValue(row, activeLayer);
             const color = getColor(value, activeLayer);
             const selected = selectedDistrictId === row.id;
             return (
               <CircleMarker
                 key={`${isSimulated ? "sim-origin" : "base-origin"}-${row.id}`}
-                center={[row.latitude, row.longitude]}
+                center={latLng}
                 radius={9}
                 eventHandlers={{ click: () => onSelectPoint?.(row) }}
                 pathOptions={{
@@ -160,7 +218,7 @@ export default function MapView({
                   <div className={`space-y-1 text-xs rtl-safe-text ${isRtl ? "text-right" : "text-left"}`}>
                     <div className="font-bold text-slate-900">{row.originName || row.districtName}</div>
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      {row.analysisUnit === "facility_proxy" ? "Facility-proxy analysis point" : "Demand origin analysis point"}
+                      {row.analysisUnit === "facility_proxy" ? t("simflow.facilityProxyAnalysisPoint") : t("simflow.demandOriginAnalysisPoint")}
                     </div>
                     {isSimulated ? <div className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">{t("map.simulated")}</div> : null}
                     <div>
@@ -193,47 +251,74 @@ export default function MapView({
 
         <Pane name="stops" style={{ zIndex: 460 }}>
           {showTransportStops &&
-            transportStops.map((stop, idx) => (
+            stopPoints.map(({ stop, latLng }, idx) => (
               <CircleMarker
                 key={`stop-${stop.cluster_id ?? idx}`}
-                center={[Number(stop.latitude), Number(stop.longitude)]}
+                center={latLng}
                 radius={3}
                 pathOptions={{ color: "#48cae4", fillColor: "#48cae4", fillOpacity: 0.45, opacity: 0.65, weight: 1 }}
               />
             ))}
         </Pane>
 
+        <Pane name="facilities" style={{ zIndex: 465 }}>
+          {showHealthcareFacilities &&
+            facilityPoints.map(({ facility, latLng }, idx) => (
+                <CircleMarker
+                  key={`facility-${facility.id ?? idx}`}
+                  center={latLng}
+                  radius={5}
+                  pathOptions={{ color: "#7C3AED", fillColor: "#8B5CF6", fillOpacity: 0.8, opacity: 0.95, weight: 1.5 }}
+                >
+                  <Popup>
+                    <div className="space-y-1 text-xs">
+                      <div className="font-semibold text-slate-900">{facility.name || "Healthcare facility"}</div>
+                      <div className="text-slate-600">Healthcare destination</div>
+                    </div>
+                  </Popup>
+                </CircleMarker>
+              ))}
+        </Pane>
+
         <Pane name="scenario-added" style={{ zIndex: 470 }}>
-          {addedScenarioFacilities.map((facility, idx) => (
+          {addedScenarioFacilities.map((facility, idx) => {
+            const latLng = getLatLngFromFeature(facility);
+            if (!latLng) return null;
+            return (
             <CircleMarker
               key={`added-facility-${idx}`}
-              center={[Number(facility.latitude), Number(facility.longitude)]}
+              center={latLng}
               radius={5}
               pathOptions={{ color: "#5B21B6", fillColor: "#7C3AED", fillOpacity: 0.85, opacity: 0.9, weight: 1.5 }}
             >
               <Popup>
                 <div className="text-xs">
-                  <div className="font-semibold text-slate-900">Scenario facility</div>
-                  <div>{facility.source === "auto" ? "Automatically placed" : "User placed"}</div>
+                  <div className="font-semibold text-slate-900">{t("simflow.scenarioFacility")}</div>
+                  <div>{facility.source === "auto" ? t("simflow.automaticallyPlaced") : t("simflow.userPlaced")}</div>
                 </div>
               </Popup>
             </CircleMarker>
-          ))}
-          {addedScenarioStops.map((stop, idx) => (
+            );
+          })}
+          {addedScenarioStops.map((stop, idx) => {
+            const latLng = getLatLngFromFeature(stop);
+            if (!latLng) return null;
+            return (
             <CircleMarker
               key={`added-stop-${idx}`}
-              center={[Number(stop.latitude), Number(stop.longitude)]}
+              center={latLng}
               radius={4.2}
               pathOptions={{ color: "#1D4ED8", fillColor: "#2563EB", fillOpacity: 0.85, opacity: 0.9, weight: 1.4 }}
             >
               <Popup>
                 <div className="text-xs">
-                  <div className="font-semibold text-slate-900">Scenario transport stop</div>
-                  <div>{stop.source === "auto" ? "Automatically placed" : "User placed"}</div>
+                  <div className="font-semibold text-slate-900">{t("simflow.scenarioTransportStop")}</div>
+                  <div>{stop.source === "auto" ? t("simflow.automaticallyPlaced") : t("simflow.userPlaced")}</div>
                 </div>
               </Popup>
             </CircleMarker>
-          ))}
+            );
+          })}
         </Pane>
       </MapContainer>
 
@@ -243,6 +328,14 @@ export default function MapView({
           <label className="mt-2 flex items-center gap-2 text-xs text-[var(--text-primary)]">
             <input type="checkbox" checked={showTransportStops} onChange={(event) => setShowTransportStops(event.target.checked)} />
             {t("map.showStops")}
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-xs text-[var(--text-primary)]">
+            <input type="checkbox" checked={showCommunes} onChange={(event) => setShowCommunes(event.target.checked)} />
+            Commune polygons
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-xs text-[var(--text-primary)]">
+            <input type="checkbox" checked={showHealthcareFacilities} onChange={(event) => setShowHealthcareFacilities(event.target.checked)} />
+            Healthcare facilities
           </label>
 
           <div className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{t("map.colorBy")}</div>
@@ -273,6 +366,11 @@ export default function MapView({
           ) : (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>
           )}
+        </div>
+      )}
+      {(invalidOriginCount > 0 || invalidStopCount > 0 || invalidFacilityCount > 0) && (
+        <div className="absolute bottom-3 left-3 z-[910] rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Some map features were skipped because their coordinates were invalid.
         </div>
       )}
     </div>

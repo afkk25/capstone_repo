@@ -1,10 +1,10 @@
 import axios, { AxiosError, type AxiosResponse } from "axios";
 import type { ApiErrorPayload } from "../types/api";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export const apiClient = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   timeout: 30000
 });
 
@@ -26,8 +26,22 @@ function unwrapResponse<T>(response: AxiosResponse<T>): T {
 function toApiError(error: unknown): never {
   const axiosError = error as AxiosError<ApiErrorPayload>;
   const status = axiosError.response?.status;
-  const detail = axiosError.response?.data?.detail || axiosError.response?.data?.message || axiosError.message;
-  throw new ApiError(detail || "Unexpected API error", status, detail);
+  const rawDetail = axiosError.response?.data?.detail ?? axiosError.response?.data?.message ?? axiosError.message;
+  const detail =
+    typeof rawDetail === "string"
+      ? rawDetail
+      : (() => {
+          try {
+            return JSON.stringify(rawDetail);
+          } catch {
+            return String(rawDetail);
+          }
+        })();
+  const requestPath = axiosError.config?.url || "unknown endpoint";
+  const message = status
+    ? `Request to ${requestPath} failed with status ${status}: ${detail}`
+    : `Request to ${requestPath} failed: ${detail}`;
+  throw new ApiError(message || "Unexpected API error", status, detail);
 }
 
 // Generic request helper centralizes retries, timeout behavior, and error shape.

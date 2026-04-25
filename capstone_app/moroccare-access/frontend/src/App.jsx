@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { uploadCityDataForCity } from "./api/cities";
-import { normalizeBaselineFacilities, normalizeFacility, normalizeSupplyFacilities } from "./utils/adapters";
+import { API_BASE_URL } from "./api/client";
+import { normalizeBaselineFacilities, normalizeFacility, normalizeOverviewData, normalizeSupplyFacilities } from "./utils/adapters";
+import { getLatLngFromFeature, normalizeFeatureList, splitValidInvalidByLatLng } from "./utils/mapCoordinates";
 import { useCityData } from "./hooks/useCityData";
 import { useSimulation } from "./hooks/useSimulation";
-import CornerLanguageSwitcher from "./components/CornerLanguageSwitcher";
 import UploadModal from "./components/UploadModal";
 import NavBar from "./components/NavBar";
 import MapPage from "./pages/Map";
@@ -54,8 +55,33 @@ function AppFrame() {
   const [dismissedErrorKey, setDismissedErrorKey] = useState("");
   const [activeSimulationLabel, setActiveSimulationLabel] = useState("");
   const [activeLayer, setActiveLayer] = useState("accessibility");
+  const activeTab = location.pathname.startsWith("/map")
+    ? "map"
+    : location.pathname.startsWith("/simulate") || location.pathname.startsWith("/simulation")
+    ? "simulate"
+    : location.pathname.startsWith("/analysis") || location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/analytics") || location.pathname.startsWith("/data")
+    ? "analysis"
+    : "overview";
 
-  const { citiesQuery, baselineQuery, summaryQuery, rankingQuery, recommendationsQuery, recommendedPlacementsQuery } = useCityData(selectedCityId);
+  const dataRequirements = useMemo(
+    () => ({
+      includeBaseline: activeTab === "overview" || activeTab === "map" || activeTab === "simulate",
+      includeBaselineDetails: activeTab === "map" || activeTab === "simulate",
+      includeSummary: false,
+      includeDistricts: activeTab === "map",
+      includeRanking: false,
+      includeRecommendations: false,
+      includeRecommendedPlacements: activeTab === "simulate",
+      includeExplainability: false,
+      includeFacilitiesLayer: activeTab === "map" || activeTab === "simulate" || activeTab === "overview",
+      includeStopsLayer: activeTab === "map" || activeTab === "simulate"
+    }),
+    [activeTab]
+  );
+  const { citiesQuery, baselineQuery, summaryQuery, rankingQuery, recommendationsQuery, recommendedPlacementsQuery, districtsQuery, facilitiesQuery, stopsQuery, resolvedCityId, queryEnablement } = useCityData(
+    selectedCityId,
+    dataRequirements
+  );
   const cities = citiesQuery.data || [];
   const currentCityId = selectedCityId || cities[0]?.id || cities[0]?.city_id || "";
   const currentCity = cities.find((city) => (city.id || city.city_id) === currentCityId) || null;
@@ -69,23 +95,123 @@ function AppFrame() {
     error: simulationError
   } = useSimulation();
 
-  const baselineOrigins = useMemo(() => normalizeBaselineFacilities(baselineQuery.data), [baselineQuery.data]);
-  const baselineSupplyFacilities = useMemo(() => normalizeSupplyFacilities(baselineQuery.data), [baselineQuery.data]);
+  useEffect(() => {
+    if (!selectedCityId && cities.length) {
+      setSelectedCityId(cities[0].id || cities[0].city_id || "");
+    }
+  }, [cities, selectedCityId]);
 
-  const baselineTransportStops = useMemo(
-    () =>
-      Array.isArray(baselineQuery.data?.transport_stops_baseline)
-        ? baselineQuery.data.transport_stops_baseline
-        : Array.isArray(baselineQuery.data?.transport_stops)
-        ? baselineQuery.data.transport_stops
-        : [],
-    [baselineQuery.data]
+  const baselineOrigins = useMemo(
+    () => (dataRequirements.includeBaseline ? normalizeBaselineFacilities(baselineQuery.data) : []),
+    [baselineQuery.data, dataRequirements.includeBaseline]
   );
+  const baselineSupplyFacilities = useMemo(() => {
+    if (!dataRequirements.includeBaseline) return [];
+    const facilityPayload = facilitiesQuery.data;
+    const featureItems = normalizeFeatureList(facilityPayload);
+    const split = splitValidInvalidByLatLng(featureItems);
+    if (import.meta.env.DEV) {
+      console.log("Facilities response", facilityPayload);
+      console.log("Facility feature count", featureItems.length);
+      console.log("Invalid facility coordinate count", split.invalid.length);
+    }
+    const fromLayer = split.valid.map(({ item, latLng }, index) => ({
+      id: item?.properties?.facility_id ?? item?.facility_id ?? `facility-${index}`,
+      name: item?.properties?.name ?? item?.name ?? `Facility ${index + 1}`,
+      latitude: latLng[0],
+      longitude: latLng[1],
+      type: item?.properties?.type ?? item?.type ?? "healthcare",
+      capacity: item?.properties?.capacity ?? item?.capacity ?? 1,
+      commune_id: item?.properties?.commune_id ?? item?.commune_id ?? null,
+      commune_name: item?.properties?.commune_name ?? item?.commune_name ?? null,
+      district_name: item?.properties?.district_name ?? item?.district_name ?? null
+    }));
+    if (fromLayer.length) return fromLayer;
+    return normalizeSupplyFacilities(baselineQuery.data);
+  }, [baselineQuery.data, dataRequirements.includeBaseline, facilitiesQuery.data]);
+  const baselineData = baselineQuery.data ?? null;
+  const overviewData = useMemo(() => {
+    const primary = baselineData ?? summaryQuery.data ?? rankingQuery.data;
+    if (!primary) {
+      return {
+        population: null,
+        facilityCount: null,
+        transportStopCount: null,
+        averageAccessTimeMin: null,
+        averageAccessibilityScore: null,
+        pctPopulationWithin60Min: null,
+        coverageGapPct: null,
+        facilitiesNearTransit: null,
+        rankingRows: [],
+        districtSummaryRows: [],
+        mappingIssue: null
+      };
+    }
+    return normalizeOverviewData({
+      baseline: baselineData,
+      summary: summaryQuery.data,
+      ranking: rankingQuery.data
+    });
+  }, [baselineData, rankingQuery.data, summaryQuery.data]);
+
+  if (import.meta.env.DEV) {
+    console.log("API_BASE_URL", API_BASE_URL);
+    console.log("Selected city", selectedCityId, "Current city", currentCityId);
+    console.log("Resolved city ID", resolvedCityId);
+    console.log("Data requirements", dataRequirements);
+    console.log("Query enablement", queryEnablement);
+    console.log("Baseline query status", baselineQuery.status);
+    console.log("Baseline query fetchStatus", baselineQuery.fetchStatus);
+    console.log("Baseline query isPending", baselineQuery.isPending);
+    console.log("Baseline query isFetching", baselineQuery.isFetching);
+    console.log("Baseline query isError", baselineQuery.isError);
+    console.log("Baseline query error", baselineQuery.error);
+    console.log("Baseline query data", baselineQuery.data);
+    console.log("Summary query", summaryQuery.status, summaryQuery.error);
+    console.log("Summary query fetchStatus", summaryQuery.fetchStatus);
+    console.log("Summary query isPending", summaryQuery.isPending);
+    console.log("Summary query isFetching", summaryQuery.isFetching);
+    console.log("Summary query isError", summaryQuery.isError);
+    console.log("Summary query data", summaryQuery.data);
+    console.log("Ranking query", rankingQuery.status, rankingQuery.error);
+    console.log("Ranking query fetchStatus", rankingQuery.fetchStatus);
+    console.log("Ranking query isPending", rankingQuery.isPending);
+    console.log("Ranking query isFetching", rankingQuery.isFetching);
+    console.log("Ranking query isError", rankingQuery.isError);
+    console.log("Ranking query data", rankingQuery.data);
+    console.log("Districts query", districtsQuery.status, districtsQuery.error);
+    console.log("Baseline raw response:", baselineData);
+    console.log("Baseline kpis:", baselineData?.kpis);
+    console.log("Summary response", summaryQuery.data);
+    console.log("Ranking response", rankingQuery.data);
+    console.log("Normalized overview data:", overviewData);
+  }
+
+  const baselineTransportStops = useMemo(() => {
+    if (!dataRequirements.includeBaseline) return [];
+    const stopPayload = stopsQuery.data;
+    const stopItems = normalizeFeatureList(stopPayload);
+    const split = splitValidInvalidByLatLng(stopItems);
+    const fromLayer = split.valid.map(({ item, latLng }, index) => ({
+      stop_key: item?.properties?.stop_key ?? item?.stop_key ?? `stop-${index}`,
+      stop_name: item?.properties?.stop_name ?? item?.stop_name ?? `Stop ${index + 1}`,
+      latitude: latLng[0],
+      longitude: latLng[1],
+      mode: item?.properties?.mode ?? item?.mode ?? null,
+      lines: item?.properties?.lines ?? item?.properties?.Lines ?? item?.lines ?? item?.Lines ?? null
+    }));
+    if (fromLayer.length) return fromLayer;
+    return Array.isArray(baselineQuery.data?.transport_stops_baseline)
+      ? baselineQuery.data.transport_stops_baseline
+      : Array.isArray(baselineQuery.data?.transport_stops)
+      ? baselineQuery.data.transport_stops
+      : [];
+  }, [baselineQuery.data, dataRequirements.includeBaseline, stopsQuery.data]);
   const districtSummaries = useMemo(
-    () => (Array.isArray(baselineQuery.data?.district_summaries) ? baselineQuery.data.district_summaries : []),
-    [baselineQuery.data]
+    () => (dataRequirements.includeBaseline && Array.isArray(baselineQuery.data?.district_summaries) ? baselineQuery.data.district_summaries : []),
+    [baselineQuery.data, dataRequirements.includeBaseline]
   );
-  const analysisUnit = baselineQuery.data?.analysis_unit || "origin";
+  const analysisUnit = dataRequirements.includeBaseline ? baselineQuery.data?.analysis_unit || "origin" : "origin";
 
   const originsWithStops = useMemo(
     () =>
@@ -169,11 +295,29 @@ function AppFrame() {
   );
 
   const uploadMutation = useMutation({
-    mutationFn: async ({ mode, cityId, cityName, healthcareFile, transportStopsFile, populationFile, onProgress }) => {
+    mutationFn: async ({
+      mode,
+      cityId,
+      cityName,
+      healthcareFile,
+      transportStopsFile,
+      populationFile,
+      originsFile,
+      districtsFile,
+      routeStopsFile,
+      routeVerticesFile,
+      districtSummaryFile,
+      onProgress
+    }) => {
       const formDataByCity = new FormData();
-      formDataByCity.append("healthcare_file", healthcareFile);
-      formDataByCity.append("transport_stops_file", transportStopsFile);
+      if (healthcareFile) formDataByCity.append("healthcare_file", healthcareFile);
+      if (transportStopsFile) formDataByCity.append("transport_stops_file", transportStopsFile);
       if (populationFile) formDataByCity.append("population_file", populationFile);
+      if (originsFile) formDataByCity.append("origins_file", originsFile);
+      if (districtsFile) formDataByCity.append("districts_file", districtsFile);
+      if (routeStopsFile) formDataByCity.append("route_stops_file", routeStopsFile);
+      if (routeVerticesFile) formDataByCity.append("route_vertices_file", routeVerticesFile);
+      if (districtSummaryFile) formDataByCity.append("district_summary_file", districtSummaryFile);
       const resolvedCityId = mode === "new" ? "__new__" : cityId;
       return uploadCityDataForCity(resolvedCityId, formDataByCity, {
         cityName,
@@ -202,25 +346,19 @@ function AppFrame() {
       cityId: currentCityId,
       payload
     });
-    setActiveSimulationLabel(options.customLabel || options.label || "Custom scenario");
+    setActiveSimulationLabel(options.customLabel || options.label || t("simulate.scenarioFallback"));
   };
 
-  const activeTab = location.pathname.startsWith("/map")
-    ? "map"
-    : location.pathname.startsWith("/simulate") || location.pathname.startsWith("/simulation")
-    ? "simulate"
-    : location.pathname.startsWith("/analysis") || location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/analytics") || location.pathname.startsWith("/data")
-    ? "analysis"
-    : "overview";
-
-  const apiErrorMessage = stakeholderMessage(uploadMutation.error?.message || simulationError?.message || "", "");
+  const apiErrorMessage = stakeholderMessage(
+    uploadMutation.error?.message || simulationError?.message || baselineQuery.error?.message || "",
+    ""
+  );
   const errorKey = apiErrorMessage ? `${activeTab}:${apiErrorMessage}` : "";
   const showApiError = Boolean(apiErrorMessage && dismissedErrorKey !== errorKey);
   const baselineWarnings = stakeholderWarnings(baselineQuery.data?.warnings);
 
   return (
     <div className={`mc-app-shell mc-header-shell ${activeTab === "simulate" ? "is-simulate-route" : ""}`}>
-      <CornerLanguageSwitcher />
       <NavBar
         activeTab={activeTab}
         onTabChange={(path) => navigate(path)}
@@ -245,6 +383,9 @@ function AppFrame() {
         {showApiError ? (
           <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {apiErrorMessage}
+              {baselineQuery.isError && baselineQuery.error?.message ? (
+                <div className="mt-1 text-xs text-red-800">{baselineQuery.error.message}</div>
+              ) : null}
               <button type="button" className="ml-2 underline" onClick={() => setDismissedErrorKey(errorKey)}>
                 {t("common.dismiss")}
               </button>
@@ -266,11 +407,14 @@ function AppFrame() {
                 baselineSupplyFacilities={supplyFacilitiesWithStops}
                 districtSummaries={districtSummaries}
                 citySummary={summaryQuery.data?.summary || null}
-                planningRanking={Array.isArray(rankingQuery.data?.ranking) ? rankingQuery.data.ranking : []}
+                baselineResponse={baselineQuery.data}
+                summaryResponse={summaryQuery.data}
+                rankingResponse={rankingQuery.data}
+                overviewData={overviewData}
                 backendRecommendations={Array.isArray(recommendationsQuery.data?.recommendations) ? recommendationsQuery.data.recommendations : []}
                 analysisUnit={analysisUnit}
                 simulation={simulation}
-                isLoading={baselineQuery.isLoading || citiesQuery.isLoading}
+                isLoading={(baselineQuery.isLoading && !baselineQuery.data) || (citiesQuery.isLoading && !cities.length)}
                 cities={cities}
                 selectedCityId={currentCityId}
                 onCityChange={(cityId) => {
@@ -296,11 +440,12 @@ function AppFrame() {
                 city={currentCity}
                 baselineFacilities={originsWithStops}
                 simulatedFacilities={simulatedOrigins}
+                communeGeojson={districtsQuery.data}
                 transportStops={baselineTransportStops}
                 baselineSupplyFacilities={supplyFacilitiesWithStops}
                 addedScenarioFacilities={addedScenarioFacilities}
                 addedScenarioStops={addedScenarioStops}
-                isLoading={baselineQuery.isLoading}
+                isLoading={baselineQuery.isLoading || districtsQuery.isLoading}
                 activeLayer={activeLayer}
                 onLayerChange={setActiveLayer}
                 onWhyScore={() => navigate("/analysis")}
