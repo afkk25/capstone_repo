@@ -1,0 +1,23 @@
+{
+  "origins_signature": {
+    "origins": {
+      "filename": "origins.csv",
+      "size_bytes": 20529862,
+      "mtime": 1776592259.2979338
+    },
+    "healthcare": {
+      "filename": "healthcare.csv",
+      "size_bytes": 8123,
+      "mtime": 1776291140.6007361
+    }
+  },
+  "surface_metadata": {
+    "city_id": "casablanca",
+    "grid_size_m": 750,
+    "score_column_used": "accessibility_score",
+    "travel_time_column_used": "tt_base",
+    "cell_count": 1127,
+    "source": "origin-level accessibility surface",
+    "cached": false
+  }
+}

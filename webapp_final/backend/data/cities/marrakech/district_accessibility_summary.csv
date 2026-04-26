@@ -1,0 +1,13 @@
+district_name,population,n_healthcare_facilities,avg_travel_time_min,accessibility_score,area_km2
+Marrakech-Médina,185000,8,12.4,0.82,5.8
+Marrakech-Guéliz,128000,6,10.8,0.88,8.2
+Marrakech-Ménara,210000,4,18.5,0.62,14.5
+Marrakech-Sidi Youssef Ben Ali,155000,3,21.2,0.55,9.8
+Marrakech-Annakhil,98000,2,24.8,0.43,18.2
+Marrakech-Daoudiate,112000,3,17.5,0.67,12.4
+Marrakech-Massira,175000,3,19.8,0.59,10.2
+Marrakech-Hivernage,42000,3,8.2,0.92,4.1
+Marrakech-Semlalia,88000,2,22.1,0.5,11.8
+Marrakech-Targa,95000,2,25.4,0.41,15.6
+Marrakech-Palmeraie,35000,1,28.7,0.32,22.4
+Marrakech-Mhamid,120000,2,26.3,0.38,13.2

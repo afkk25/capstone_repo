@@ -1,0 +1,111 @@
+cluster_id,stop_name,Lines,mode,longitude,latitude
+0,JEMAA EL FNA,"['M001', 'M004', 'M010']",['alsamarrakech'],-7.9893,31.6258
+1,JEMAA EL FNA,"['M001', 'M004', 'M010']",['alsamarrakech'],-7.9887,31.6252
+2,BAB AGNAOU,"['M001', 'M005']",['alsamarrakech'],-7.9905,31.6232
+3,BAB AGNAOU,"['M001', 'M005']",['alsamarrakech'],-7.9898,31.6228
+4,BAB DOUKKALA,"['M002', 'M008']",['alsamarrakech'],-7.9927,31.6335
+5,BAB DOUKKALA,"['M002', 'M008']",['alsamarrakech'],-7.992,31.633
+6,BAB KSIBA,"['M005', 'M011']",['alsamarrakech'],-7.9852,31.6198
+7,BAB KSIBA,"['M005', 'M011']",['alsamarrakech'],-7.9845,31.6193
+8,AVENUE MOHAMMED V,"['M001', 'M002', 'M003', 'M007']",['alsamarrakech'],-8.0083,31.64
+9,AVENUE MOHAMMED V,"['M001', 'M002', 'M003', 'M007']",['alsamarrakech'],-8.0077,31.6395
+10,PLACE DU 16 NOVEMBRE,"['M003', 'M006']",['alsamarrakech'],-8.0101,31.638
+11,PLACE DU 16 NOVEMBRE,"['M003', 'M006']",['alsamarrakech'],-8.0095,31.6375
+12,THEATRE ROYAL,"['M002', 'M009']",['alsamarrakech'],-8.0147,31.6405
+13,THEATRE ROYAL,"['M002', 'M009']",['alsamarrakech'],-8.0141,31.64
+14,GARE MARRAKECH,"['M001', 'M006', 'M010']",['alsamarrakech'],-8.0105,31.6259
+15,GARE MARRAKECH,"['M001', 'M006', 'M010']",['alsamarrakech'],-8.0099,31.6253
+16,PLACE DE LA LIBERTE,"['M003', 'M007']",['alsamarrakech'],-8.004,31.6418
+17,PLACE DE LA LIBERTE,"['M003', 'M007']",['alsamarrakech'],-8.0034,31.6413
+18,AEROPORT MENARA,"['M001', 'M019']",['alsamarrakech'],-8.0363,31.6068
+19,AEROPORT MENARA,"['M001', 'M019']",['alsamarrakech'],-8.0357,31.6062
+20,JARDIN MENARA,['M019'],['alsamarrakech'],-8.0503,31.618
+21,JARDIN MENARA,['M019'],['alsamarrakech'],-8.0497,31.6175
+22,HOTEL IBIS MENARA,['M019'],['alsamarrakech'],-8.0381,31.6105
+23,HOTEL IBIS MENARA,['M019'],['alsamarrakech'],-8.0375,31.61
+24,HIVERNAGE,"['M004', 'M009']",['alsamarrakech'],-8.02,31.632
+25,HIVERNAGE,"['M004', 'M009']",['alsamarrakech'],-8.0194,31.6315
+26,PALMERAIE GOLF,['M015'],['alsamarrakech'],-7.963,31.669
+27,PALMERAIE GOLF,['M015'],['alsamarrakech'],-7.9624,31.6685
+28,HAY MASSIRA 1,"['M005', 'M011']",['alsamarrakech'],-8.0273,31.605
+29,HAY MASSIRA 1,"['M005', 'M011']",['alsamarrakech'],-8.0267,31.6045
+30,HAY MASSIRA 2,['M011'],['alsamarrakech'],-8.031,31.5998
+31,HAY MASSIRA 2,['M011'],['alsamarrakech'],-8.0304,31.5992
+32,PLACE MASSIRA,"['M005', 'M011']",['alsamarrakech'],-8.0265,31.604
+33,PLACE MASSIRA,"['M005', 'M011']",['alsamarrakech'],-8.0259,31.6035
+34,DAOUDIATE,"['M007', 'M012']",['alsamarrakech'],-8.0448,31.6582
+35,DAOUDIATE,"['M007', 'M012']",['alsamarrakech'],-8.0442,31.6577
+36,MARJANE DAOUDIATE,['M012'],['alsamarrakech'],-8.053,31.6595
+37,MARJANE DAOUDIATE,['M012'],['alsamarrakech'],-8.0524,31.659
+38,PLACE DES FERBLANTIERS,"['M004', 'M005']",['alsamarrakech'],-7.9842,31.6238
+39,PLACE DES FERBLANTIERS,"['M004', 'M005']",['alsamarrakech'],-7.9836,31.6232
+40,BAB EL KHEMIS,['M008'],['alsamarrakech'],-7.9812,31.6388
+41,BAB EL KHEMIS,['M008'],['alsamarrakech'],-7.9806,31.6383
+42,MOUASSINE,"['M008', 'M010']",['alsamarrakech'],-7.9882,31.6315
+43,MOUASSINE,"['M008', 'M010']",['alsamarrakech'],-7.9876,31.631
+44,SIDI YOUSSEF BEN ALI,"['M005', 'M006']",['alsamarrakech'],-7.9982,31.6065
+45,SIDI YOUSSEF BEN ALI,"['M005', 'M006']",['alsamarrakech'],-7.9976,31.606
+46,AVENUE ABDELKRIM KHATTABI,"['M002', 'M003', 'M007']",['alsamarrakech'],-8.0068,31.6355
+47,AVENUE ABDELKRIM KHATTABI,"['M002', 'M003', 'M007']",['alsamarrakech'],-8.0062,31.635
+48,TARGA,"['M013', 'M014']",['alsamarrakech'],-7.9875,31.6758
+49,TARGA,"['M013', 'M014']",['alsamarrakech'],-7.9869,31.6752
+50,CITE MOHAMMADIA,['M013'],['alsamarrakech'],-7.999,31.668
+51,CITE MOHAMMADIA,['M013'],['alsamarrakech'],-7.9984,31.6675
+52,CHU MOHAMMED VI,"['M016', 'M017']",['alsamarrakech'],-8.0753,31.6528
+53,CHU MOHAMMED VI,"['M016', 'M017']",['alsamarrakech'],-8.0747,31.6522
+54,UNIVERSITE CADI AYYAD,['M016'],['alsamarrakech'],-8.0785,31.6575
+55,UNIVERSITE CADI AYYAD,['M016'],['alsamarrakech'],-8.0779,31.657
+56,PALAIS EL BADI,['M004'],['alsamarrakech'],-7.9845,31.6215
+57,PALAIS EL BADI,['M004'],['alsamarrakech'],-7.9839,31.621
+58,BAHIA PALACE,"['M004', 'M010']",['alsamarrakech'],-7.9837,31.6255
+59,BAHIA PALACE,"['M004', 'M010']",['alsamarrakech'],-7.9831,31.625
+60,MELLAH,"['M008', 'M010']",['alsamarrakech'],-7.9834,31.6278
+61,MELLAH,"['M008', 'M010']",['alsamarrakech'],-7.9828,31.6273
+62,PLACE DOUZE OCTOBRE,['M006'],['alsamarrakech'],-7.989,31.6168
+63,PLACE DOUZE OCTOBRE,['M006'],['alsamarrakech'],-7.9884,31.6163
+64,CITE DE L'AIR,"['M006', 'M018']",['alsamarrakech'],-8.0115,31.6225
+65,CITE DE L'AIR,"['M006', 'M018']",['alsamarrakech'],-8.0109,31.622
+66,RUE DE YUGOSLAVIE,"['M003', 'M007']",['alsamarrakech'],-8.0063,31.642
+67,RUE DE YUGOSLAVIE,"['M003', 'M007']",['alsamarrakech'],-8.0057,31.6415
+68,AVENUE HASSAN II GUELIZ,"['M002', 'M003']",['alsamarrakech'],-8.0138,31.643
+69,AVENUE HASSAN II GUELIZ,"['M002', 'M003']",['alsamarrakech'],-8.0132,31.6425
+70,SYNDICAT D'INITIATIVE,"['M001', 'M007']",['alsamarrakech'],-8.0042,31.6393
+71,SYNDICAT D'INITIATIVE,"['M001', 'M007']",['alsamarrakech'],-8.0036,31.6388
+72,CARREFOUR SEMLALIA,"['M009', 'M012']",['alsamarrakech'],-8.0532,31.6362
+73,CARREFOUR SEMLALIA,"['M009', 'M012']",['alsamarrakech'],-8.0526,31.6357
+74,HOPITAL IBN TOFAIL,"['M001', 'M006']",['alsamarrakech'],-8.0042,31.6296
+75,HOPITAL IBN TOFAIL,"['M001', 'M006']",['alsamarrakech'],-8.0036,31.6291
+76,ECOLE NATIONALE DE COMMERCE,['M009'],['alsamarrakech'],-8.0298,31.6425
+77,ECOLE NATIONALE DE COMMERCE,['M009'],['alsamarrakech'],-8.0292,31.642
+78,PLACE YAACOUB EL MANSOUR,"['M001', 'M002', 'M010']",['alsamarrakech'],-8.0018,31.6355
+79,PLACE YAACOUB EL MANSOUR,"['M001', 'M002', 'M010']",['alsamarrakech'],-8.0012,31.635
+80,AVENUE DES NATIONS UNIES,"['M006', 'M018']",['alsamarrakech'],-8.02,31.626
+81,AVENUE DES NATIONS UNIES,"['M006', 'M018']",['alsamarrakech'],-8.0194,31.6255
+82,BAB GHMAT,"['M005', 'M011']",['alsamarrakech'],-7.9815,31.617
+83,BAB GHMAT,"['M005', 'M011']",['alsamarrakech'],-7.9809,31.6165
+84,SOUK SEMMARINE,['M008'],['alsamarrakech'],-7.9875,31.6288
+85,SOUK SEMMARINE,['M008'],['alsamarrakech'],-7.9869,31.6283
+86,PLACE RAHBA KEDIMA,"['M008', 'M010']",['alsamarrakech'],-7.9858,31.6295
+87,PLACE RAHBA KEDIMA,"['M008', 'M010']",['alsamarrakech'],-7.9852,31.629
+88,QUARTIER INDUSTRIAL,"['M017', 'M018']",['alsamarrakech'],-8.0418,31.6095
+89,QUARTIER INDUSTRIAL,"['M017', 'M018']",['alsamarrakech'],-8.0412,31.609
+90,HAY AL HASSANI,"['M016', 'M017']",['alsamarrakech'],-8.0732,31.6138
+91,HAY AL HASSANI,"['M016', 'M017']",['alsamarrakech'],-8.0726,31.6133
+92,CITE MOHAMMEDIA NORD,"['M013', 'M014']",['alsamarrakech'],-7.9958,31.6712
+93,CITE MOHAMMEDIA NORD,"['M013', 'M014']",['alsamarrakech'],-7.9952,31.6707
+94,PLACE AL AMAL,['M011'],['alsamarrakech'],-8.0298,31.6055
+95,PLACE AL AMAL,['M011'],['alsamarrakech'],-8.0292,31.605
+96,LYCEE VICTOR HUGO,"['M001', 'M003']",['alsamarrakech'],-8.0058,31.6388
+97,LYCEE VICTOR HUGO,"['M001', 'M003']",['alsamarrakech'],-8.0052,31.6383
+98,SOUK EL KHEMIS,['M008'],['alsamarrakech'],-7.982,31.639
+99,SOUK EL KHEMIS,['M008'],['alsamarrakech'],-7.9814,31.6385
+100,COMPLEXE SPORTIF,['M018'],['alsamarrakech'],-8.0285,31.6188
+101,COMPLEXE SPORTIF,['M018'],['alsamarrakech'],-8.0279,31.6183
+102,FORET DE LA MAMOUNIA,"['M001', 'M006']",['alsamarrakech'],-8.0032,31.6252
+103,FORET DE LA MAMOUNIA,"['M001', 'M006']",['alsamarrakech'],-8.0026,31.6247
+104,PLACE BIAD,['M006'],['alsamarrakech'],-7.9952,31.6208
+105,PLACE BIAD,['M006'],['alsamarrakech'],-7.9946,31.6203
+106,CITE OLYMPIQUE,"['M009', 'M012']",['alsamarrakech'],-8.0235,31.6382
+107,CITE OLYMPIQUE,"['M009', 'M012']",['alsamarrakech'],-8.0229,31.6377
+108,AVENUE 11 JANVIER,"['M001', 'M002']",['alsamarrakech'],-8.0095,31.6342
+109,AVENUE 11 JANVIER,"['M001', 'M002']",['alsamarrakech'],-8.0089,31.6337

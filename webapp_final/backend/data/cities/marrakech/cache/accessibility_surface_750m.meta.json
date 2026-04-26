@@ -1,0 +1,27 @@
+{
+  "origins_signature": {
+    "origins": {
+      "filename": "origins.csv",
+      "size_bytes": 10418974,
+      "mtime": 1777229614.9224617
+    },
+    "healthcare": {
+      "filename": "healthcare.csv",
+      "size_bytes": 10663,
+      "mtime": 1777229614.9234848
+    }
+  },
+  "surface_metadata": {
+    "city_id": "marrakech",
+    "grid_size_m": 750,
+    "score_column_used": "computed_accessibility_score",
+    "travel_time_column_used": "computed_network_time_min",
+    "metric_warnings": [
+      "Baseline travel time was automatically estimated using a simplified uploaded transport network.",
+      "Accessibility score was automatically derived from baseline travel time using a 45-minute threshold."
+    ],
+    "cell_count": 4819,
+    "source": "origin-level accessibility surface",
+    "cached": false
+  }
+}
