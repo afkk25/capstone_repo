@@ -1,209 +1,3 @@
-// import { useEffect, useState } from "react";
-// import { api } from "../api/client.js";
-// import KpiCard from "../components/KpiCard.jsx";
-// import {
-//   formatCompactNumber,
-//   formatMinutes,
-//   formatNumber,
-//   formatPercent,
-//   formatScore,
-// } from "../utils/formatters.js";
-// import { useI18n } from "../i18n/I18nContext.jsx";
-
-// export default function OverviewPage({ cityId }) {
-//   const { t } = useI18n();
-
-//   const [baseline, setBaseline] = useState(null);
-//   const [loading, setLoading] = useState(Boolean(cityId));
-//   const [error, setError] = useState(null);
-
-//   useEffect(() => {
-//     if (!cityId) return;
-
-//     let cancelled = false;
-
-//     async function load() {
-//       setLoading(true);
-//       setError(null);
-
-//       try {
-//         const data = await api.getBaseline(cityId);
-
-//         if (!cancelled) {
-//           console.log("Baseline response", data);
-//           setBaseline(data);
-//         }
-//       } catch (err) {
-//         if (!cancelled) setError(err.message);
-//       } finally {
-//         if (!cancelled) setLoading(false);
-//       }
-//     }
-
-//     load();
-
-//     return () => {
-//       cancelled = true;
-//     };
-//   }, [cityId]);
-
-//   if (!cityId) {
-//     return (
-//       <EmptyState
-//         title="No city selected"
-//         message="Upload or select a city first."
-//       />
-//     );
-//   }
-
-//   if (loading) {
-//     return (
-//       <EmptyState
-//         title="Loading baseline..."
-//         message="Fetching accessibility indicators."
-//       />
-//     );
-//   }
-
-//   if (error) {
-//     return <EmptyState title="Could not load baseline" message={error} />;
-//   }
-
-//   const kpis = baseline?.kpis || {};
-//   const cityName = baseline?.city_name || cityId;
-
-//   return (
-//     <div className="section-space">
-//       <section>
-//         <h2 className="page-title">
-//           {t("overviewTitle", { city: cityName })}
-//         </h2>
-//         <p className="page-subtitle">{t("overviewSubtitle")}</p>
-//       </section>
-
-//       {baseline?.warnings?.length > 0 && (
-//         <div className="warning-box">
-//           {baseline.warnings.map((warning, index) => (
-//             <p key={index} style={{ margin: index === 0 ? 0 : "8px 0 0" }}>
-//               {warning}
-//             </p>
-//           ))}
-//         </div>
-//       )}
-
-//       <section className="kpi-grid">
-//         <KpiCard
-//           title={t("populationCovered")}
-//           value={formatCompactNumber(kpis.population)}
-//           subtitle={t("populationCoveredSub")}
-//         />
-
-//         <KpiCard
-//           title={t("healthcareFacilities")}
-//           value={formatNumber(kpis.facility_count)}
-//           subtitle={t("healthcareFacilitiesSub")}
-//         />
-
-//         <KpiCard
-//           title={t("transportStops")}
-//           value={formatNumber(kpis.transport_stop_count)}
-//           subtitle={t("transportStopsSub")}
-//         />
-
-//         <KpiCard
-//           title={t("averageAccessTime")}
-//           value={formatMinutes(kpis.average_access_time_min)}
-//           subtitle={t("averageAccessTimeSub")}
-//         />
-
-//         <KpiCard
-//           title={t("averageAccessibilityScore")}
-//           value={formatScore(kpis.average_accessibility_score)}
-//           subtitle={t("averageAccessibilityScoreSub")}
-//         />
-
-//         <KpiCard
-//           title={t("populationWithin60")}
-//           value={formatPercent(kpis.pct_population_within_60_min)}
-//           subtitle={t("populationWithin60Sub")}
-//         />
-
-//         <KpiCard
-//           title={t("coverageGap")}
-//           value={formatPercent(kpis.coverage_gap_pct)}
-//           subtitle={t("coverageGapSub")}
-//         />
-//       </section>
-
-//       <section className="card card-pad">
-//         <div
-//           style={{
-//             display: "flex",
-//             justifyContent: "space-between",
-//             gap: "16px",
-//             alignItems: "flex-start",
-//             flexWrap: "wrap",
-//           }}
-//         >
-//           <div>
-//             <h3 style={{ margin: 0, fontSize: "18px" }}>{t("readiness")}</h3>
-//             <p
-//               style={{
-//                 margin: "6px 0 0",
-//                 color: "#64748b",
-//                 fontSize: "14px",
-//               }}
-//             >
-//               {t("readinessDescription")}
-//             </p>
-//           </div>
-
-//           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-//             <ReadinessBadge
-//               label={t("baseline")}
-//               ready={baseline?.readiness?.baseline_ready}
-//               missing={baseline?.readiness?.missing_baseline_files}
-//               t={t}
-//             />
-
-//             <ReadinessBadge
-//               label={t("simulation")}
-//               ready={baseline?.readiness?.simulation_ready}
-//               missing={baseline?.readiness?.missing_simulation_files}
-//               t={t}
-//             />
-//           </div>
-//         </div>
-//       </section>
-//     </div>
-//   );
-// }
-
-// function ReadinessBadge({ label, ready, missing = [], t }) {
-//   return (
-//     <div>
-//       <span className={`badge ${ready ? "ready" : "partial"}`}>
-//         {label} {ready ? t("ready") : t("incomplete")}
-//       </span>
-
-//       {!ready && missing?.length > 0 && (
-//         <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: "13px" }}>
-//           Missing: {missing.join(", ")}
-//         </p>
-//       )}
-//     </div>
-//   );
-// }
-
-// function EmptyState({ title, message }) {
-//   return (
-//     <div className="card card-pad empty-state">
-//       <h2 style={{ marginTop: 0 }}>{title}</h2>
-//       <p style={{ color: "#64748b", marginBottom: 0 }}>{message}</p>
-//     </div>
-//   );
-// }
-
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import {
@@ -233,6 +27,7 @@ export default function OverviewPage({ cityId }) {
 
       try {
         const data = await api.getBaseline(cityId);
+
         if (!cancelled) {
           console.log("Baseline response", data);
           setBaseline(data);
@@ -263,14 +58,21 @@ export default function OverviewPage({ cityId }) {
   if (loading) {
     return (
       <EmptyState
-        title="Loading baseline..."
-        message="Fetching accessibility indicators."
+        title={t("loadingBaseline") || "Loading baseline..."}
+        message={
+          t("loadingBaselineMessage") || "Fetching accessibility indicators."
+        }
       />
     );
   }
 
   if (error) {
-    return <EmptyState title="Could not load baseline" message={error} />;
+    return (
+      <EmptyState
+        title={t("baselineLoadError") || "Could not load baseline"}
+        message={error}
+      />
+    );
   }
 
   const kpis = baseline?.kpis || {};
@@ -282,111 +84,112 @@ export default function OverviewPage({ cityId }) {
 
   return (
     <div className="section-space">
-        <section className="overview-summary-header">
+      <section className="overview-summary-header">
         <div>
-            <h2 className="overview-panel-title">
+          <h2 className="overview-panel-title">
             {t("overviewTitle", { city: cityName })}
-            </h2>
-            <p className="overview-panel-subtitle">
-            City-wide accessibility indicators · Active package:{" "}
+          </h2>
+
+          <p className="overview-panel-subtitle">
+            {t("cityWideAccessibilityIndicators")} · {t("activeCityPackage")}:{" "}
             <strong>{cityId}</strong>
-            </p>
+          </p>
         </div>
 
         <div className="overview-pills">
-            <span
+          <span
             className={`overview-pill ${
-                baseline?.readiness?.baseline_ready ? "ready" : "partial"
+              baseline?.readiness?.baseline_ready ? "ready" : "partial"
             }`}
-            >
+          >
             {baseline?.readiness?.baseline_ready
-                ? t("baselineReady")
-                : t("baselineIncomplete")}
-            </span>
+              ? t("baselineReady")
+              : t("baselineIncomplete")}
+          </span>
 
-            <span
+          <span
             className={`overview-pill ${
-                baseline?.readiness?.simulation_ready ? "ready" : "partial"
+              baseline?.readiness?.simulation_ready ? "ready" : "partial"
             }`}
-            >
+          >
             {baseline?.readiness?.simulation_ready
-                ? t("simulationReady")
-                : t("simulationIncomplete")}
-            </span>
+              ? t("simulationReady")
+              : t("simulationIncomplete")}
+          </span>
         </div>
-        </section>
+      </section>
 
-        <div className="overview-panel">
+      <div className="overview-panel">
         {baseline?.warnings?.length > 0 && (
-            <div className="warning-box">
+          <div className="warning-box">
             {baseline.warnings.map((warning, index) => (
-                <p key={index} style={{ margin: index === 0 ? 0 : "8px 0 0" }}>
+              <p key={index} style={{ margin: index === 0 ? 0 : "8px 0 0" }}>
                 {warning}
-                </p>
+              </p>
             ))}
-            </div>
+          </div>
         )}
 
-        <SectionLabel label="Coverage inputs" />
+        <SectionLabel label={t("coverageInputs")} />
 
         <section className="overview-card-grid inputs">
-            <OverviewMetricCard
+          <OverviewMetricCard
             label={t("populationCovered")}
             value={formatCompactNumber(kpis.population)}
-            helper="Included in city package"
-            />
+            helper={t("populationCoveredSub")}
+          />
 
-            <OverviewMetricCard
+          <OverviewMetricCard
             label={t("healthcareFacilities")}
             value={formatNumber(kpis.facility_count)}
-            helper="Destinations available"
-            />
+            helper={t("healthcareFacilitiesSub")}
+          />
 
-            <OverviewMetricCard
+          <OverviewMetricCard
             label={t("transportStops")}
             value={formatNumber(kpis.transport_stop_count)}
-            helper="Public access points"
-            />
+            helper={t("transportStopsSub")}
+          />
         </section>
 
-        <SectionLabel label="Accessibility outcomes" />
+        <SectionLabel label={t("accessibilityOutcomes")} />
 
         <section className="overview-card-grid outcomes">
-            <OverviewMetricCard
+          <OverviewMetricCard
             label={t("averageAccessTime")}
             value={formatMinutes(kpis.average_access_time_min)}
-            helper="Population-weighted travel time"
+            helper={t("averageAccessTimeSub")}
             accent="green"
-            badge="baseline"
-            />
+            badge={t("baselineLabel")}
+          />
 
-            <OverviewMetricCard
+          <OverviewMetricCard
             label={t("averageAccessibilityScore")}
             value={formatScore(kpis.average_accessibility_score)}
-            helper="Score on a 0–100 scale"
+            helper={t("averageAccessibilityScoreSub")}
             accent="green"
             progress={accessScore}
-            />
+          />
 
-            <OverviewMetricCard
+          <OverviewMetricCard
             label={t("populationWithin60")}
             value={formatPercent(kpis.pct_population_within_60_min)}
-            helper="Population-weighted coverage"
+            helper={t("populationWithin60Sub")}
             accent="green"
             progress={within60}
-            />
+          />
 
-            <OverviewMetricCard
+          <OverviewMetricCard
             label={t("coverageGap")}
             value={formatPercent(kpis.coverage_gap_pct)}
-            helper="Population with accessibility score below 50"
+            helper={t("coverageGapSub")}
             accent="amber"
             progress={coverageGap}
-            />
+          />
         </section>
-        </div>
+      </div>
     </div>
-    );
+  );
 }
 
 function SectionLabel({ label }) {
@@ -402,7 +205,11 @@ function OverviewMetricCard({
   badge = null,
 }) {
   return (
-    <article className={`overview-metric-card ${accent !== "neutral" ? `accent-${accent}` : ""}`}>
+    <article
+      className={`overview-metric-card ${
+        accent !== "neutral" ? `accent-${accent}` : ""
+      }`}
+    >
       <p className="overview-metric-label">{label}</p>
       <div className="overview-metric-value">{value}</div>
       <p className="overview-metric-helper">{helper}</p>
@@ -412,7 +219,9 @@ function OverviewMetricCard({
       {progress !== null && (
         <div className="overview-progress-track">
           <div
-            className={`overview-progress-fill ${accent === "amber" ? "amber" : "green"}`}
+            className={`overview-progress-fill ${
+              accent === "amber" ? "amber" : "green"
+            }`}
             style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
           />
         </div>

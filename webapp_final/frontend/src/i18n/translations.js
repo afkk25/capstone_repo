@@ -8,6 +8,10 @@ export const translations = {
     simulation: "Simulation",
     analytics: "Analysis",
     uploadData: "Upload data",
+    coverageInputs: "Coverage inputs",
+    accessibilityOutcomes: "Accessibility outcomes",
+    cityWideAccessibilityIndicators: "City-wide accessibility indicators",
+    baselineLabel: "baseline",
 
     baselineReady: "Baseline Ready",
     baselineIncomplete: "Baseline Incomplete",
@@ -165,6 +169,14 @@ export const translations = {
     analytics: "Analyse",
     uploadData: "Importer les données",
 
+    coverageInputs: "Données de couverture",
+    accessibilityOutcomes: "Résultats d’accessibilité",
+    cityWideAccessibilityIndicators: "Indicateurs d’accessibilité à l’échelle de la ville",
+    baselineLabel: "référence",
+    loadingBaseline: "Chargement de la référence...",
+    loadingBaselineMessage: "Récupération des indicateurs d’accessibilité.",
+    baselineLoadError: "Impossible de charger la référence",
+
     baselineReady: "Baseline prête",
     baselineIncomplete: "Baseline incomplète",
     simulationReady: "Simulation prête",
@@ -320,6 +332,11 @@ export const translations = {
     simulation: "المحاكاة",
     analytics: "التحليل",
     uploadData: "رفع البيانات",
+
+    coverageInputs: "مدخلات التغطية",
+    accessibilityOutcomes: "مخرجات الولوج",
+    cityWideAccessibilityIndicators: "مؤشرات الولوج على مستوى المدينة",
+    baselineLabel: "خط الأساس",
 
     baselineReady: "البيانات الأساسية جاهزة",
     baselineIncomplete: "البيانات الأساسية غير مكتملة",
